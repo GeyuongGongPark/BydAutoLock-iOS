@@ -99,7 +99,7 @@ Widget Extension
 ### 요구 사항
 
 - Xcode 15 이상
-- iOS 16+ / watchOS 9+ 실기기
+- iOS 16+ / watchOS 10+ 실기기
 - Apple 계정 (무료 계정으로 사이드로딩 가능)
 - `xcodegen` (`brew install xcodegen`)
 

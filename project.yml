@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.ggpark
   deploymentTarget:
     iOS: "16.0"
-    watchOS: "9.0"
+    watchOS: "10.0"
   defaultConfig: Debug
 
 settings:
@@ -73,13 +73,14 @@ targets:
 
   # ── Apple Watch 앱 ─────────────────────────────────────────
   BydAutoLockWatchApp:
-    type: com.apple.product-type.application.watchapp2
+    type: application
     platform: watchOS
-    deploymentTarget: "9.0"
+    deploymentTarget: "10.0"
     sources:
       - path: BydAutoLockWatch
         excludes:
           - "**/.DS_Store"
+          - "Info.plist"
     info:
       path: BydAutoLockWatch/Info.plist
       properties:
@@ -97,17 +98,20 @@ targets:
         PRODUCT_NAME: BYD AutoLock
         INFOPLIST_FILE: BydAutoLockWatch/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWatch/BydAutoLockWatch.entitlements
-        WATCHOS_DEPLOYMENT_TARGET: "9.0"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        SKIP_INSTALL: YES
+        WKCompanionAppBundleIdentifier: com.ggpark.bydautolock
 
   # ── 위젯 Extension ─────────────────────────────────────────
   BydAutoLockWidget:
     type: app-extension
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources:
       - path: BydAutoLockWidget
         excludes:
           - "**/.DS_Store"
+          - "Info.plist"
     info:
       path: BydAutoLockWidget/Info.plist
       properties:
@@ -125,3 +129,4 @@ targets:
         PRODUCT_NAME: BydAutoLockWidget
         INFOPLIST_FILE: BydAutoLockWidget/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWidget/BydAutoLockWidget.entitlements
+        SKIP_INSTALL: YES
