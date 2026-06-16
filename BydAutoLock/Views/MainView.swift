@@ -5,7 +5,8 @@ struct MainView: View {
     @StateObject private var service = AutoLockService.shared
     @State private var showDrawer = false
     @State private var vehicleStatus: VehicleStatus?
-    @State private var isRefreshing       = false
+    @State private var isRefreshing         = false
+    @State private var isRefreshingParking  = false
 
     private let storage = StorageManager.shared
 
@@ -20,6 +21,7 @@ struct MainView: View {
                         vehicleStatusCard
                         quickActionsCard
                         acControlCard
+                        parkingLocationCard
                     }
                     .padding()
                 }
@@ -286,6 +288,84 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    // MARK: - Parking Location Card
+
+    private var parkingLocationCard: some View {
+        CardView {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("주차 위치", systemImage: "parkingsign.circle.fill")
+                        .font(.headline)
+                    Spacer()
+                    Button {
+                        refreshParking()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(isRefreshingParking ? 360 : 0))
+                            .animation(isRefreshingParking
+                                       ? .linear(duration: 1).repeatForever(autoreverses: false)
+                                       : .default,
+                                       value: isRefreshingParking)
+                    }
+                    .disabled(isRefreshingParking || !service.isRunning)
+                }
+                Divider()
+
+                if service.lastParkingLat != 0 || service.lastParkingLng != 0 {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.caption).foregroundStyle(.blue)
+                            Text(String(format: "%.5f, %.5f",
+                                        service.lastParkingLat,
+                                        service.lastParkingLng))
+                                .font(.system(.subheadline, design: .monospaced))
+                        }
+                        if let t = service.lastParkingTime {
+                            Text(RelativeDateTimeFormatter().localizedString(for: t, relativeTo: Date()))
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Button {
+                        openInMaps()
+                    } label: {
+                        Label("Apple 지도에서 보기", systemImage: "map.fill")
+                            .font(.subheadline.bold())
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundStyle(.blue)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.blue.opacity(0.4), lineWidth: 1))
+                    }
+                } else {
+                    Text(service.isRunning ? "위치 정보 없음 (새로고침 시도)" : "서비스 시작 후 조회 가능")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private func openInMaps() {
+        let lat = service.lastParkingLat
+        let lng = service.lastParkingLng
+        guard let url = URL(string: "maps://?ll=\(lat),\(lng)&q=내+차량") else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private func refreshParking() {
+        guard service.isRunning else { return }
+        isRefreshingParking = true
+        service.refreshParkingLocation()
+        // 5초 후 스피너 종료 (pollVehicleGPS 완료 콜백 없으므로 타임아웃 처리)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            isRefreshingParking = false
         }
     }
 

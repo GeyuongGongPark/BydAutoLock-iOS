@@ -29,6 +29,9 @@ final class AutoLockService: NSObject, ObservableObject {
     @Published var scanModeDescription = "중지됨"
     @Published var isInsideGeofence = false
     @Published var isStationary = false
+    @Published var lastParkingLat: Double = 0
+    @Published var lastParkingLng: Double = 0
+    @Published var lastParkingTime: Date?
 
     enum ProximityState: String { case near = "NEAR", far = "FAR" }
 
@@ -102,6 +105,13 @@ final class AutoLockService: NSObject, ObservableObject {
             return
         }
 
+        // 저장된 마지막 위치 복원
+        lastParkingLat = storage.lastVehicleLat
+        lastParkingLng = storage.lastVehicleLng
+        if storage.lastVehicleTime > 0 {
+            lastParkingTime = Date(timeIntervalSince1970: storage.lastVehicleTime)
+        }
+
         isRunning = true
         startBLEScan()
         startWatchdog()
@@ -141,6 +151,10 @@ final class AutoLockService: NSObject, ObservableObject {
         storage.saveWidgetData(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    func refreshParkingLocation() {
+        Task { await pollVehicleGPS() }
     }
 
     func manualLock() {
@@ -449,6 +463,9 @@ final class AutoLockService: NSObject, ObservableObject {
                 self.storage.lastVehicleLng    = gps.longitude
                 self.storage.lastVehicleTime   = gps.timestamp
                 self.storage.lastVehicleSource = "API"
+                self.lastParkingLat  = gps.latitude
+                self.lastParkingLng  = gps.longitude
+                self.lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
             }
             if storage.isGeofencingEnabled {
                 geofenceManager.registerGeofence(lat: gps.latitude, lng: gps.longitude)
