@@ -1,0 +1,699 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0455C0E76197CECC68AC01AF /* BluetoothSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */; };
+		0A913999408078E6C703FA2B /* ThresholdSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */; };
+		0F713620D616C9DA12C43E4B /* AutoLockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B085B3C357AC8028292DC9FA /* AutoLockService.swift */; };
+		142D722116231C03F136EA5C /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5BD749506934B29CD1C2AC /* MainView.swift */; };
+		17A0E1EF9A8C18F6A175B3CF /* BydAutoLockWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3553478C2056D74FD17C5428 /* EnergyConsumption.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */; };
+		3DCF82775F182D136EF3E614 /* HvacStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DBF781AAAA85839E58508B /* HvacStatus.swift */; };
+		4256E5D147FBC077E721D90C /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */; };
+		51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04F548A007CC17D0532E811 /* LogManager.swift */; };
+		58C1A57F000F788AC93D4946 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */; };
+		5A00FA4DAE53EFA9C31FA7BE /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CA6D97AAC2BB7D4D478200 /* LogView.swift */; };
+		5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */; };
+		6D3D4AE844CD90F2766479E6 /* BydAutoLockWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		74B15476F7C5FEE285924090 /* WatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1CE88B07E9296793D407114 /* WatchComplication.swift */; };
+		757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6C000F741DA8D709913F0C /* BangcleCodec.swift */; };
+		7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */; };
+		8A5BE94093A053994140874C /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD514673509F5771630DD49 /* CryptoUtils.swift */; };
+		8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */ = {isa = PBXBuildFile; fileRef = 52E7969C847A968DA4861284 /* bangcle_tables.bin */; };
+		9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */; };
+		947F280D4098A130E9B1B4A5 /* VehicleStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */; };
+		9D858326C8A81F5CA55ADEEA /* BydAutoLockWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49978E23297EF3CF6E12ABE /* BydAutoLockWatchApp.swift */; };
+		A0057442BC7483FB058A9E08 /* ChargingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D81A6E33A5750C43A77E43 /* ChargingStatus.swift */; };
+		A5D9E5C1A3329ADD8ABEE007 /* GpsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF18F900BB57ECE310A3B2D /* GpsInfo.swift */; };
+		C71C9B9740B6A4AE93EC7197 /* GeofenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6618C7221FA7985517B64B93 /* GeofenceManager.swift */; };
+		D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D773CC403BBD4A21A48A4B /* StorageManager.swift */; };
+		D96CBB0917233ACF9D8A9A38 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */; };
+		DDD4AA4E36B420D7AA1E4AEC /* AuthSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */; };
+		DEF42E848E2B89C195F778DD /* WatchMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */; };
+		E8D2FF389ABB9C098712157A /* BydAutoLockWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */; };
+		FDE22BC4547F63A8F7230EF0 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14482C394323F1A99A263F6 /* KeychainHelper.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A2266C2A979A587F958D46CC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA4CFFC435C83E381198274B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5398D270FE93AB29074E8A32;
+			remoteInfo = BydAutoLockWatchApp;
+		};
+		DAF1CA09307C02D016CA7EF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA4CFFC435C83E381198274B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4DC85A7113A2EE22BCF0F540;
+			remoteInfo = BydAutoLockWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		9E2F1806C8CF68378DFC3641 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				6D3D4AE844CD90F2766479E6 /* BydAutoLockWatchApp.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C7A5149CFC180DA795B29079 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				17A0E1EF9A8C18F6A175B3CF /* BydAutoLockWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BydAutoLockWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSettingsView.swift; sourceTree = "<group>"; };
+		1D6C000F741DA8D709913F0C /* BangcleCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BangcleCodec.swift; sourceTree = "<group>"; };
+		1FFDDCE4D931687D9C5485A6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2CF18F900BB57ECE310A3B2D /* GpsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpsInfo.swift; sourceTree = "<group>"; };
+		35C32202F150EF7914B7817D /* BydAutoLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLock.entitlements; sourceTree = "<group>"; };
+		35CA6D97AAC2BB7D4D478200 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
+		37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdSettingsView.swift; sourceTree = "<group>"; };
+		4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockWidget.swift; sourceTree = "<group>"; };
+		45D81A6E33A5750C43A77E43 /* ChargingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingStatus.swift; sourceTree = "<group>"; };
+		4E9D6E35A18782AFCBFE798B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockApp.swift; sourceTree = "<group>"; };
+		52E7969C847A968DA4861284 /* bangcle_tables.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = bangcle_tables.bin; sourceTree = "<group>"; };
+		6618C7221FA7985517B64B93 /* GeofenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofenceManager.swift; sourceTree = "<group>"; };
+		695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydConfig.swift; sourceTree = "<group>"; };
+		6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
+		74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = BydAutoLockWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
+		A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydVehicleService.swift; sourceTree = "<group>"; };
+		A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleStatus.swift; sourceTree = "<group>"; };
+		A761D1FFE7E2542FA9BAB0F4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A94E35699E4E1F2C713542DD /* BydAutoLockWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWidget.entitlements; sourceTree = "<group>"; };
+		AB5BD749506934B29CD1C2AC /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		B04F548A007CC17D0532E811 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
+		B085B3C357AC8028292DC9FA /* AutoLockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoLockService.swift; sourceTree = "<group>"; };
+		B4DBF781AAAA85839E58508B /* HvacStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HvacStatus.swift; sourceTree = "<group>"; };
+		B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
+		BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWatch.entitlements; sourceTree = "<group>"; };
+		CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BydAutoLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D7D773CC403BBD4A21A48A4B /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
+		E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyConsumption.swift; sourceTree = "<group>"; };
+		E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMainView.swift; sourceTree = "<group>"; };
+		EDD514673509F5771630DD49 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
+		F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothSettingsView.swift; sourceTree = "<group>"; };
+		F14482C394323F1A99A263F6 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		F1CE88B07E9296793D407114 /* WatchComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchComplication.swift; sourceTree = "<group>"; };
+		F49978E23297EF3CF6E12ABE /* BydAutoLockWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockWatchApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0F5431EE9F0395EF3BBA449E = {
+			isa = PBXGroup;
+			children = (
+				C5ED10E7612069439A80C3F6 /* BydAutoLock */,
+				FB87129C09AC24FB680E077B /* BydAutoLockWatch */,
+				68D33310936CE178B7B13E97 /* BydAutoLockWidget */,
+				CC51188035B58DE333BEC155 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		27B77709B541B7648BE11D2D /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */,
+				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
+				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
+				AB5BD749506934B29CD1C2AC /* MainView.swift */,
+				37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		30DF109CA24BBA18C4D223D3 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				52E7969C847A968DA4861284 /* bangcle_tables.bin */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4F784A90168475FAD989D301 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				F14482C394323F1A99A263F6 /* KeychainHelper.swift */,
+				D7D773CC403BBD4A21A48A4B /* StorageManager.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+		68D33310936CE178B7B13E97 /* BydAutoLockWidget */ = {
+			isa = PBXGroup;
+			children = (
+				A94E35699E4E1F2C713542DD /* BydAutoLockWidget.entitlements */,
+				4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */,
+				1FFDDCE4D931687D9C5485A6 /* Info.plist */,
+			);
+			path = BydAutoLockWidget;
+			sourceTree = "<group>";
+		};
+		AF96815CD88748D75BFCCED7 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				1D6C000F741DA8D709913F0C /* BangcleCodec.swift */,
+				695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */,
+				A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */,
+				EDD514673509F5771630DD49 /* CryptoUtils.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		C432B9B147966E3170A22B53 /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				B085B3C357AC8028292DC9FA /* AutoLockService.swift */,
+				6618C7221FA7985517B64B93 /* GeofenceManager.swift */,
+				77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */,
+			);
+			path = Service;
+			sourceTree = "<group>";
+		};
+		C5ED10E7612069439A80C3F6 /* BydAutoLock */ = {
+			isa = PBXGroup;
+			children = (
+				35C32202F150EF7914B7817D /* BydAutoLock.entitlements */,
+				4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */,
+				4E9D6E35A18782AFCBFE798B /* Info.plist */,
+				AF96815CD88748D75BFCCED7 /* API */,
+				F8FD76D25D037F0165E66CB0 /* Log */,
+				C645CC4F705E06976B559B26 /* Models */,
+				30DF109CA24BBA18C4D223D3 /* Resources */,
+				C432B9B147966E3170A22B53 /* Service */,
+				4F784A90168475FAD989D301 /* Storage */,
+				27B77709B541B7648BE11D2D /* Views */,
+			);
+			path = BydAutoLock;
+			sourceTree = "<group>";
+		};
+		C645CC4F705E06976B559B26 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				45D81A6E33A5750C43A77E43 /* ChargingStatus.swift */,
+				E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */,
+				2CF18F900BB57ECE310A3B2D /* GpsInfo.swift */,
+				B4DBF781AAAA85839E58508B /* HvacStatus.swift */,
+				A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CC51188035B58DE333BEC155 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */,
+				04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */,
+				74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F8FD76D25D037F0165E66CB0 /* Log */ = {
+			isa = PBXGroup;
+			children = (
+				6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */,
+				B04F548A007CC17D0532E811 /* LogManager.swift */,
+			);
+			path = Log;
+			sourceTree = "<group>";
+		};
+		FB87129C09AC24FB680E077B /* BydAutoLockWatch */ = {
+			isa = PBXGroup;
+			children = (
+				BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */,
+				F49978E23297EF3CF6E12ABE /* BydAutoLockWatchApp.swift */,
+				A761D1FFE7E2542FA9BAB0F4 /* Info.plist */,
+				F1CE88B07E9296793D407114 /* WatchComplication.swift */,
+				B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */,
+				E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */,
+			);
+			path = BydAutoLockWatch;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		48D53BFFBB56C277BEF7F3F7 /* BydAutoLock */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3CE23E7F488B4B3F1C6B949B /* Build configuration list for PBXNativeTarget "BydAutoLock" */;
+			buildPhases = (
+				18D7BF7170CEA2398C6F3EC6 /* Sources */,
+				BC93FADED33B336E86E6F1AB /* Resources */,
+				C7A5149CFC180DA795B29079 /* Embed Foundation Extensions */,
+				9E2F1806C8CF68378DFC3641 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				331AB953322F381B8F32F00E /* PBXTargetDependency */,
+				1C175F3C3F7FE017A9FEC371 /* PBXTargetDependency */,
+			);
+			name = BydAutoLock;
+			packageProductDependencies = (
+			);
+			productName = BydAutoLock;
+			productReference = CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4DC85A7113A2EE22BCF0F540 /* BydAutoLockWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6C2627D6645B57593D17092 /* Build configuration list for PBXNativeTarget "BydAutoLockWidget" */;
+			buildPhases = (
+				4B6B4780CF40066F96F86983 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BydAutoLockWidget;
+			packageProductDependencies = (
+			);
+			productName = BydAutoLockWidget;
+			productReference = 74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		5398D270FE93AB29074E8A32 /* BydAutoLockWatchApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB9A6D93C9F80FA95D6F85B5 /* Build configuration list for PBXNativeTarget "BydAutoLockWatchApp" */;
+			buildPhases = (
+				50F1746129EF220780FF0CC6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BydAutoLockWatchApp;
+			packageProductDependencies = (
+			);
+			productName = BydAutoLockWatchApp;
+			productReference = 04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */;
+			productType = "com.apple.product-type.application.watchapp2";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DA4CFFC435C83E381198274B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					48D53BFFBB56C277BEF7F3F7 = {
+						DevelopmentTeam = "";
+					};
+					4DC85A7113A2EE22BCF0F540 = {
+						DevelopmentTeam = "";
+					};
+					5398D270FE93AB29074E8A32 = {
+						DevelopmentTeam = "";
+					};
+				};
+			};
+			buildConfigurationList = A3DAC0A728A6C752CF445C7A /* Build configuration list for PBXProject "BydAutoLock" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0F5431EE9F0395EF3BBA449E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CC51188035B58DE333BEC155 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				48D53BFFBB56C277BEF7F3F7 /* BydAutoLock */,
+				5398D270FE93AB29074E8A32 /* BydAutoLockWatchApp */,
+				4DC85A7113A2EE22BCF0F540 /* BydAutoLockWidget */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BC93FADED33B336E86E6F1AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		18D7BF7170CEA2398C6F3EC6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DDD4AA4E36B420D7AA1E4AEC /* AuthSettingsView.swift in Sources */,
+				0F713620D616C9DA12C43E4B /* AutoLockService.swift in Sources */,
+				757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */,
+				0455C0E76197CECC68AC01AF /* BluetoothSettingsView.swift in Sources */,
+				7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */,
+				5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */,
+				9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */,
+				A0057442BC7483FB058A9E08 /* ChargingStatus.swift in Sources */,
+				8A5BE94093A053994140874C /* CryptoUtils.swift in Sources */,
+				3553478C2056D74FD17C5428 /* EnergyConsumption.swift in Sources */,
+				C71C9B9740B6A4AE93EC7197 /* GeofenceManager.swift in Sources */,
+				A5D9E5C1A3329ADD8ABEE007 /* GpsInfo.swift in Sources */,
+				3DCF82775F182D136EF3E614 /* HvacStatus.swift in Sources */,
+				FDE22BC4547F63A8F7230EF0 /* KeychainHelper.swift in Sources */,
+				58C1A57F000F788AC93D4946 /* LogEntry.swift in Sources */,
+				51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */,
+				5A00FA4DAE53EFA9C31FA7BE /* LogView.swift in Sources */,
+				142D722116231C03F136EA5C /* MainView.swift in Sources */,
+				D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */,
+				0A913999408078E6C703FA2B /* ThresholdSettingsView.swift in Sources */,
+				947F280D4098A130E9B1B4A5 /* VehicleStatus.swift in Sources */,
+				D96CBB0917233ACF9D8A9A38 /* WatchConnectivityManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B6B4780CF40066F96F86983 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8D2FF389ABB9C098712157A /* BydAutoLockWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50F1746129EF220780FF0CC6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D858326C8A81F5CA55ADEEA /* BydAutoLockWatchApp.swift in Sources */,
+				74B15476F7C5FEE285924090 /* WatchComplication.swift in Sources */,
+				4256E5D147FBC077E721D90C /* WatchConnectivityManager.swift in Sources */,
+				DEF42E848E2B89C195F778DD /* WatchMainView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1C175F3C3F7FE017A9FEC371 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4DC85A7113A2EE22BCF0F540 /* BydAutoLockWidget */;
+			targetProxy = DAF1CA09307C02D016CA7EF9 /* PBXContainerItemProxy */;
+		};
+		331AB953322F381B8F32F00E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5398D270FE93AB29074E8A32 /* BydAutoLockWatchApp */;
+			targetProxy = A2266C2A979A587F958D46CC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		72C1830906B2DC2A3226511A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
+				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.watchapp;
+				PRODUCT_NAME = "BYD AutoLock";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Debug;
+		};
+		8E358661D46B05541DFBE5EC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Debug;
+		};
+		9F25CBD304FF092FEF140235 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BydAutoLockWidget/BydAutoLockWidget.entitlements;
+				INFOPLIST_FILE = BydAutoLockWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.widget;
+				PRODUCT_NAME = BydAutoLockWidget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A6646608662B39CCD18DFD5A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Release;
+		};
+		B3DBE232A6B5069F19D9D5E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BydAutoLockWidget/BydAutoLockWidget.entitlements;
+				INFOPLIST_FILE = BydAutoLockWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.widget;
+				PRODUCT_NAME = BydAutoLockWidget;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CF478343F40FCB68E62460A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BydAutoLock/BydAutoLock.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BydAutoLock/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock;
+				PRODUCT_NAME = "BYD AutoLock";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DB33A85F10A7EBF0C76BA999 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = BydAutoLock/BydAutoLock.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = BydAutoLock/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock;
+				PRODUCT_NAME = "BYD AutoLock";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F746EDC16DF675C5E56FB656 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
+				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.watchapp;
+				PRODUCT_NAME = "BYD AutoLock";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 9.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3CE23E7F488B4B3F1C6B949B /* Build configuration list for PBXNativeTarget "BydAutoLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CF478343F40FCB68E62460A2 /* Debug */,
+				DB33A85F10A7EBF0C76BA999 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A3DAC0A728A6C752CF445C7A /* Build configuration list for PBXProject "BydAutoLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8E358661D46B05541DFBE5EC /* Debug */,
+				A6646608662B39CCD18DFD5A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BB9A6D93C9F80FA95D6F85B5 /* Build configuration list for PBXNativeTarget "BydAutoLockWatchApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				72C1830906B2DC2A3226511A /* Debug */,
+				F746EDC16DF675C5E56FB656 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E6C2627D6645B57593D17092 /* Build configuration list for PBXNativeTarget "BydAutoLockWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B3DBE232A6B5069F19D9D5E2 /* Debug */,
+				9F25CBD304FF092FEF140235 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DA4CFFC435C83E381198274B /* Project object */;
+}

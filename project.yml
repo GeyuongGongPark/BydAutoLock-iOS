@@ -1,0 +1,127 @@
+name: BydAutoLock
+options:
+  bundleIdPrefix: com.ggpark
+  deploymentTarget:
+    iOS: "16.0"
+    watchOS: "9.0"
+  defaultConfig: Debug
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+
+  # ── iPhone 앱 ──────────────────────────────────────────────
+  BydAutoLock:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: BydAutoLock
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: BydAutoLock/Resources/bangcle_tables.bin
+    info:
+      path: BydAutoLock/Info.plist
+      properties:
+        # 전체 화면 지원 (레터박스 제거)
+        UILaunchScreen: {}
+        # 세로 모드 고정
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        # 배경 실행 모드
+        UIBackgroundModes:
+          - bluetooth-central
+          - location
+          - fetch
+          - processing
+        # 개인정보 권한 설명
+        NSBluetoothAlwaysUsageDescription: BYD 차량 BLE 신호를 감지하여 자동 잠금/해제에 사용합니다.
+        NSLocationAlwaysAndWhenInUseUsageDescription: 주차 위치 기반 지오펜싱으로 차량 근접 여부를 판단합니다.
+        NSLocationWhenInUseUsageDescription: 주차 위치 기반 지오펜싱으로 차량 근접 여부를 판단합니다.
+        NSMotionUsageDescription: 정지 감지로 불필요한 BLE 스캔을 줄여 배터리를 절약합니다.
+        # ATS 예외 (BYD API)
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            byd.auto:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: false
+              NSExceptionRequiresForwardSecrecy: false
+    entitlements:
+      path: BydAutoLock/BydAutoLock.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.ggpark.bydautolock
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock
+        PRODUCT_NAME: BYD AutoLock
+        INFOPLIST_FILE: BydAutoLock/Info.plist
+        CODE_SIGN_ENTITLEMENTS: BydAutoLock/BydAutoLock.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+    dependencies:
+      - target: BydAutoLockWatchApp
+        embed: true
+      - target: BydAutoLockWidget
+        embed: true
+
+  # ── Apple Watch 앱 ─────────────────────────────────────────
+  BydAutoLockWatchApp:
+    type: com.apple.product-type.application.watchapp2
+    platform: watchOS
+    deploymentTarget: "9.0"
+    sources:
+      - path: BydAutoLockWatch
+        excludes:
+          - "**/.DS_Store"
+    info:
+      path: BydAutoLockWatch/Info.plist
+      properties:
+        CFBundleDisplayName: BYD AutoLock
+        WKApplication: true
+        # 컴플리케이션 딥링크 URL scheme
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - bydautolock
+    entitlements:
+      path: BydAutoLockWatch/BydAutoLockWatch.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock.watchapp
+        PRODUCT_NAME: BYD AutoLock
+        INFOPLIST_FILE: BydAutoLockWatch/Info.plist
+        CODE_SIGN_ENTITLEMENTS: BydAutoLockWatch/BydAutoLockWatch.entitlements
+        WATCHOS_DEPLOYMENT_TARGET: "9.0"
+
+  # ── 위젯 Extension ─────────────────────────────────────────
+  BydAutoLockWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: BydAutoLockWidget
+        excludes:
+          - "**/.DS_Store"
+    info:
+      path: BydAutoLockWidget/Info.plist
+      properties:
+        CFBundleDisplayName: BydAutoLockWidget
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: BydAutoLockWidget/BydAutoLockWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.ggpark.bydautolock
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock.widget
+        PRODUCT_NAME: BydAutoLockWidget
+        INFOPLIST_FILE: BydAutoLockWidget/Info.plist
+        CODE_SIGN_ENTITLEMENTS: BydAutoLockWidget/BydAutoLockWidget.entitlements
