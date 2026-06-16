@@ -6,6 +6,7 @@ struct MainView: View {
     @State private var showAuthSettings   = false
     @State private var showBLESettings    = false
     @State private var showThreshSettings = false
+    @State private var showAcSettings     = false
     @State private var showLogs           = false
     @State private var vehicleStatus: VehicleStatus?
     @State private var isRefreshing       = false
@@ -21,6 +22,7 @@ struct MainView: View {
                     rssiCard
                     vehicleStatusCard
                     quickActionsCard
+                    acControlCard
                     settingsCard
                 }
                 .padding()
@@ -37,6 +39,7 @@ struct MainView: View {
             .sheet(isPresented: $showAuthSettings)    { AuthSettingsView() }
             .sheet(isPresented: $showBLESettings)     { BluetoothSettingsView() }
             .sheet(isPresented: $showThreshSettings)  { ThresholdSettingsView() }
+            .sheet(isPresented: $showAcSettings)      { AcSettingsView() }
             .sheet(isPresented: $showLogs)            { LogView() }
         }
         .preferredColorScheme(.dark)
@@ -248,6 +251,34 @@ struct MainView: View {
         }
     }
 
+    // MARK: - AC Control Card
+
+    private var acControlCard: some View {
+        CardView {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("에어컨 / 공조", systemImage: "snowflake")
+                    .font(.headline)
+                Divider()
+                HStack(spacing: 12) {
+                    actionButton(title: "에어컨 켜기", icon: "snowflake", color: .cyan) {
+                        service.manualStartClimate()
+                    }
+                    actionButton(title: "에어컨 끄기", icon: "snowflake.slash", color: .gray) {
+                        service.manualStopClimate()
+                    }
+                }
+                HStack {
+                    Image(systemName: "info.circle")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("목표 온도: \(String(format: "%.1f", storage.acTargetTemp))°C · 자동 켜기: \(storage.isAutoAcOnUnlock ? "ON" : "OFF")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     // MARK: - Settings Card
 
     private var settingsCard: some View {
@@ -260,6 +291,8 @@ struct MainView: View {
                 settingsButton("블루투스 기기 설정", icon: "bluetooth") { showBLESettings = true }
                 Divider().padding(.leading, 44)
                 settingsButton("RSSI 임계값 설정", icon: "slider.horizontal.3") { showThreshSettings = true }
+                Divider().padding(.leading, 44)
+                settingsButton("에어컨 설정", icon: "snowflake") { showAcSettings = true }
             }
         }
     }

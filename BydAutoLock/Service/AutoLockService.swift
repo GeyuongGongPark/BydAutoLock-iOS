@@ -149,6 +149,40 @@ final class AutoLockService: NSObject, ObservableObject {
         triggerCarAction(shouldUnlock: true, isManual: true)
     }
 
+    func manualStartClimate() {
+        guard let service = vehicleService,
+              let vin = storage.selectedVin,
+              let pin = storage.pin else { return }
+        let temp  = Double(storage.acTargetTemp)
+        let cycle = storage.acCycleMode
+        let wind  = storage.acWindLevel > 0 ? storage.acWindLevel : nil
+        Task {
+            let ok = (try? await service.startClimate(vin: vin, temp: temp,
+                                                      durationMinutes: 20,
+                                                      cycleMode: cycle,
+                                                      windLevel: wind, pin: pin)) ?? false
+            await MainActor.run {
+                self.lastApiResult = ok ? "에어컨 켜기 성공" : "에어컨 켜기 전송됨"
+                self.lastApiTime   = Date()
+            }
+            LogManager.shared.log("API", "에어컨 수동 시작: \(temp)°C")
+        }
+    }
+
+    func manualStopClimate() {
+        guard let service = vehicleService,
+              let vin = storage.selectedVin,
+              let pin = storage.pin else { return }
+        Task {
+            let ok = (try? await service.stopClimate(vin: vin, pin: pin)) ?? false
+            await MainActor.run {
+                self.lastApiResult = ok ? "에어컨 끄기 성공" : "에어컨 끄기 전송됨"
+                self.lastApiTime   = Date()
+            }
+            LogManager.shared.log("API", "에어컨 수동 종료")
+        }
+    }
+
     // MARK: - BLE Scanning
 
     private func startBLEScan() {
