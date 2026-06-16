@@ -27,6 +27,7 @@
 		8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */ = {isa = PBXBuildFile; fileRef = 52E7969C847A968DA4861284 /* bangcle_tables.bin */; };
 		9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */; };
 		947F280D4098A130E9B1B4A5 /* VehicleStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */; };
+		95BEC481018CD89AC34DE656 /* AcSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5312A9DC888A5694D582ED27 /* AcSettingsView.swift */; };
 		9B41BEC05E32BF7301616AC6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F9F70789161D19BE590B1150 /* Assets.xcassets */; };
 		9D858326C8A81F5CA55ADEEA /* BydAutoLockWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49978E23297EF3CF6E12ABE /* BydAutoLockWatchApp.swift */; };
 		A0057442BC7483FB058A9E08 /* ChargingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45D81A6E33A5750C43A77E43 /* ChargingStatus.swift */; };
@@ -95,6 +96,7 @@
 		4E9D6E35A18782AFCBFE798B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockApp.swift; sourceTree = "<group>"; };
 		52E7969C847A968DA4861284 /* bangcle_tables.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = bangcle_tables.bin; sourceTree = "<group>"; };
+		5312A9DC888A5694D582ED27 /* AcSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcSettingsView.swift; sourceTree = "<group>"; };
 		6618C7221FA7985517B64B93 /* GeofenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofenceManager.swift; sourceTree = "<group>"; };
 		695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydConfig.swift; sourceTree = "<group>"; };
 		6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 		27B77709B541B7648BE11D2D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				5312A9DC888A5694D582ED27 /* AcSettingsView.swift */,
 				19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */,
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
@@ -369,6 +372,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				95BEC481018CD89AC34DE656 /* AcSettingsView.swift in Sources */,
 				DDD4AA4E36B420D7AA1E4AEC /* AuthSettingsView.swift in Sources */,
 				0F713620D616C9DA12C43E4B /* AutoLockService.swift in Sources */,
 				757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */,
