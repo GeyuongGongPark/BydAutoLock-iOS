@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        NotificationManager.shared.requestAuthorization()
         let storage = StorageManager.shared
         // 앱 시작 시 서비스 자동 시작
         if storage.isServiceEnabled && storage.hasCredentials && storage.deviceMac != nil {

@@ -121,6 +121,7 @@ final class AutoLockService: NSObject, ObservableObject {
         }
 
         LogManager.shared.log("AutoLockService", "서비스 시작 - 대상: \(targetName ?? mac)")
+        NotificationManager.shared.sendServiceStarted()
     }
 
     func stop() {
@@ -136,6 +137,7 @@ final class AutoLockService: NSObject, ObservableObject {
         rawRssi = nil
         proximityState = .far
         LogManager.shared.log("AutoLockService", "서비스 중지")
+        NotificationManager.shared.sendServiceStopped()
         storage.saveWidgetData(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
@@ -252,6 +254,7 @@ final class AutoLockService: NSObject, ObservableObject {
             signalLossTimer?.invalidate()
             signalLossTimer = nil
             LogManager.shared.log("BLE", "신호 복구됨. 그레이스 타이머 취소.")
+            NotificationManager.shared.sendSignalRestored()
         }
 
         // RSSI 집계 로깅
@@ -268,6 +271,7 @@ final class AutoLockService: NSObject, ObservableObject {
 
         if proximityState == .near && signalLossTimer == nil {
             LogManager.shared.log("BLE", "신호 소실. 2분 그레이스 타이머 시작.")
+            NotificationManager.shared.sendSignalLost()
             signalLossTimer = Timer.scheduledTimer(withTimeInterval: Self.signalLossGracePeriod, repeats: false) { [weak self] _ in
                 Task { @MainActor in
                     guard let self, self.proximityState == .near else { return }
@@ -333,6 +337,7 @@ final class AutoLockService: NSObject, ObservableObject {
                 }
 
                 LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨")")
+                NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual)
 
                 // 자동 에어컨
                 if shouldUnlock && storage.isAutoAcOnUnlock {
@@ -342,9 +347,11 @@ final class AutoLockService: NSObject, ObservableObject {
                     _ = try? await service.startClimate(vin: vin, temp: temp, durationMinutes: 20,
                                                         cycleMode: cycle, windLevel: wind, pin: pin)
                     LogManager.shared.log("API", "에어컨 자동 시작: \(temp)°C")
+                    NotificationManager.shared.sendAcStarted(temp: temp)
                 } else if !shouldUnlock && storage.isAutoAcOffOnLock {
                     _ = try? await service.stopClimate(vin: vin, pin: pin)
                     LogManager.shared.log("API", "에어컨 자동 종료")
+                    NotificationManager.shared.sendAcStopped()
                 }
 
             } catch {

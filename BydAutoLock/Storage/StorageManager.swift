@@ -53,6 +53,13 @@ final class StorageManager {
         static let autoUnlockOnApproach  = "auto_unlock_on_approach"
         static let autoLockOnDeparture   = "auto_lock_on_departure"
         static let debugLoggingEnabled   = "debug_logging_enabled"
+        // 알림
+        static let notifyLockUnlock  = "notify_lock_unlock"
+        static let notifySignalLost  = "notify_signal_lost"
+        static let notifyAc          = "notify_ac"
+        static let notifyService     = "notify_service"
+        static let notifyLowBattery  = "notify_low_battery"
+        static let lowBatteryThreshold = "low_battery_threshold"
         static let lastVehicleLat    = "last_vehicle_lat"
         static let lastVehicleLng    = "last_vehicle_lng"
         static let lastVehicleTime   = "last_vehicle_time"
@@ -203,6 +210,33 @@ final class StorageManager {
     var lastVehicleSource: String? {
         get { defaults.string(forKey: UD.lastVehicleSource) }
         set { defaults.set(newValue, forKey: UD.lastVehicleSource) }
+    }
+
+    // MARK: - Notifications
+
+    var notifyLockUnlock: Bool {
+        get { defaults.object(forKey: UD.notifyLockUnlock) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: UD.notifyLockUnlock) }
+    }
+    var notifySignalLost: Bool {
+        get { defaults.object(forKey: UD.notifySignalLost) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: UD.notifySignalLost) }
+    }
+    var notifyAc: Bool {
+        get { defaults.object(forKey: UD.notifyAc) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: UD.notifyAc) }
+    }
+    var notifyService: Bool {
+        get { defaults.object(forKey: UD.notifyService) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: UD.notifyService) }
+    }
+    var notifyLowBattery: Bool {
+        get { defaults.object(forKey: UD.notifyLowBattery) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: UD.notifyLowBattery) }
+    }
+    var lowBatteryThreshold: Int {
+        get { defaults.object(forKey: UD.lowBatteryThreshold) as? Int ?? 20 }
+        set { defaults.set(newValue, forKey: UD.lowBatteryThreshold) }
     }
 
     // MARK: - Clear Auth

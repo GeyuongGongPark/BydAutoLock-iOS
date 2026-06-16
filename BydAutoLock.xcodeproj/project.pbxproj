@@ -24,6 +24,7 @@
 		74B15476F7C5FEE285924090 /* WatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1CE88B07E9296793D407114 /* WatchComplication.swift */; };
 		757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6C000F741DA8D709913F0C /* BangcleCodec.swift */; };
 		7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */; };
+		8357D7BB007903C2C0BB0A1A /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */; };
 		8A5BE94093A053994140874C /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD514673509F5771630DD49 /* CryptoUtils.swift */; };
 		8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */ = {isa = PBXBuildFile; fileRef = 52E7969C847A968DA4861284 /* bangcle_tables.bin */; };
 		9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */; };
@@ -38,6 +39,7 @@
 		D96CBB0917233ACF9D8A9A38 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */; };
 		DDD4AA4E36B420D7AA1E4AEC /* AuthSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */; };
 		DEF42E848E2B89C195F778DD /* WatchMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */; };
+		E6FA6A18C5E67F5CC1D23D20 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */; };
 		E8D2FF389ABB9C098712157A /* BydAutoLockWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */; };
 		FDE22BC4547F63A8F7230EF0 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14482C394323F1A99A263F6 /* KeychainHelper.swift */; };
 /* End PBXBuildFile section */
@@ -113,7 +115,9 @@
 		B4DBF781AAAA85839E58508B /* HvacStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HvacStatus.swift; sourceTree = "<group>"; };
 		B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWatch.entitlements; sourceTree = "<group>"; };
+		BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BydAutoLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		D7D773CC403BBD4A21A48A4B /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyConsumption.swift; sourceTree = "<group>"; };
 		E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMainView.swift; sourceTree = "<group>"; };
@@ -144,6 +148,7 @@
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
 				AB5BD749506934B29CD1C2AC /* MainView.swift */,
+				D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */,
 				090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */,
 				37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */,
 			);
@@ -192,6 +197,7 @@
 			children = (
 				B085B3C357AC8028292DC9FA /* AutoLockService.swift */,
 				6618C7221FA7985517B64B93 /* GeofenceManager.swift */,
+				BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */,
 				77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */,
 			);
 			path = Service;
@@ -394,6 +400,8 @@
 				51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */,
 				5A00FA4DAE53EFA9C31FA7BE /* LogView.swift in Sources */,
 				142D722116231C03F136EA5C /* MainView.swift in Sources */,
+				E6FA6A18C5E67F5CC1D23D20 /* NotificationManager.swift in Sources */,
+				8357D7BB007903C2C0BB0A1A /* NotificationSettingsView.swift in Sources */,
 				5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */,
 				D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */,
 				0A913999408078E6C703FA2B /* ThresholdSettingsView.swift in Sources */,

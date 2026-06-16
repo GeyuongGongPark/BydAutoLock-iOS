@@ -14,6 +14,7 @@ struct SettingsDrawerView: View {
                 }
 
                 Section("기타") {
+                    drawerLink("알림 설정",   icon: "bell.badge.fill",          color: .red)    { NotificationSettingsView() }
                     drawerLink("디버그 로그", icon: "doc.text.magnifyingglass", color: .purple) { LogView() }
                 }
             }
