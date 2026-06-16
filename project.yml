@@ -86,6 +86,7 @@ targets:
       properties:
         CFBundleDisplayName: BYD AutoLock
         WKApplication: true
+        WKCompanionAppBundleIdentifier: com.ggpark.bydautolock
         # 컴플리케이션 딥링크 URL scheme
         CFBundleURLTypes:
           - CFBundleURLSchemes:
@@ -100,7 +101,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWatch/BydAutoLockWatch.entitlements
         WATCHOS_DEPLOYMENT_TARGET: "10.0"
         SKIP_INSTALL: YES
-        WKCompanionAppBundleIdentifier: com.ggpark.bydautolock
 
   # ── 위젯 Extension ─────────────────────────────────────────
   BydAutoLockWidget:
