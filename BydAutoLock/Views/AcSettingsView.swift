@@ -74,11 +74,11 @@ struct AcSettingsView: View {
             .navigationTitle("에어컨 설정")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { loadSettings() }
-            .onChange(of: autoAcOnUnlock)  { _, v in storage.isAutoAcOnUnlock  = v }
-            .onChange(of: autoAcOffOnLock) { _, v in storage.isAutoAcOffOnLock = v }
-            .onChange(of: targetTemp)      { _, v in storage.acTargetTemp      = v }
-            .onChange(of: windLevel)       { _, v in storage.acWindLevel       = v }
-            .onChange(of: cycleMode)       { _, v in storage.acCycleMode       = v }
+            .onChange(of: autoAcOnUnlock)  { storage.isAutoAcOnUnlock  = $0 }
+            .onChange(of: autoAcOffOnLock) { storage.isAutoAcOffOnLock = $0 }
+            .onChange(of: targetTemp)      { storage.acTargetTemp      = $0 }
+            .onChange(of: windLevel)       { storage.acWindLevel       = $0 }
+            .onChange(of: cycleMode)       { storage.acCycleMode       = $0 }
         }
         .preferredColorScheme(.dark)
     }
