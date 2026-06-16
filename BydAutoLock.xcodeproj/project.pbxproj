@@ -19,6 +19,7 @@
 		58C1A57F000F788AC93D4946 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */; };
 		5A00FA4DAE53EFA9C31FA7BE /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CA6D97AAC2BB7D4D478200 /* LogView.swift */; };
 		5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */; };
+		5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */; };
 		6D3D4AE844CD90F2766479E6 /* BydAutoLockWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		74B15476F7C5FEE285924090 /* WatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1CE88B07E9296793D407114 /* WatchComplication.swift */; };
 		757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6C000F741DA8D709913F0C /* BangcleCodec.swift */; };
@@ -85,6 +86,7 @@
 
 /* Begin PBXFileReference section */
 		04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BydAutoLockWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDrawerView.swift; sourceTree = "<group>"; };
 		19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSettingsView.swift; sourceTree = "<group>"; };
 		1D6C000F741DA8D709913F0C /* BangcleCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BangcleCodec.swift; sourceTree = "<group>"; };
 		2CF18F900BB57ECE310A3B2D /* GpsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpsInfo.swift; sourceTree = "<group>"; };
@@ -142,6 +144,7 @@
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
 				AB5BD749506934B29CD1C2AC /* MainView.swift */,
+				090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */,
 				37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */,
 			);
 			path = Views;
@@ -391,6 +394,7 @@
 				51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */,
 				5A00FA4DAE53EFA9C31FA7BE /* LogView.swift in Sources */,
 				142D722116231C03F136EA5C /* MainView.swift in Sources */,
+				5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */,
 				D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */,
 				0A913999408078E6C703FA2B /* ThresholdSettingsView.swift in Sources */,
 				947F280D4098A130E9B1B4A5 /* VehicleStatus.swift in Sources */,

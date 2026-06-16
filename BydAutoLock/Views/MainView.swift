@@ -3,46 +3,56 @@ import SwiftUI
 struct MainView: View {
 
     @StateObject private var service = AutoLockService.shared
-    @State private var showAuthSettings   = false
-    @State private var showBLESettings    = false
-    @State private var showThreshSettings = false
-    @State private var showAcSettings     = false
-    @State private var showLogs           = false
+    @State private var showDrawer = false
     @State private var vehicleStatus: VehicleStatus?
     @State private var isRefreshing       = false
 
     private let storage = StorageManager.shared
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    serviceToggleCard
-                    statusCard
-                    rssiCard
-                    vehicleStatusCard
-                    quickActionsCard
-                    acControlCard
-                    settingsCard
+        ZStack(alignment: .trailing) {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        serviceToggleCard
+                        statusCard
+                        rssiCard
+                        vehicleStatusCard
+                        quickActionsCard
+                        acControlCard
+                    }
+                    .padding()
                 }
-                .padding()
-            }
-            .navigationTitle("BYD AutoLock")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showLogs = true } label: {
-                        Image(systemName: "doc.text.magnifyingglass")
+                .navigationTitle("BYD AutoLock")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation(.spring(duration: 0.3)) { showDrawer = true }
+                        } label: {
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title3)
+                        }
                     }
                 }
             }
-            .sheet(isPresented: $showAuthSettings)    { AuthSettingsView() }
-            .sheet(isPresented: $showBLESettings)     { BluetoothSettingsView() }
-            .sheet(isPresented: $showThreshSettings)  { ThresholdSettingsView() }
-            .sheet(isPresented: $showAcSettings)      { AcSettingsView() }
-            .sheet(isPresented: $showLogs)            { LogView() }
+            .preferredColorScheme(.dark)
+
+            // ── 드로어 오버레이
+            if showDrawer {
+                Color.black.opacity(0.45)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(duration: 0.3)) { showDrawer = false }
+                    }
+                    .transition(.opacity)
+
+                SettingsDrawerView(isOpen: $showDrawer)
+                    .frame(width: min(UIScreen.main.bounds.width * 0.78, 320))
+                    .ignoresSafeArea(edges: .vertical)
+                    .transition(.move(edge: .trailing))
+            }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Service Toggle Card
@@ -276,39 +286,6 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-        }
-    }
-
-    // MARK: - Settings Card
-
-    private var settingsCard: some View {
-        CardView {
-            VStack(alignment: .leading, spacing: 0) {
-                Label("설정", systemImage: "gear").font(.headline).padding(.bottom, 10)
-                Divider()
-                settingsButton("BYD 계정 설정", icon: "person.badge.key.fill") { showAuthSettings = true }
-                Divider().padding(.leading, 44)
-                settingsButton("블루투스 기기 설정", icon: "bluetooth") { showBLESettings = true }
-                Divider().padding(.leading, 44)
-                settingsButton("RSSI 임계값 설정", icon: "slider.horizontal.3") { showThreshSettings = true }
-                Divider().padding(.leading, 44)
-                settingsButton("에어컨 설정", icon: "snowflake") { showAcSettings = true }
-            }
-        }
-    }
-
-    private func settingsButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: icon)
-                    .frame(width: 28).foregroundStyle(Color.accentColor)
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 12)
         }
     }
 
