@@ -65,6 +65,7 @@ targets:
         INFOPLIST_FILE: BydAutoLock/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLock/BydAutoLock.entitlements
         ENABLE_HARDENED_RUNTIME: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - target: BydAutoLockWatchApp
         embed: true
