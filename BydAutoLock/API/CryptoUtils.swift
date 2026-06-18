@@ -9,7 +9,7 @@ enum CryptoUtils {
     static func md5Hex(_ value: String) -> String {
         let data = Data(value.utf8)
         let digest = Insecure.MD5.hash(data: data)
-        return digest.map { String(format: "%02x", $0) }.joined().uppercased()
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     static func pwdLoginKey(_ password: String) -> String {
