@@ -184,7 +184,7 @@ actor BydVehicleService {
     // MARK: - Login
 
     func login(username: String, password: String) async throws -> String {
-        let derivedImeiMD5 = CryptoUtils.md5Hex(username).lowercased()
+        let derivedImeiMD5 = CryptoUtils.md5Hex(username)
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let reqTimestamp = "\(nowMs)"
         let randomHex = String(CryptoUtils.md5Hex("\(Double.random(in: 0...1))").prefix(32))
