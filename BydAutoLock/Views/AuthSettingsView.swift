@@ -103,7 +103,12 @@ struct AuthSettingsView: View {
             let service = try BydVehicleService(config: config)
             let uid     = try await service.login(username: username, password: password)
 
-            let vins       = try await service.fetchVehicleList()
+            let vins: [String]
+            do {
+                vins = try await service.fetchVehicleList()
+            } catch {
+                throw BydError.serverError("로그인은 성공했지만 차량 목록 조회에 실패했습니다: \(error.localizedDescription)", "vehicle-list")
+            }
             // actor-isolated 프로퍼티를 MainActor.run 밖에서 미리 추출
             let signToken  = await service.signToken
             let encryToken = await service.encryToken

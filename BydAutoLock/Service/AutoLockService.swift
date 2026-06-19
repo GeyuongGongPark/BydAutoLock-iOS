@@ -93,11 +93,11 @@ final class AutoLockService: NSObject, ObservableObject {
 
         do {
             vehicleService = try BydVehicleService(config: BydConfig.fromRegion(storage.region))
-            if let u = storage.userId, let s = storage.signToken, let e = storage.encryToken {
-                Task { await vehicleService?.restoreSession(userId: u, signToken: s, encryToken: e) }
-            }
             Task {
                 await vehicleService?.setCredentials(username: storage.username ?? "", password: storage.password ?? "")
+                if let u = storage.userId, let s = storage.signToken, let e = storage.encryToken {
+                    await vehicleService?.restoreSession(userId: u, signToken: s, encryToken: e)
+                }
                 await setupSessionCallbacks()
             }
         } catch {

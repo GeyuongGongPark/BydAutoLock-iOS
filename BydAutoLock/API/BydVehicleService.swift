@@ -11,6 +11,7 @@ actor BydVehicleService {
     private(set) var userId: String?
     private(set) var signToken: String?
     private(set) var encryToken: String?
+    private var accountImeiMD5 = "00000000000000000000000000000000"
 
     // 세션 갱신 콜백
     var onSessionUpdated: ((String, String, String) -> Void)?
@@ -42,12 +43,18 @@ actor BydVehicleService {
     init(config: BydConfig) throws {
         self.config = config
         self.codec = try BangcleCodec()
-        self.session = URLSession(configuration: .default)
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = 120
+        sessionConfig.timeoutIntervalForResource = 120
+        self.session = URLSession(configuration: sessionConfig)
     }
 
     func setCredentials(username: String, password: String) {
         storedUsername = username
         storedPassword = password
+        if !username.isEmpty {
+            accountImeiMD5 = CryptoUtils.md5Hex(username)
+        }
     }
 
     func restoreSession(userId: String, signToken: String, encryToken: String) {
@@ -77,14 +84,13 @@ actor BydVehicleService {
     }
 
     private func buildInnerBase(vin: String? = nil, requestSerial: String? = nil) -> [(key: String, value: Any?)] {
-        let imeiMD5 = deviceProfile["imeiMD5"] ?? "00000000000000000000000000000000"
         var map: [(key: String, value: Any?)] = [
-            ("deviceType",    deviceProfile["deviceType"]),
-            ("imeiMD5",       imeiMD5),
-            ("networkType",   deviceProfile["networkType"]),
+            ("deviceType",    deviceProfile["deviceType"] ?? ""),
+            ("imeiMD5",       accountImeiMD5),
+            ("networkType",   deviceProfile["networkType"] ?? ""),
             ("random",        String(CryptoUtils.md5Hex("\(Double.random(in: 0...1))").prefix(16))),
             ("timeStamp",     "\(Int64(Date().timeIntervalSince1970 * 1000))"),
-            ("version",       deviceProfile["appInnerVersion"])
+            ("version",       deviceProfile["appInnerVersion"] ?? "")
         ]
         if let v = vin           { map.append(("vin", v)) }
         if let r = requestSerial { map.append(("requestSerial", r)) }
@@ -107,7 +113,7 @@ actor BydVehicleService {
         for (k, v) in innerMap { signFields[k] = "\(v ?? "null")" }
         signFields["countryCode"]  = config.countryCode
         signFields["identifier"]   = uid
-        signFields["imeiMD5"]      = deviceProfile["imeiMD5"] ?? ""
+        signFields["imeiMD5"]      = accountImeiMD5
         signFields["language"]     = config.language
         signFields["reqTimestamp"] = reqTimestamp
         let sign = CryptoUtils.sha1Mixed(
@@ -118,7 +124,7 @@ actor BydVehicleService {
             ("countryCode",  config.countryCode),
             ("encryData",    encryData),
             ("identifier",   uid),
-            ("imeiMD5",      deviceProfile["imeiMD5"]),
+            ("imeiMD5",      accountImeiMD5),
             ("language",     config.language),
             ("reqTimestamp", reqTimestamp),
             ("sign",         sign),
@@ -142,6 +148,8 @@ actor BydVehicleService {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        req.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+        req.setValue("okhttp/4.12.0", forHTTPHeaderField: "User-Agent")
         req.httpBody = body
 
         let (data, _) = try await session.data(for: req)
@@ -185,6 +193,7 @@ actor BydVehicleService {
 
     func login(username: String, password: String) async throws -> String {
         let derivedImeiMD5 = CryptoUtils.md5Hex(username)
+        accountImeiMD5 = derivedImeiMD5
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let reqTimestamp = "\(nowMs)"
         let randomHex = String(CryptoUtils.md5Hex("\(Double.random(in: 0...1))").prefix(32))
@@ -192,19 +201,19 @@ actor BydVehicleService {
         let innerMap: [(key: String, value: Any?)] = [
             ("agreeStatus",     "0"),
             ("agreementType",   "[1,2]"),
-            ("appInnerVersion", deviceProfile["appInnerVersion"]),
-            ("appVersion",      deviceProfile["appVersion"]),
-            ("deviceName",      "\(deviceProfile["mobileBrand"] ?? "") \(deviceProfile["mobileModel"] ?? "")"),
-            ("deviceType",      deviceProfile["deviceType"]),
+            ("appInnerVersion", deviceProfile["appInnerVersion"] ?? ""),
+            ("appVersion",      deviceProfile["appVersion"] ?? ""),
+            ("deviceName",      "\(deviceProfile["mobileBrand"] ?? "")\(deviceProfile["mobileModel"] ?? "")"),
+            ("deviceType",      deviceProfile["deviceType"] ?? ""),
             ("imeiMD5",         derivedImeiMD5),
-            ("isAuto",          "0"),
-            ("mobileBrand",     deviceProfile["mobileBrand"]),
-            ("mobileModel",     deviceProfile["mobileModel"]),
-            ("networkType",     deviceProfile["networkType"]),
-            ("osType",          deviceProfile["osType"]),
-            ("osVersion",       deviceProfile["osVersion"]),
+            ("isAuto",          "1"),
+            ("mobileBrand",     deviceProfile["mobileBrand"] ?? ""),
+            ("mobileModel",     deviceProfile["mobileModel"] ?? ""),
+            ("networkType",     deviceProfile["networkType"] ?? ""),
+            ("osType",          deviceProfile["osType"] ?? ""),
+            ("osVersion",       deviceProfile["osVersion"] ?? ""),
             ("random",          randomHex),
-            ("softType",        "1"),
+            ("softType",        "0"),
             ("timeStamp",       reqTimestamp),
             ("timeZone",        config.timeZone)
         ]
@@ -234,7 +243,7 @@ actor BydVehicleService {
             ("identifier",    username),
             ("identifierType","0"),
             ("imeiMD5",       derivedImeiMD5),
-            ("isAuto",        "0"),
+            ("isAuto",        "1"),
             ("language",      config.language),
             ("reqTimestamp",  reqTimestamp),
             ("sign",          sign),
@@ -259,6 +268,8 @@ actor BydVehicleService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+        request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+        request.setValue("okhttp/4.12.0", forHTTPHeaderField: "User-Agent")
         request.httpBody = body
 
         let (data, _) = try await session.data(for: request)
