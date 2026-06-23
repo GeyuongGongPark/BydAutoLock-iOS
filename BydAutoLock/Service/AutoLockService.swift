@@ -45,6 +45,9 @@ final class AutoLockService: NSObject, ObservableObject {
     private var isScanning = false
     private var targetMac: String?
     private var targetName: String?
+    private var connectedPeripheral: CBPeripheral?
+    private var rssiTimer: Timer?
+    private static let rssiReadInterval: TimeInterval = 3.0
 
     // RSSI 필터링
     private struct RssiPoint { let time: Date; let dbm: Int }
@@ -157,6 +160,11 @@ final class AutoLockService: NSObject, ObservableObject {
         Task { await pollVehicleGPS() }
     }
 
+    func updateWidgetBattery(_ battery: Int) {
+        storage.saveWidgetData(isRunning: isRunning, isLocked: nil, battery: battery, rssi: rawRssi)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     func manualLock() {
         triggerCarAction(shouldUnlock: false, isManual: true)
     }
@@ -209,6 +217,12 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func stopBLEScan() {
+        rssiTimer?.invalidate()
+        rssiTimer = nil
+        if let p = connectedPeripheral {
+            centralManager?.cancelPeripheralConnection(p)
+            connectedPeripheral = nil
+        }
         centralManager?.stopScan()
         isScanning = false
         scanModeDescription = "중지됨"
@@ -219,14 +233,33 @@ final class AutoLockService: NSObject, ObservableObject {
         if isStationary && !isNear() { return }
         if storage.isGeofencingEnabled && !isInsideGeofence { return }
 
-        // iOS 백그라운드에서는 AllowDuplicates가 무시되지만 포그라운드에서는 동작
-        let opts: [String: Any] = [
-            CBCentralManagerScanOptionAllowDuplicatesKey: true
-        ]
-        centralManager?.scanForPeripherals(withServices: nil, options: opts)
+        // 이미 연결되어 있으면 스킵
+        if let p = connectedPeripheral, p.state == .connected { return }
+
+        // 알고 있는 peripheral이면 바로 connect 시도
+        if let p = connectedPeripheral {
+            centralManager?.connect(p, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+            scanModeDescription = "재연결 중..."
+            LogManager.shared.log("BLE", "재연결 시도: \(p.name ?? "")")
+            return
+        }
+
+        // 처음 탐색 - 스캔으로 기기 발견 후 connect
+        centralManager?.scanForPeripherals(withServices: nil, options: nil)
         isScanning = true
         scanModeDescription = "스캔 중"
-        LogManager.shared.log("BLE", "스캔 시작")
+        LogManager.shared.log("BLE", "기기 탐색 스캔 시작")
+    }
+
+    private func startRssiTimer(for peripheral: CBPeripheral) {
+        rssiTimer?.invalidate()
+        rssiTimer = Timer.scheduledTimer(withTimeInterval: Self.rssiReadInterval, repeats: true) { _ in
+            Task { @MainActor in
+                guard peripheral.state == .connected else { return }
+                peripheral.readRSSI()
+            }
+        }
+        peripheral.readRSSI() // 즉시 첫 번째 읽기
     }
 
     private func isNear() -> Bool { proximityState == .near }
@@ -535,28 +568,91 @@ extension AutoLockService: CBCentralManagerDelegate {
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
-        // 백그라운드에서 종료 후 복원 처리
         LogManager.shared.log("BLE", "CBCentralManager 상태 복원")
+        if let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] {
+            Task { @MainActor in
+                for p in peripherals {
+                    let uuidMatches = p.identifier.uuidString == self.targetMac
+                    let nameMatches = p.name != nil && p.name == self.targetName
+                    guard uuidMatches || nameMatches else { continue }
+                    p.delegate = self
+                    self.connectedPeripheral = p
+                    if p.state == .connected {
+                        self.startRssiTimer(for: p)
+                        self.scanModeDescription = "연결됨 (복원)"
+                    } else {
+                        central.connect(p, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+                        self.scanModeDescription = "재연결 중..."
+                    }
+                    LogManager.shared.log("BLE", "상태 복원: \(p.name ?? p.identifier.uuidString)")
+                    break
+                }
+            }
+        }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                                     advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        guard RSSI.intValue != 127 else { return } // 측정 불가
+        guard RSSI.intValue != 127 else { return }
         let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? "")
 
         Task { @MainActor in
-            // MAC 주소 기반 매칭 (UUID로 대체 - iOS는 MAC 직접 노출 안 함)
             guard let targetMac = self.targetMac else { return }
+            let uuidMatches = peripheral.identifier.uuidString == targetMac
+            let nameMatches = !name.isEmpty && name == (self.targetName ?? "")
+            guard uuidMatches || nameMatches else { return }
 
-            // iOS에서는 peripheral.identifier (UUID)로 매칭
-            // 최초 설정 시 UUID를 저장하도록 구성하거나 이름으로 매칭
-            let identifierStr = peripheral.identifier.uuidString
-            let nameMatches   = !name.isEmpty && name == (self.targetName ?? "")
-            let uuidMatches   = identifierStr == targetMac
+            // 발견 → 스캔 중지 후 connect
+            central.stopScan()
+            self.isScanning = false
+            self.connectedPeripheral = peripheral
+            peripheral.delegate = self
+            central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+            self.scanModeDescription = "연결 중..."
+            LogManager.shared.log("BLE", "타겟 발견 → 연결 시도: \(name)")
+        }
+    }
 
-            if nameMatches || uuidMatches {
-                self.processRSSI(RSSI.intValue)
-            }
+    nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        Task { @MainActor in
+            self.scanModeDescription = "연결됨"
+            LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
+            self.startRssiTimer(for: peripheral)
+        }
+    }
+
+    nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        Task { @MainActor in
+            LogManager.shared.log("BLE", "BLE 연결 실패: \(error?.localizedDescription ?? "unknown")")
+            self.scanModeDescription = "연결 실패"
+            guard self.isRunning else { return }
+            // 5초 후 재시도
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            self.beginScanning()
+        }
+    }
+
+    nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        Task { @MainActor in
+            self.rssiTimer?.invalidate()
+            self.rssiTimer = nil
+            LogManager.shared.log("BLE", "BLE 연결 끊김: \(error?.localizedDescription ?? "정상 종료")")
+            self.handleSignalLoss()
+            guard self.isRunning else { return }
+            // 즉시 재연결 시도 (iOS가 백그라운드에서 자동 재연결 큐에 등록)
+            central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+            self.scanModeDescription = "재연결 중..."
+        }
+    }
+}
+
+// MARK: - CBPeripheralDelegate
+
+extension AutoLockService: CBPeripheralDelegate {
+    nonisolated func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
+        guard error == nil, RSSI.intValue != 127 else { return }
+        Task { @MainActor in
+            self.processRSSI(RSSI.intValue)
         }
     }
 }
@@ -574,10 +670,18 @@ extension AutoLockService: GeofenceManagerDelegate {
 
     func didExitGeofence() {
         isInsideGeofence = false
-        stopBLEScan()
+        // peripheral 참조는 유지하고 연결만 해제 (재진입 시 바로 재연결)
+        rssiTimer?.invalidate()
+        rssiTimer = nil
+        if let p = connectedPeripheral {
+            centralManager?.cancelPeripheralConnection(p)
+        }
+        centralManager?.stopScan()
+        isScanning = false
+        scanModeDescription = "지오펜스 외부"
         smoothedRssi = nil
         rawRssi = nil
-        LogManager.shared.log("Geofence", "지오펜스 이탈. BLE 스캔 중단.")
+        LogManager.shared.log("Geofence", "지오펜스 이탈. BLE 연결 해제.")
     }
 }
 

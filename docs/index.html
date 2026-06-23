@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BYD AutoLock – BYD 차량 자동 잠금 앱</title>
+  <meta name="description" content="스마트폰을 차에 가져가면 자동으로 열리고, 멀어지면 잠깁니다. BYD 차량 전용 iOS 앱." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #000;
+      --surface: #0e0e10;
+      --surface2: #1a1a1e;
+      --border: rgba(255,255,255,.08);
+      --text: #f5f5f7;
+      --text2: #98989f;
+      --blue: #2f6bff;
+      --green: #32d758;
+      --orange: #ff9f0a;
+      --red: #ff4d40;
+      --radius: 18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 56px;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-size: 15px; font-weight: 600; letter-spacing: -.3px; }
+    .nav-logo span { color: var(--blue); }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { color: var(--text2); text-decoration: none; font-size: 14px; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    @media (max-width: 600px) { .nav-links { display: none; } }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100svh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 80px 24px 60px;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(47,107,255,.18) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(47,107,255,.12); border: 1px solid rgba(47,107,255,.3);
+      color: var(--blue); font-size: 13px; font-weight: 500;
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 8vw, 72px); font-weight: 700;
+      letter-spacing: -2px; line-height: 1.08; margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: normal; color: var(--blue); }
+    .hero p {
+      font-size: clamp(16px, 2.5vw, 20px); color: var(--text2);
+      max-width: 540px; margin: 0 auto 40px;
+    }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 24px; border-radius: 12px;
+      font-size: 15px; font-weight: 600; text-decoration: none; transition: all .2s;
+      cursor: pointer; border: none;
+    }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: #4a7fff; transform: translateY(-1px); }
+    .btn-outline { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--surface); border-color: rgba(255,255,255,.2); }
+    .hero-sub { margin-top: 60px; color: var(--text2); font-size: 13px; }
+    .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+    .hero-badges span {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 4px 12px; border-radius: 100px; font-size: 12px; color: var(--text2);
+    }
+
+    /* ── SECTION ── */
+    section { padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 13px; font-weight: 600; color: var(--blue);
+      letter-spacing: .5px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(28px, 5vw, 44px); font-weight: 700;
+      letter-spacing: -1px; margin-bottom: 16px;
+    }
+    .section-desc { font-size: 17px; color: var(--text2); max-width: 520px; margin-bottom: 48px; }
+
+    /* ── FEATURES GRID ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(255,255,255,.18); transform: translateY(-2px); }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: grid; grid-template-columns: 48px 1fr;
+      gap: 20px; align-items: flex-start;
+      padding: 24px 0; border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(47,107,255,.15); border: 1px solid rgba(47,107,255,.3);
+      color: var(--blue); font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step p { font-size: 14px; color: var(--text2); }
+
+    /* ── INSTALL ── */
+    .install-tabs {
+      display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 18px; border-radius: 100px; font-size: 14px; font-weight: 500;
+      border: 1px solid var(--border); background: transparent; color: var(--text2);
+      cursor: pointer; transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--blue); color: #fff; border-color: var(--blue);
+    }
+    .tab-btn:hover:not(.active) { border-color: rgba(255,255,255,.2); color: var(--text); }
+    .install-panel { display: none; }
+    .install-panel.active { display: block; }
+    .install-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+    }
+    .install-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .install-card .subtitle { color: var(--text2); font-size: 14px; margin-bottom: 28px; }
+    .install-steps { display: flex; flex-direction: column; gap: 20px; }
+    .install-step { display: flex; gap: 16px; align-items: flex-start; }
+    .install-step-num {
+      min-width: 28px; height: 28px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .install-step-body h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .install-step-body p { font-size: 14px; color: var(--text2); }
+    .install-step-body a { color: var(--blue); text-decoration: none; }
+    .install-step-body a:hover { text-decoration: underline; }
+    code {
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 1px 6px; border-radius: 6px; font-size: 13px; font-family: "SF Mono", monospace;
+    }
+    .code-block {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px; margin-top: 8px;
+      font-family: "SF Mono", "Fira Code", monospace; font-size: 13px;
+      color: #a8d8a8; overflow-x: auto; white-space: pre;
+    }
+    .note {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(255,159,10,.06); border: 1px solid rgba(255,159,10,.2);
+      border-radius: 10px; padding: 14px 16px; margin-top: 24px;
+    }
+    .note-icon { font-size: 16px; flex-shrink: 0; line-height: 1.4; }
+    .note p { font-size: 13px; color: var(--text2); }
+
+    /* ── REQUIREMENTS ── */
+    .req-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .req-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+    }
+    .req-item .req-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+    .req-item .req-value { font-size: 15px; font-weight: 600; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 40px 24px;
+      text-align: center; color: var(--text2); font-size: 13px;
+    }
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    /* ── DIVIDER ── */
+    .full-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">BYD <span>AutoLock</span></div>
+  <div class="nav-links">
+    <a href="#features">기능</a>
+    <a href="#how">작동 방식</a>
+    <a href="#install">설치</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock" target="_blank">GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <span>🔵</span> BYD 차량 전용 iOS 앱
+  </div>
+  <h1>가까이 가면 열리고<br><em>멀어지면 잠깁니다</em></h1>
+  <p>스마트폰을 주머니에 넣고 차에 다가가기만 하면 됩니다. BLE 신호로 거리를 측정해 자동으로 잠금을 제어합니다.</p>
+  <div class="hero-ctas">
+    <a href="#install" class="btn btn-primary">설치하기</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock" target="_blank" class="btn btn-outline">GitHub →</a>
+  </div>
+  <div class="hero-sub">지원 모델</div>
+  <div class="hero-badges">
+    <span>BYD Seal</span>
+    <span>BYD Atto 3</span>
+    <span>BYD Dolphin</span>
+    <span>BYD Han</span>
+    <span>기타 BYD 커넥티드 차량</span>
+  </div>
+</div>
+
+<hr class="full-divider" />
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">기능</div>
+  <h2 class="section-title">필요한 건 다 있습니다</h2>
+  <p class="section-desc">BYD 공식 앱 API를 활용해 실제 차량 제어까지 연결합니다.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(50,215,88,.12)">🔓</div>
+      <h3>자동 잠금 해제</h3>
+      <p>BLE RSSI가 임계값 이상이 되면 자동으로 차량 잠금을 해제합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,159,10,.12)">🔒</div>
+      <h3>자동 잠금</h3>
+      <p>스마트폰이 멀어지면 자동으로 잠급니다. 차 키를 꺼내지 않아도 됩니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(47,107,255,.12)">📡</div>
+      <h3>EMA 신호 필터링</h3>
+      <p>지수 이동 평균과 선형 회귀 이상값 감지로 흔들림 없는 안정적인 거리 측정.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(100,210,255,.12)">❄️</div>
+      <h3>에어컨 자동 제어</h3>
+      <p>잠금 해제 시 에어컨을 자동으로 켜고, 잠금 시 끌 수 있습니다. 온도·풍량 설정 가능.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(191,90,242,.12)">📍</div>
+      <h3>주차 위치 기록</h3>
+      <p>차량 GPS를 주기적으로 조회해 마지막 주차 위치를 지도로 확인합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div>
+      <h3>Apple Watch 지원</h3>
+      <p>워치에서 잠금 상태 확인 및 수동 잠금/해제 제어가 가능합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div>
+      <h3>홈 화면 위젯</h3>
+      <p>잠금 상태와 배터리를 홈 화면·잠금 화면 위젯으로 한눈에 확인.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div>
+      <h3>지오펜스</h3>
+      <p>주차 위치 근처에서만 BLE 스캔을 활성화해 배터리를 절약합니다.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider" />
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">작동 방식</div>
+  <h2 class="section-title">어떻게 동작하나요?</h2>
+  <p class="section-desc">차량의 BLE 신호 세기(RSSI)를 측정해 거리를 추정합니다.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h3>BLE 신호 감지</h3>
+        <p>앱이 백그라운드에서 차량 BLE 기기의 신호를 지속적으로 수신합니다. 연결(connect) 기반으로 동작해 백그라운드에서도 안정적으로 작동합니다.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h3>거리 판단</h3>
+        <p>측정된 RSSI에 EMA 필터를 적용해 노이즈를 제거합니다. 설정한 임계값과 비교해 접근/이탈을 판단합니다.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h3>차량 제어 명령</h3>
+        <p>BYD 공식 API를 통해 잠금/해제 명령을 전송합니다. 명령 결과는 알림으로 확인할 수 있습니다.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h3>자동 에어컨 (선택)</h3>
+        <p>잠금 해제 시 설정한 온도로 에어컨을 자동으로 켭니다. 타기 전에 이미 쾌적한 온도가 됩니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider" />
+
+<!-- REQUIREMENTS -->
+<section>
+  <div class="section-label">요구 사항</div>
+  <h2 class="section-title">설치 전 확인하세요</h2>
+  <p class="section-desc" style="margin-bottom:32px">아래 조건을 모두 충족해야 정상 동작합니다.</p>
+  <div class="req-grid">
+    <div class="req-item">
+      <div class="req-label">iOS 버전</div>
+      <div class="req-value">iOS 16.0 이상</div>
+    </div>
+    <div class="req-item">
+      <div class="req-label">차량</div>
+      <div class="req-value">BYD 커넥티드 차량</div>
+    </div>
+    <div class="req-item">
+      <div class="req-label">계정</div>
+      <div class="req-value">BYD 공식 앱 계정</div>
+    </div>
+    <div class="req-item">
+      <div class="req-label">블루투스</div>
+      <div class="req-value">BLE 4.0 지원 기기</div>
+    </div>
+    <div class="req-item">
+      <div class="req-label">권한</div>
+      <div class="req-value">위치 · 블루투스 · 알림</div>
+    </div>
+    <div class="req-item">
+      <div class="req-label">차량 제어 PIN</div>
+      <div class="req-value">BYD 앱 등록 PIN 필요</div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider" />
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="section-label">설치</div>
+  <h2 class="section-title">설치 방법 선택</h2>
+  <p class="section-desc">세 가지 방법 중 편한 방법으로 설치하세요.</p>
+
+  <div class="install-tabs">
+    <button class="tab-btn active" onclick="switchTab('altstore')">AltStore / Sideloadly</button>
+    <button class="tab-btn" onclick="switchTab('testflight')">TestFlight</button>
+    <button class="tab-btn" onclick="switchTab('xcode')">Xcode 직접 빌드</button>
+  </div>
+
+  <!-- TAB 1: AltStore -->
+  <div class="install-panel active" id="tab-altstore">
+    <div class="install-card">
+      <h3>AltStore 또는 Sideloadly로 IPA 설치</h3>
+      <p class="subtitle">Apple 개발자 계정 없이 무료 Apple ID만으로 설치할 수 있습니다. 7일마다 재서명이 필요합니다.</p>
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-body">
+            <h4>AltStore 설치</h4>
+            <p>Mac 또는 Windows PC에 <a href="https://altstore.io" target="_blank">AltStore</a>를 설치합니다. 또는 <a href="https://sideloadly.io" target="_blank">Sideloadly</a>를 사용해도 됩니다.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-body">
+            <h4>IPA 파일 다운로드</h4>
+            <p>GitHub Releases 페이지에서 최신 <code>BydAutoLock.ipa</code>를 다운로드합니다.</p>
+            <p style="margin-top:8px"><a href="https://github.com/GeyuongGongPark/BydAutoLock/releases" target="_blank">→ GitHub Releases에서 다운로드</a></p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-body">
+            <h4>iPhone에 설치</h4>
+            <p>iPhone을 Mac/PC에 연결한 후 AltStore에서 IPA 파일을 선택해 설치합니다. Sideloadly는 드래그 앤 드롭으로 설치 가능합니다.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-body">
+            <h4>신뢰 설정</h4>
+            <p>설정 → 일반 → VPN 및 기기 관리에서 개발자 앱을 신뢰합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <span class="note-icon">⚠️</span>
+        <p>무료 Apple ID는 7일마다 재서명이 필요합니다. AltStore의 자동 갱신 기능을 활용하거나, 유료 Apple Developer 계정($99/년)을 사용하면 365일 유효합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: TestFlight -->
+  <div class="install-panel" id="tab-testflight">
+    <div class="install-card">
+      <h3>TestFlight 베타 설치</h3>
+      <p class="subtitle">Apple의 공식 베타 배포 플랫폼입니다. 설치와 업데이트가 가장 간편합니다.</p>
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-body">
+            <h4>TestFlight 앱 설치</h4>
+            <p>App Store에서 <a href="https://apps.apple.com/kr/app/testflight/id899247664" target="_blank">TestFlight</a>를 설치합니다.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-body">
+            <h4>초대 링크로 참여</h4>
+            <p>아래 초대 링크를 iPhone에서 열면 TestFlight가 자동으로 실행됩니다.</p>
+            <p style="margin-top:10px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text2)">
+              🔗 TestFlight 초대 링크는 준비 중입니다
+            </p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-body">
+            <h4>설치 및 업데이트</h4>
+            <p>TestFlight에서 "설치" 버튼을 탭합니다. 새 버전이 나오면 TestFlight에서 알림으로 안내합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <span class="note-icon">ℹ️</span>
+        <p>TestFlight 베타는 최대 90일간 유효합니다. 현재 베타 테스터를 모집 중입니다. GitHub Issues에서 참여를 요청해주세요.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Xcode -->
+  <div class="install-panel" id="tab-xcode">
+    <div class="install-card">
+      <h3>Xcode로 직접 빌드</h3>
+      <p class="subtitle">소스 코드를 수정하거나 직접 빌드하고 싶은 개발자를 위한 방법입니다.</p>
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-step-num">1</div>
+          <div class="install-step-body">
+            <h4>저장소 클론</h4>
+            <div class="code-block">git clone https://github.com/GeyuongGongPark/BydAutoLock.git
+cd BydAutoLock</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">2</div>
+          <div class="install-step-body">
+            <h4>Xcode에서 프로젝트 열기</h4>
+            <div class="code-block">open BydAutoLock.xcodeproj</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">3</div>
+          <div class="install-step-body">
+            <h4>개발 팀 서명 설정</h4>
+            <p>Xcode에서 <code>BydAutoLock</code> 타겟 선택 → Signing & Capabilities → Team을 본인의 Apple ID로 변경합니다. Bundle ID도 고유한 값으로 수정해야 합니다.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">4</div>
+          <div class="install-step-body">
+            <h4>iPhone 연결 후 빌드</h4>
+            <p>iPhone을 연결하고 대상 기기를 선택한 후 <code>⌘R</code>로 빌드 및 설치합니다.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-step-num">5</div>
+          <div class="install-step-body">
+            <h4>신뢰 설정</h4>
+            <p>설정 → 일반 → VPN 및 기기 관리에서 개발자 앱을 신뢰합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <span class="note-icon">⚠️</span>
+        <p>Xcode 15 이상, macOS 13 이상이 필요합니다. 무료 Apple ID로 빌드 시 7일마다 재빌드가 필요합니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="full-divider" />
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock" target="_blank">GitHub</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock/issues" target="_blank">버그 신고</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock/releases" target="_blank">릴리즈</a>
+  </div>
+  <p>BYD AutoLock은 오픈 소스 프로젝트입니다. BYD와 공식적인 관련이 없습니다.</p>
+</footer>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('#tab-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+
+</body>
+</html>

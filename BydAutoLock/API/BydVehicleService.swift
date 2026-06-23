@@ -342,7 +342,8 @@ actor BydVehicleService {
         let hasAny = lf != 0 || rf != 0 || lr != 0 || rr != 0
         status.isLocked = hasAny && (lf == 2 && rf == 2 && lr == 2 && rr == 2)
 
-        status.interiorTemperature = (result["interiorTemp"] as? Double) ?? (result["tempInCar"] as? Double) ?? 0.0
+        let rawTemp = (result["interiorTemp"] as? Double) ?? (result["tempInCar"] as? Double) ?? 0.0
+        status.interiorTemperature = (rawTemp > -40 && rawTemp < 100) ? rawTemp : 0.0
         status.powerGear = result["powerGear"] as? Int ?? -1
         status.epb       = result["epb"]       as? Int ?? -1
         status.speed     = result["speed"]     as? Double ?? 0.0
@@ -401,7 +402,7 @@ actor BydVehicleService {
             longitude: data["longitude"]    as? Double ?? 0.0,
             speed:     data["speed"]        as? Double ?? 0.0,
             direction: data["direction"]    as? Double ?? 0.0,
-            timestamp: (data["gpsTimeStamp"] as? Double ?? 0) * 1000
+            timestamp: data["gpsTimeStamp"] as? Double ?? 0
         )
     }
 

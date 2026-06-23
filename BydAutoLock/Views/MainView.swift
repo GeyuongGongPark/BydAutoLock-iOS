@@ -348,7 +348,10 @@ struct MainView: View {
             guard let svc = AutoLockService.shared.vehicleService else { return }
             do {
                 let status = try await svc.fetchVehicleStatus(vin: vin)
-                await MainActor.run { vehicleStatus = status }
+                await MainActor.run {
+                    vehicleStatus = status
+                    service.updateWidgetBattery(status.batteryPercentage)
+                }
             } catch {
                 await MainActor.run {
                     vehicleStatus = nil

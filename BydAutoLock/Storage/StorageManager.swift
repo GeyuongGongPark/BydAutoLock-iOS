@@ -17,6 +17,7 @@ final class StorageManager {
         if let v = isLocked { widgetDefaults?.set(v, forKey: "widget_isLocked") }
         if let v = battery  { widgetDefaults?.set(v, forKey: "widget_battery") }
         if let v = rssi     { widgetDefaults?.set(v, forKey: "widget_rssi") }
+        widgetDefaults?.synchronize()
     }
 
     // MARK: - Keychain Keys
