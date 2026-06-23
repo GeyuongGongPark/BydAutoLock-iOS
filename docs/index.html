@@ -43,6 +43,7 @@
     .hero-models-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: .4px; }
     .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
     .hero-badges span { background: var(--surface2); border: 1px solid var(--border); padding: 4px 12px; border-radius: 100px; font-size: 12px; color: var(--text2); }
+    .badge-wip { display: inline-block; background: rgba(255,165,0,.15); border: 1px solid rgba(255,165,0,.35); color: #ffaa33; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 100px; vertical-align: middle; margin-left: 6px; letter-spacing: .2px; }
 
     /* PHONE FRAME */
     .phone-frame {
@@ -420,7 +421,7 @@
     <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📡</div><h3>EMA 신호 필터링</h3><p>지수 이동 평균과 선형 회귀 이상값 감지로 흔들림 없는 안정적인 거리 측정.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">❄️</div><h3>에어컨 자동 제어</h3><p>잠금 해제 시 에어컨을 자동으로 켜고, 잠금 시 끌 수 있습니다. 온도·풍량 설정 가능.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">📍</div><h3>주차 위치 기록</h3><p>차량 GPS를 주기적으로 조회해 마지막 주차 위치를 지도로 확인합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch 지원</h3><p>워치에서 잠금 상태 확인 및 수동 잠금/해제 제어가 가능합니다.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch 지원<span class="badge-wip">준비중</span></h3><p>워치에서 잠금 상태 확인 및 수동 잠금/해제 제어가 가능합니다.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div><h3>홈 화면 위젯</h3><p>잠금 상태와 배터리를 홈 화면·잠금 화면 위젯으로 한눈에 확인.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div><h3>지오펜스</h3><p>주차 위치 근처에서만 BLE 스캔을 활성화해 배터리를 절약합니다.</p></div>
   </div>
@@ -467,7 +468,7 @@
   <p class="section-desc">세 가지 방법 중 편한 방법으로 설치하세요.</p>
   <div class="install-tabs">
     <button class="tab-btn active" onclick="switchTab('altstore', this)">AltStore / Sideloadly</button>
-    <button class="tab-btn" onclick="switchTab('testflight', this)">TestFlight</button>
+    <button class="tab-btn" onclick="switchTab('testflight', this)">TestFlight <span class="badge-wip">준비중</span></button>
     <button class="tab-btn" onclick="switchTab('xcode', this)">Xcode 직접 빌드</button>
   </div>
 
