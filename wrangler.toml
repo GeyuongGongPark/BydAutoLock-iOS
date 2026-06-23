@@ -1,2 +1,4 @@
 name = "bydautolockios"
-pages_build_output_dir = "docs"
+
+[assets]
+directory = "docs"
