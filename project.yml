@@ -55,9 +55,7 @@ targets:
               NSExceptionRequiresForwardSecrecy: false
     entitlements:
       path: BydAutoLock/BydAutoLock.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.ggpark.bydautolock
+      properties: {}
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock
@@ -66,12 +64,6 @@ targets:
         CODE_SIGN_ENTITLEMENTS: BydAutoLock/BydAutoLock.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    dependencies:
-      - target: BydAutoLockWatchApp
-        embed: true
-      - target: BydAutoLockWidget
-        embed: true
-
   # ── Apple Watch 앱 ─────────────────────────────────────────
   BydAutoLockWatchApp:
     type: application

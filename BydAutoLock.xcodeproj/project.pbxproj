@@ -273,14 +273,10 @@
 			buildPhases = (
 				18D7BF7170CEA2398C6F3EC6 /* Sources */,
 				BC93FADED33B336E86E6F1AB /* Resources */,
-				C7A5149CFC180DA795B29079 /* Embed Foundation Extensions */,
-				9E2F1806C8CF68378DFC3641 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				331AB953322F381B8F32F00E /* PBXTargetDependency */,
-				1C175F3C3F7FE017A9FEC371 /* PBXTargetDependency */,
 			);
 			name = BydAutoLock;
 			packageProductDependencies = (
