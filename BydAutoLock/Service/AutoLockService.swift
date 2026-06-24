@@ -38,11 +38,12 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Private
 
     private var centralManager: CBCentralManager?
-    var vehicleService: BydVehicleService?
+    private var vehicleService: BydVehicleService?
     private let storage = StorageManager.shared
     private let geofenceManager = GeofenceManager.shared
 
     private var isScanning = false
+    private var isFirstRssiAfterConnect = false
     private var targetMac: String?
     private var targetName: String?
     private var connectedPeripheral: CBPeripheral?
@@ -160,6 +161,11 @@ final class AutoLockService: NSObject, ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
+        guard let service = vehicleService else { throw BydError.notLoggedIn }
+        return try await service.fetchVehicleStatus(vin: vin)
+    }
+
     func manualLock() {
         triggerCarAction(shouldUnlock: false, isManual: true)
     }
@@ -266,6 +272,16 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func processRSSI(_ rssi: Int) {
         rawRssi = rssi
+
+        // 재연결 직후 첫 읽기: EMA/필터 없이 raw RSSI로 즉시 unlock 판단
+        if isFirstRssiAfterConnect {
+            isFirstRssiAfterConnect = false
+            if rssi >= storage.unlockRssi && proximityState == .far && storage.isAutoUnlockOnApproach {
+                LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
+                proximityState = .near
+                triggerCarAction(shouldUnlock: true, isManual: false)
+            }
+        }
 
         // 선형 회귀 이상값 필터링
         let now = Date()
@@ -487,15 +503,13 @@ final class AutoLockService: NSObject, ObservableObject {
         do {
             let gps = try await service.fetchGpsInfo(vin: vin)
             guard gps.isValid else { return }
-            await MainActor.run {
-                self.storage.lastVehicleLat    = gps.latitude
-                self.storage.lastVehicleLng    = gps.longitude
-                self.storage.lastVehicleTime   = gps.timestamp
-                self.storage.lastVehicleSource = "API"
-                self.lastParkingLat  = gps.latitude
-                self.lastParkingLng  = gps.longitude
-                self.lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
-            }
+            storage.lastVehicleLat    = gps.latitude
+            storage.lastVehicleLng    = gps.longitude
+            storage.lastVehicleTime   = gps.timestamp
+            storage.lastVehicleSource = "API"
+            lastParkingLat  = gps.latitude
+            lastParkingLng  = gps.longitude
+            lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
             if storage.isGeofencingEnabled {
                 geofenceManager.registerGeofence(lat: gps.latitude, lng: gps.longitude)
             }
@@ -617,6 +631,7 @@ extension AutoLockService: CBCentralManagerDelegate {
         Task { @MainActor in
             self.scanModeDescription = "연결됨"
             LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
+            self.isFirstRssiAfterConnect = true
             self.startRssiTimer(for: peripheral)
         }
     }

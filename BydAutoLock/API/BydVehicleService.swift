@@ -141,7 +141,7 @@ actor BydVehicleService {
         outerMap.append(("checkcode", checkcode))
         let finalOuterJson = toSortedJSON(outerMap)
 
-        let encodedRequest = codec.encodeEnvelope(finalOuterJson)
+        let encodedRequest = try codec.encodeEnvelope(finalOuterJson)
         let body = try JSONSerialization.data(withJSONObject: ["request": encodedRequest])
         let url = URL(string: config.baseURL + endpoint)!
 
@@ -153,12 +153,17 @@ actor BydVehicleService {
         req.httpBody = body
 
         let (data, _) = try await session.data(for: req)
-        let bodyJson = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        let encodedResponse = bodyJson["response"] as! String
+        guard let bodyJson = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let encodedResponse = bodyJson["response"] as? String else {
+            throw BydError.invalidResponse
+        }
         var decoded = try codec.decodeEnvelope(encodedResponse).trimmingCharacters(in: .whitespaces)
         if decoded.hasPrefix("F{") || decoded.hasPrefix("F[") { decoded = String(decoded.dropFirst()) }
 
-        let outerResp = try JSONSerialization.jsonObject(with: decoded.data(using: .utf8)!) as! [String: Any]
+        guard let decodedData = decoded.data(using: .utf8),
+              let outerResp = try JSONSerialization.jsonObject(with: decodedData) as? [String: Any] else {
+            throw BydError.invalidResponse
+        }
         let resCode = outerResp["code"] as? String ?? "0"
 
         if resCode != "0" {
@@ -173,11 +178,17 @@ actor BydVehicleService {
         if respondData.isEmpty { return outerResp }
 
         let innerText = CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
+        guard let innerData = innerText.data(using: .utf8) else { throw BydError.invalidResponse }
         if innerText.hasPrefix("[") {
-            let arr = try JSONSerialization.jsonObject(with: innerText.data(using: .utf8)!) as! [[String: Any]]
+            guard let arr = try JSONSerialization.jsonObject(with: innerData) as? [[String: Any]] else {
+                throw BydError.invalidResponse
+            }
             return ["list": arr]
         }
-        return try JSONSerialization.jsonObject(with: innerText.data(using: .utf8)!) as! [String: Any]
+        guard let result = try JSONSerialization.jsonObject(with: innerData) as? [String: Any] else {
+            throw BydError.invalidResponse
+        }
+        return result
     }
 
     private func silentReLogin(endpoint: String, innerMap: [(key: String, value: Any?)], vin: String?) async throws -> [String: Any] {
@@ -261,7 +272,7 @@ actor BydVehicleService {
         outerMap.append(("checkcode", checkcode))
         let finalOuterJson = toSortedJSON(outerMap)
 
-        let encodedRequest = codec.encodeEnvelope(finalOuterJson)
+        let encodedRequest = try codec.encodeEnvelope(finalOuterJson)
         let body = try JSONSerialization.data(withJSONObject: ["request": encodedRequest])
         let url = URL(string: config.baseURL + "/app/account/login")!
 
@@ -273,19 +284,29 @@ actor BydVehicleService {
         request.httpBody = body
 
         let (data, _) = try await session.data(for: request)
-        let bodyJson = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        var decoded = try codec.decodeEnvelope(bodyJson["response"] as! String).trimmingCharacters(in: .whitespaces)
+        guard let bodyJson = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let encodedResponse = bodyJson["response"] as? String else {
+            throw BydError.invalidResponse
+        }
+        var decoded = try codec.decodeEnvelope(encodedResponse).trimmingCharacters(in: .whitespaces)
         if decoded.hasPrefix("F{") { decoded = String(decoded.dropFirst()) }
 
-        let outerResp = try JSONSerialization.jsonObject(with: decoded.data(using: .utf8)!) as! [String: Any]
+        guard let decodedData = decoded.data(using: .utf8),
+              let outerResp = try JSONSerialization.jsonObject(with: decodedData) as? [String: Any] else {
+            throw BydError.invalidResponse
+        }
         let resCode = outerResp["code"] as? String ?? "0"
         guard resCode == "0" else {
             throw BydError.serverError(outerResp["message"] as? String ?? "Login failed", resCode)
         }
 
-        let innerText = CryptoUtils.aesDecryptUTF8(outerResp["respondData"] as! String, keyHex: loginKey)
-        let innerResp = try JSONSerialization.jsonObject(with: innerText.data(using: .utf8)!) as! [String: Any]
-        let token = innerResp["token"] as! [String: Any]
+        guard let respondData = outerResp["respondData"] as? String else { throw BydError.invalidResponse }
+        let innerText = CryptoUtils.aesDecryptUTF8(respondData, keyHex: loginKey)
+        guard let innerData = innerText.data(using: .utf8),
+              let innerResp = try JSONSerialization.jsonObject(with: innerData) as? [String: Any],
+              let token = innerResp["token"] as? [String: Any] else {
+            throw BydError.invalidResponse
+        }
 
         userId    = token["userId"]    as? String
         signToken = token["signToken"] as? String
@@ -547,6 +568,7 @@ actor BydVehicleService {
 enum BydError: LocalizedError {
     case notLoggedIn
     case sessionExpired
+    case invalidResponse
     case serverError(String, String)
     case controlFailed(String)
     case controlTimeout
@@ -556,6 +578,7 @@ enum BydError: LocalizedError {
         switch self {
         case .notLoggedIn:            return "로그인이 필요합니다"
         case .sessionExpired:         return "세션이 만료되었습니다"
+        case .invalidResponse:        return "잘못된 응답 형식"
         case .serverError(let m, let c): return "서버 오류: \(m) (\(c))"
         case .controlFailed(let m):   return "제어 실패: \(m)"
         case .controlTimeout:         return "제어 시간 초과"

@@ -71,12 +71,18 @@ final class LogManager {
 
     func fetchLogs(limit: Int = 500, tag: String? = nil) -> [LogEntry] {
         var entries = [LogEntry]()
-        var sql = "SELECT id, timestamp, tag, message FROM logs"
-        if let t = tag, !t.isEmpty { sql += " WHERE tag LIKE '%\(t)%'" }
-        sql += " ORDER BY id DESC LIMIT \(limit)"
-
         var stmt: OpaquePointer?
-        sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
+
+        if let t = tag, !t.isEmpty {
+            sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs WHERE tag LIKE ? ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
+            let pattern = "%\(t)%"
+            sqlite3_bind_text(stmt, 1, (pattern as NSString).utf8String, -1, nil)
+            sqlite3_bind_int64(stmt, 2, Int64(limit))
+        } else {
+            sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
+            sqlite3_bind_int64(stmt, 1, Int64(limit))
+        }
+
         while sqlite3_step(stmt) == SQLITE_ROW {
             let id  = sqlite3_column_int64(stmt, 0)
             let ts  = sqlite3_column_int64(stmt, 1)

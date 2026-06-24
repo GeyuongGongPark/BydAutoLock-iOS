@@ -248,8 +248,8 @@ final class BangcleCodec {
 
     // MARK: - CBC Mode
 
-    func encryptCBC(data: [UInt8], iv: [UInt8] = [UInt8](repeating: 0, count: 16)) -> [UInt8] {
-        precondition(data.count % 16 == 0)
+    func encryptCBC(data: [UInt8], iv: [UInt8] = [UInt8](repeating: 0, count: 16)) throws -> [UInt8] {
+        guard data.count % 16 == 0 else { throw BangcleError.invalidPadding }
         var result = [UInt8](repeating: 0, count: data.count)
         var prev = iv
         for offset in stride(from: 0, to: data.count, by: 16) {
@@ -262,8 +262,8 @@ final class BangcleCodec {
         return result
     }
 
-    func decryptCBC(data: [UInt8], iv: [UInt8] = [UInt8](repeating: 0, count: 16)) -> [UInt8] {
-        precondition(data.count % 16 == 0)
+    func decryptCBC(data: [UInt8], iv: [UInt8] = [UInt8](repeating: 0, count: 16)) throws -> [UInt8] {
+        guard data.count % 16 == 0 else { throw BangcleError.invalidPadding }
         var result = [UInt8](repeating: 0, count: data.count)
         var prev = iv
         for offset in stride(from: 0, to: data.count, by: 16) {
@@ -292,9 +292,9 @@ final class BangcleCodec {
 
     // MARK: - Envelope API
 
-    func encodeEnvelope(_ plaintext: String) -> String {
+    func encodeEnvelope(_ plaintext: String) throws -> String {
         let padded = pkcs7Pad(Array(plaintext.utf8))
-        let cipher = encryptCBC(data: padded)
+        let cipher = try encryptCBC(data: padded)
         return "F" + Data(cipher).base64EncodedString()
     }
 
@@ -314,7 +314,7 @@ final class BangcleCodec {
         if rem != 0 { s += String(repeating: "=", count: 4 - rem) }
 
         guard let cipherData = Data(base64Encoded: s) else { throw BangcleError.base64DecodeError }
-        let decrypted = decryptCBC(data: [UInt8](cipherData))
+        let decrypted = try decryptCBC(data: [UInt8](cipherData))
         let unpadded = try pkcs7Unpad(decrypted)
         guard let result = String(bytes: unpadded, encoding: .utf8) else { throw BangcleError.utf8DecodeError }
         return result

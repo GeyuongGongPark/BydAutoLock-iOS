@@ -7,12 +7,18 @@ enum KeychainHelper {
         guard let data = value.data(using: .utf8) else { return }
         let query: [CFString: Any] = [
             kSecClass:       kSecClassGenericPassword,
-            kSecAttrAccount: key,
-            kSecValueData:   data,
+            kSecAttrAccount: key
+        ]
+        let attributes: [CFString: Any] = [
+            kSecValueData:      data,
             kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
         ]
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        } else {
+            SecItemAdd(query.merging(attributes) { $1 } as CFDictionary, nil)
+        }
     }
 
     static func load(forKey key: String) -> String? {

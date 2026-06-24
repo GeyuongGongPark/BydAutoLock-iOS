@@ -349,20 +349,15 @@ struct MainView: View {
         isRefreshing = true
         service.refreshParkingLocation()
         Task {
-            defer { Task { @MainActor in isRefreshing = false } }
-            guard let svc = AutoLockService.shared.vehicleService else { return }
+            defer { isRefreshing = false }
             do {
-                let status = try await svc.fetchVehicleStatus(vin: vin)
-                await MainActor.run {
-                    vehicleStatus = status
-                    vehicleStatusError = nil
-                    service.updateWidgetBattery(status.batteryPercentage)
-                }
+                let status = try await service.fetchVehicleStatus(vin: vin)
+                vehicleStatus = status
+                vehicleStatusError = nil
+                service.updateWidgetBattery(status.batteryPercentage)
             } catch {
-                await MainActor.run {
-                    vehicleStatus = nil
-                    vehicleStatusError = error.localizedDescription
-                }
+                vehicleStatus = nil
+                vehicleStatusError = error.localizedDescription
             }
         }
     }

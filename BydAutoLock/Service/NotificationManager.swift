@@ -8,6 +8,9 @@ final class NotificationManager {
     static let shared = NotificationManager()
     private let center = UNUserNotificationCenter.current()
     private let storage = StorageManager.shared
+    private var lastSignalLostTime: Date?
+    private static let signalLostCooldown: TimeInterval = 60
+
     private init() {}
 
     // MARK: - Permission
@@ -43,21 +46,13 @@ final class NotificationManager {
 
     func sendSignalLost() {
         guard storage.notifySignalLost else { return }
+        let now = Date()
+        if let last = lastSignalLostTime, now.timeIntervalSince(last) < Self.signalLostCooldown { return }
+        lastSignalLostTime = now
         send(
             id: "signal_lost",
             title: "차량 신호 끊김",
-            body: "BLE 신호를 잃었습니다. 2분 후 자동으로 잠금됩니다.",
-            sound: .default
-        )
-    }
-
-    func sendSignalRestored() {
-        guard storage.notifySignalLost else { return }
-        center.removePendingNotificationRequests(withIdentifiers: ["signal_lost"])
-        send(
-            id: "signal_restored",
-            title: "차량 신호 복구",
-            body: "차량 BLE 신호가 다시 감지됐습니다.",
+            body: "BLE 신호를 잃었습니다. 자동으로 잠금됩니다.",
             sound: .default
         )
     }
@@ -116,16 +111,16 @@ final class NotificationManager {
     // MARK: - Private
 
     private func send(id: String, title: String, body: String, sound: UNNotificationSound?) {
+        // 동일 id의 기존 알림 제거 (알림 누적 방지)
+        center.removeDeliveredNotifications(withIdentifiers: [id])
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body  = body
         content.sound = sound
 
-        let req = UNNotificationRequest(
-            identifier: "\(id)_\(Date().timeIntervalSince1970)",
-            content: content,
-            trigger: nil   // 즉시 발송
-        )
+        let req = UNNotificationRequest(identifier: id, content: content, trigger: nil)
         center.add(req)
     }
 }
