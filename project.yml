@@ -53,6 +53,11 @@ targets:
               NSIncludesSubdomains: true
               NSExceptionAllowsInsecureHTTPLoads: false
               NSExceptionRequiresForwardSecrecy: false
+    dependencies:
+      - target: BydAutoLockWatchApp
+        embed: true
+      - target: BydAutoLockWidget
+        embed: true
     entitlements:
       path: BydAutoLock/BydAutoLock.entitlements
       properties: {}
