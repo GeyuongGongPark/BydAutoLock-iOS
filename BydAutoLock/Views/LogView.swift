@@ -1,4 +1,13 @@
 import SwiftUI
+import UIKit
+
+private struct ActivityView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
+}
 
 struct LogView: View {
 
@@ -7,6 +16,8 @@ struct LogView: View {
     @State private var searchTag = ""
     @State private var selectedTag: String? = nil
     @State private var showClearAlert = false
+    @State private var isSharing = false
+    @State private var shareURL: URL? = nil
 
     private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion"]
     private let logManager = LogManager.shared
@@ -45,6 +56,12 @@ struct LogView: View {
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
+                        shareLog()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+
+                    Button {
                         let text = entries.map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }.joined(separator: "\n")
                         UIPasteboard.general.string = text
                     } label: {
@@ -67,10 +84,39 @@ struct LogView: View {
             } message: {
                 Text("모든 로그를 삭제하시겠습니까?")
             }
+            .sheet(isPresented: $isSharing) {
+                if let url = shareURL {
+                    ActivityView(activityItems: [url])
+                }
+            }
             .onAppear { reload() }
             .refreshable { reload() }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func shareLog() {
+        let all = logManager.fetchLogs(limit: 5000)
+        let text = all.reversed()
+            .map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }
+            .joined(separator: "\n")
+
+        let df = DateFormatter()
+        df.dateFormat = "yyyyMMdd_HHmmss"
+        let dateStr = df.string(from: Date())
+
+        let storage = StorageManager.shared
+        let rawName = storage.deviceName ?? storage.selectedVin ?? "unknown"
+        let safeName = rawName
+            .components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-")).inverted)
+            .joined(separator: "_")
+
+        let fileName = "error_log_\(dateStr)_\(safeName).txt"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        try? text.write(to: tempURL, atomically: true, encoding: .utf8)
+
+        shareURL = tempURL
+        isSharing = true
     }
 
     private var tagFilterBar: some View {

@@ -16,6 +16,7 @@ struct SettingsDrawerView: View {
                 Section("기타") {
                     drawerLink("알림 설정",   icon: "bell.badge.fill",          color: .red)    { NotificationSettingsView() }
                     drawerLink("디버그 로그", icon: "doc.text.magnifyingglass", color: .purple) { LogView() }
+                    urlLink("피드백",        icon: "message.fill",             color: .yellow, url: "https://open.kakao.com/o/gGtmWXAi")
                 }
             }
             .listStyle(.insetGrouped)
@@ -31,6 +32,21 @@ struct SettingsDrawerView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func urlLink(_ title: String, icon: String, color: Color, url: String) -> some View {
+        Link(destination: URL(string: url)!) {
+            Label {
+                Text(title)
+                    .foregroundStyle(.primary)
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(color)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+            }
+        }
     }
 
     private func drawerLink<Dest: View>(_ title: String, icon: String, color: Color, @ViewBuilder dest: () -> Dest) -> some View {

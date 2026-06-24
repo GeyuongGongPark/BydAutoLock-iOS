@@ -46,7 +46,7 @@ final class AutoLockService: NSObject, ObservableObject {
     private var targetMac: String?
     private var targetName: String?
     private var connectedPeripheral: CBPeripheral?
-    private var rssiTimer: Timer?
+    private var rssiTimer: DispatchSourceTimer?
     private static let rssiReadInterval: TimeInterval = 3.0
 
     // RSSI 필터링
@@ -56,17 +56,13 @@ final class AutoLockService: NSObject, ObservableObject {
     private static let rssiWindowSize = 10
     private static let maxRejections = 3
 
-    // 신호 소실 그레이스 타이머 (2분)
-    private var signalLossTimer: Timer?
-    private static let signalLossGracePeriod: TimeInterval = 120
-
     // 워치독 타이머 (5분)
-    private var watchdogTimer: Timer?
+    private var watchdogTimer: DispatchSourceTimer?
     private static let watchdogInterval: TimeInterval = 300
 
     // 정지 감지 (5분)
     private var motionManager: CMMotionActivityManager?
-    private var stationaryTimer: Timer?
+    private var stationaryTimer: DispatchSourceTimer?
     private static let stationaryTimeout: TimeInterval = 300
 
     // RSSI 로그 집계 (10초 주기)
@@ -74,11 +70,11 @@ final class AutoLockService: NSObject, ObservableObject {
     private var rssiSamples = [Int]()
 
     // 세션 갱신 타이머 (15분)
-    private var sessionRefreshTimer: Timer?
+    private var sessionRefreshTimer: DispatchSourceTimer?
     private static let sessionRefreshInterval: TimeInterval = 900
 
     // GPS 폴링 (5분 주기)
-    private var gpsPollTimer: Timer?
+    private var gpsPollTimer: DispatchSourceTimer?
     private static let gpsPollInterval: TimeInterval = 300
 
     private override init() {
@@ -139,12 +135,11 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func stop() {
         stopBLEScan()
-        watchdogTimer?.invalidate()
-        sessionRefreshTimer?.invalidate()
-        gpsPollTimer?.invalidate()
+        watchdogTimer?.cancel()
+        sessionRefreshTimer?.cancel()
+        gpsPollTimer?.cancel()
         rssiLogTimer?.invalidate()
-        signalLossTimer?.invalidate()
-        stationaryTimer?.invalidate()
+        stationaryTimer?.cancel()
         isRunning = false
         smoothedRssi = nil
         rawRssi = nil
@@ -217,7 +212,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func stopBLEScan() {
-        rssiTimer?.invalidate()
+        rssiTimer?.cancel()
         rssiTimer = nil
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)
@@ -252,14 +247,17 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func startRssiTimer(for peripheral: CBPeripheral) {
-        rssiTimer?.invalidate()
-        rssiTimer = Timer.scheduledTimer(withTimeInterval: Self.rssiReadInterval, repeats: true) { _ in
+        rssiTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now(), repeating: Self.rssiReadInterval)
+        timer.setEventHandler {
             Task { @MainActor in
                 guard peripheral.state == .connected else { return }
                 peripheral.readRSSI()
             }
         }
-        peripheral.readRSSI() // 즉시 첫 번째 읽기
+        timer.resume()
+        rssiTimer = timer
     }
 
     private func isNear() -> Bool { proximityState == .near }
@@ -296,14 +294,6 @@ final class AutoLockService: NSObject, ObservableObject {
             smoothedRssi = Double(rssi)
         }
 
-        // 신호 소실 그레이스 취소 (신호 복구)
-        if signalLossTimer != nil {
-            signalLossTimer?.invalidate()
-            signalLossTimer = nil
-            LogManager.shared.log("BLE", "신호 복구됨. 그레이스 타이머 취소.")
-            NotificationManager.shared.sendSignalRestored()
-        }
-
         // RSSI 집계 로깅
         rssiSamples.append(rssi)
 
@@ -316,17 +306,11 @@ final class AutoLockService: NSObject, ObservableObject {
         rawRssi = nil
         rssiWindow.removeAll()
 
-        if proximityState == .near && signalLossTimer == nil {
-            LogManager.shared.log("BLE", "신호 소실. 2분 그레이스 타이머 시작.")
+        if proximityState == .near {
+            LogManager.shared.log("BLE", "신호 소실. 즉시 안전 잠금 실행.")
             NotificationManager.shared.sendSignalLost()
-            signalLossTimer = Timer.scheduledTimer(withTimeInterval: Self.signalLossGracePeriod, repeats: false) { [weak self] _ in
-                Task { @MainActor in
-                    guard let self, self.proximityState == .near else { return }
-                    LogManager.shared.log("BLE", "그레이스 만료. 안전 잠금 실행.")
-                    self.proximityState = .far
-                    self.triggerCarAction(shouldUnlock: false, isManual: false)
-                }
-            }
+            proximityState = .far
+            triggerCarAction(shouldUnlock: false, isManual: false)
         }
     }
 
@@ -433,7 +417,9 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Watchdog
 
     private func startWatchdog() {
-        watchdogTimer = Timer.scheduledTimer(withTimeInterval: Self.watchdogInterval, repeats: true) { [weak self] _ in
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.watchdogInterval, repeating: Self.watchdogInterval)
+        timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
                 if self.smoothedRssi == nil && !self.isStationary {
@@ -442,6 +428,8 @@ final class AutoLockService: NSObject, ObservableObject {
                 }
             }
         }
+        timer.resume()
+        watchdogTimer = timer
     }
 
     // MARK: - Session Refresh
@@ -462,7 +450,9 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func startSessionRefresh() {
-        sessionRefreshTimer = Timer.scheduledTimer(withTimeInterval: Self.sessionRefreshInterval, repeats: true) { [weak self] _ in
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.sessionRefreshInterval, repeating: Self.sessionRefreshInterval)
+        timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self,
                       let user = self.storage.username,
@@ -476,14 +466,20 @@ final class AutoLockService: NSObject, ObservableObject {
                 }
             }
         }
+        timer.resume()
+        sessionRefreshTimer = timer
     }
 
     // MARK: - GPS Polling
 
     private func startGpsPoll() {
-        gpsPollTimer = Timer.scheduledTimer(withTimeInterval: Self.gpsPollInterval, repeats: true) { [weak self] _ in
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.gpsPollInterval, repeating: Self.gpsPollInterval)
+        timer.setEventHandler { [weak self] in
             Task { await self?.pollVehicleGPS() }
         }
+        timer.resume()
+        gpsPollTimer = timer
     }
 
     private func pollVehicleGPS() async {
@@ -512,8 +508,10 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Stationary Detection (CoreMotion)
 
     private func startStationaryTimer() {
-        stationaryTimer?.invalidate()
-        stationaryTimer = Timer.scheduledTimer(withTimeInterval: Self.stationaryTimeout, repeats: false) { [weak self] _ in
+        stationaryTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.stationaryTimeout)
+        timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self, self.smoothedRssi == nil else { return }
                 self.isStationary = true
@@ -522,6 +520,8 @@ final class AutoLockService: NSObject, ObservableObject {
                 self.startMotionUpdates()
             }
         }
+        timer.resume()
+        stationaryTimer = timer
     }
 
     private func startMotionUpdates() {
@@ -634,7 +634,7 @@ extension AutoLockService: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
-            self.rssiTimer?.invalidate()
+            self.rssiTimer?.cancel()
             self.rssiTimer = nil
             LogManager.shared.log("BLE", "BLE 연결 끊김: \(error?.localizedDescription ?? "정상 종료")")
             self.handleSignalLoss()
@@ -671,7 +671,7 @@ extension AutoLockService: GeofenceManagerDelegate {
     func didExitGeofence() {
         isInsideGeofence = false
         // peripheral 참조는 유지하고 연결만 해제 (재진입 시 바로 재연결)
-        rssiTimer?.invalidate()
+        rssiTimer?.cancel()
         rssiTimer = nil
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)

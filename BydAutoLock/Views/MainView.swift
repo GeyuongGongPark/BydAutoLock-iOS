@@ -5,6 +5,7 @@ struct MainView: View {
     @StateObject private var service = AutoLockService.shared
     @State private var showDrawer = false
     @State private var vehicleStatus: VehicleStatus?
+    @State private var vehicleStatusError: String?
     @State private var isRefreshing = false
 
     private let storage = StorageManager.shared
@@ -208,6 +209,10 @@ struct MainView: View {
                     if status.interiorTemperature != 0 {
                         statusRow("실내 온도", value: String(format: "%.1f°C", status.interiorTemperature))
                     }
+                } else if let err = vehicleStatusError {
+                    Label(err, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption).foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 } else {
                     Text("새로고침을 눌러 상태를 조회하세요")
                         .font(.caption).foregroundStyle(.secondary)
@@ -350,11 +355,13 @@ struct MainView: View {
                 let status = try await svc.fetchVehicleStatus(vin: vin)
                 await MainActor.run {
                     vehicleStatus = status
+                    vehicleStatusError = nil
                     service.updateWidgetBattery(status.batteryPercentage)
                 }
             } catch {
                 await MainActor.run {
                     vehicleStatus = nil
+                    vehicleStatusError = error.localizedDescription
                 }
             }
         }
