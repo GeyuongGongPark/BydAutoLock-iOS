@@ -29,6 +29,7 @@ final class AutoLockService: NSObject, ObservableObject {
     @Published var scanModeDescription = "중지됨"
     @Published var isInsideGeofence = false
     @Published var isStationary = false
+    @Published var isDriving = false
     @Published var lastParkingLat: Double = 0
     @Published var lastParkingLng: Double = 0
     @Published var lastParkingTime: Date?
@@ -65,6 +66,11 @@ final class AutoLockService: NSObject, ObservableObject {
     private var motionManager: CMMotionActivityManager?
     private var stationaryTimer: DispatchSourceTimer?
     private static let stationaryTimeout: TimeInterval = 300
+
+    // 주행 중 감지 (상시)
+    private var drivingMotionManager: CMMotionActivityManager?
+    private var lastKnownSpeed: Double = 0
+    private var lastSpeedTime: Date?
 
     // RSSI 로그 집계 (10초 주기)
     private var rssiLogTimer: Timer?
@@ -117,6 +123,7 @@ final class AutoLockService: NSObject, ObservableObject {
         startWatchdog()
         startSessionRefresh()
         startGpsPoll()
+        startDrivingDetection()
         storage.saveWidgetData(isRunning: true, isLocked: nil, battery: nil, rssi: nil)
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: true, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
@@ -141,6 +148,9 @@ final class AutoLockService: NSObject, ObservableObject {
         gpsPollTimer?.cancel()
         rssiLogTimer?.invalidate()
         stationaryTimer?.cancel()
+        drivingMotionManager?.stopActivityUpdates()
+        drivingMotionManager = nil
+        isDriving = false
         isRunning = false
         smoothedRssi = nil
         rawRssi = nil
@@ -277,9 +287,13 @@ final class AutoLockService: NSObject, ObservableObject {
         if isFirstRssiAfterConnect {
             isFirstRssiAfterConnect = false
             if rssi >= storage.unlockRssi && proximityState == .far && storage.isAutoUnlockOnApproach {
-                LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
-                proximityState = .near
-                triggerCarAction(shouldUnlock: true, isManual: false)
+                if isDriving {
+                    LogManager.shared.log("BLE", "재연결 즉시 unlock 차단 - 주행 중 (raw RSSI: \(rssi))")
+                } else {
+                    LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
+                    proximityState = .near
+                    triggerCarAction(shouldUnlock: true, isManual: false)
+                }
             }
         }
 
@@ -344,7 +358,11 @@ final class AutoLockService: NSObject, ObservableObject {
             proximityState = .near
             LogManager.shared.log("BLE", "접근 감지 (RSSI: \(Int(rssi)) >= \(Int(unlockThreshold)))")
             if storage.isAutoUnlockOnApproach {
-                triggerCarAction(shouldUnlock: true, isManual: false)
+                if isDriving {
+                    LogManager.shared.log("BLE", "잠금 해제 차단 - 주행 중")
+                } else {
+                    triggerCarAction(shouldUnlock: true, isManual: false)
+                }
             }
         } else if wasNear && rssi <= lockThreshold {
             // 이탈 감지
@@ -503,6 +521,9 @@ final class AutoLockService: NSObject, ObservableObject {
         do {
             let gps = try await service.fetchGpsInfo(vin: vin)
             guard gps.isValid else { return }
+            lastKnownSpeed = gps.speed
+            lastSpeedTime  = Date()
+            if gps.speed > 5.0 { isDriving = true }
             storage.lastVehicleLat    = gps.latitude
             storage.lastVehicleLng    = gps.longitude
             storage.lastVehicleTime   = gps.timestamp
@@ -553,6 +574,23 @@ final class AutoLockService: NSObject, ObservableObject {
                     LogManager.shared.log("Motion", "움직임 감지. BLE 스캔 재개.")
                     self.beginScanning()
                     self.startStationaryTimer()
+                }
+            }
+        }
+    }
+
+    private func startDrivingDetection() {
+        guard CMMotionActivityManager.isActivityAvailable() else { return }
+        let manager = CMMotionActivityManager()
+        drivingMotionManager = manager
+        manager.startActivityUpdates(to: .main) { [weak self] activity in
+            guard let activity, activity.confidence != .low else { return }
+            Task { @MainActor in
+                guard let self else { return }
+                let driving = activity.automotive
+                if self.isDriving != driving {
+                    self.isDriving = driving
+                    LogManager.shared.log("Motion", driving ? "주행 중 감지 - 자동 잠금 해제 일시 차단" : "주행 종료 감지 - 자동 잠금 해제 재개")
                 }
             }
         }
