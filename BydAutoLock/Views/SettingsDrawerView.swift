@@ -35,7 +35,9 @@ struct SettingsDrawerView: View {
     }
 
     private func urlLink(_ title: String, icon: String, color: Color, url: String) -> some View {
-        Link(destination: URL(string: url)!) {
+        Button {
+            if let u = URL(string: url) { UIApplication.shared.open(u) }
+        } label: {
             Label {
                 Text(title)
                     .foregroundStyle(.primary)
