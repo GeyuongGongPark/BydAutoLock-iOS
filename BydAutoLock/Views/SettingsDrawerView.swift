@@ -18,6 +18,23 @@ struct SettingsDrawerView: View {
                     drawerLink("디버그 로그", icon: "doc.text.magnifyingglass", color: .purple) { LogView() }
                     urlLink("피드백",        icon: "message.fill",             color: .yellow, url: "https://open.kakao.com/o/gGtmWXAi")
                 }
+
+                Section {
+                    HStack {
+                        Label {
+                            Text("버전")
+                        } icon: {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(.white)
+                                .frame(width: 28, height: 28)
+                                .background(.gray)
+                                .clipShape(RoundedRectangle(cornerRadius: 7))
+                        }
+                        Spacer()
+                        Text(appVersion)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             .listStyle(.insetGrouped)
             .navigationTitle("메뉴")
@@ -32,6 +49,12 @@ struct SettingsDrawerView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-"
+        return "\(v) (\(b))"
     }
 
     private func urlLink(_ title: String, icon: String, color: Color, url: String) -> some View {
