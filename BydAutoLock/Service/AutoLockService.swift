@@ -58,6 +58,10 @@ final class AutoLockService: NSObject, ObservableObject {
     private static let rssiWindowSize = 10
     private static let maxRejections = 3
 
+    // 자동 unlock 후 자동 lock 쿨다운 (클락션 방지)
+    private var lastAutoUnlockTime: Date?
+    private static let postUnlockLockCooldown: TimeInterval = 15
+
     // 워치독 타이머 (5분)
     private var watchdogTimer: DispatchSourceTimer?
     private static let watchdogInterval: TimeInterval = 300
@@ -377,6 +381,17 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Car Action
 
     private func triggerCarAction(shouldUnlock: Bool, isManual: Bool) {
+        // 자동 unlock 직후 자동 lock 차단 (BLE 불안정으로 인한 잠금/해제 반복 → 클락션 방지)
+        if !shouldUnlock && !isManual {
+            if let t = lastAutoUnlockTime, Date().timeIntervalSince(t) < Self.postUnlockLockCooldown {
+                LogManager.shared.log("AutoLockService", "자동 잠금 차단 - unlock 쿨다운 중 (\(Int(Date().timeIntervalSince(t)))초)")
+                return
+            }
+        }
+        if shouldUnlock && !isManual {
+            lastAutoUnlockTime = Date()
+        }
+
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else {
