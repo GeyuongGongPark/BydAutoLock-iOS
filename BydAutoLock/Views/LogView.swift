@@ -9,7 +9,7 @@ struct LogView: View {
     @State private var selectedTag: String? = nil
     @State private var showClearAlert = false
 
-    private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion"]
+    private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion", "BG"]
     private let logManager = LogManager.shared
 
     var body: some View {
@@ -160,6 +160,7 @@ struct LogView: View {
         case "Session":         return .yellow
         case "Watchdog":        return .pink
         case "Motion":          return .mint
+        case "BG":              return .indigo
         default:                return .gray
         }
     }
