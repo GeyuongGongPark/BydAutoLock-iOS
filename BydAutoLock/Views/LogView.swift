@@ -13,70 +13,65 @@ struct LogView: View {
     private let logManager = LogManager.shared
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                tagFilterBar
+        VStack(spacing: 0) {
+            tagFilterBar
 
-                if entries.isEmpty {
-                    // ContentUnavailableView는 iOS 17+이므로 직접 구현
-                    VStack(spacing: 12) {
-                        Image(systemName: "doc.text.magnifyingglass")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.secondary)
-                        Text("로그 없음").font(.headline)
-                        Text("디버그 로깅이 활성화되어 있고\n서비스가 실행 중일 때 로그가 기록됩니다.")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(entries) { entry in
-                        logRow(entry)
-                            .listRowBackground(rowBackground(for: entry.tag))
-                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-                    }
-                    .listStyle(.plain)
+            if entries.isEmpty {
+                // ContentUnavailableView는 iOS 17+이므로 직접 구현
+                VStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("로그 없음").font(.headline)
+                    Text("디버그 로깅이 활성화되어 있고\n서비스가 실행 중일 때 로그가 기록됩니다.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(entries) { entry in
+                    logRow(entry)
+                        .listRowBackground(rowBackground(for: entry.tag))
+                        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+                }
+                .listStyle(.plain)
             }
-            .navigationTitle("로그")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("닫기") { dismiss() }
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        shareLog()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-
-                    Button {
-                        let text = entries.map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }.joined(separator: "\n")
-                        UIPasteboard.general.string = text
-                    } label: {
-                        Image(systemName: "doc.on.clipboard")
-                    }
-
-                    Button(role: .destructive) {
-                        showClearAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                }
-            }
-            .alert("로그 삭제", isPresented: $showClearAlert) {
-                Button("삭제", role: .destructive) {
-                    logManager.clearAll()
-                    entries.removeAll()
-                }
-                Button("취소", role: .cancel) {}
-            } message: {
-                Text("모든 로그를 삭제하시겠습니까?")
-            }
-            .onAppear { reload() }
-            .refreshable { reload() }
         }
+        .navigationTitle("로그")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    shareLog()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+
+                Button {
+                    let text = entries.map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }.joined(separator: "\n")
+                    UIPasteboard.general.string = text
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                }
+
+                Button(role: .destructive) {
+                    showClearAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+        }
+        .alert("로그 삭제", isPresented: $showClearAlert) {
+            Button("삭제", role: .destructive) {
+                logManager.clearAll()
+                entries.removeAll()
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("모든 로그를 삭제하시겠습니까?")
+        }
+        .onAppear { reload() }
+        .refreshable { reload() }
         .preferredColorScheme(.dark)
     }
 
