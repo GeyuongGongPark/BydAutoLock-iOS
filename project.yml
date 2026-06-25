@@ -9,7 +9,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "8FUMN5NL47"
 
 targets:
 
@@ -137,7 +137,7 @@ targets:
           - group.com.ggp.bydautolock
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.watchext
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.watchapp.wext
         PRODUCT_NAME: BydAutoLockWatchComplication
         INFOPLIST_FILE: BydAutoLockWatchComplication/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWatchComplication/BydAutoLockWatchComplication.entitlements
