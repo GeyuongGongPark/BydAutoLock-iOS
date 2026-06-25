@@ -32,6 +32,6 @@
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.ggpark.bydautolock</string>
+	<string>com.ggp.bydautolock</string>
 </dict>
 </plist>

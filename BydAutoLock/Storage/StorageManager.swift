@@ -7,7 +7,7 @@ final class StorageManager {
 
     static let shared = StorageManager()
     private let defaults = UserDefaults.standard
-    private let widgetDefaults = UserDefaults(suiteName: "group.com.ggpark.bydautolock")
+    private let widgetDefaults = UserDefaults(suiteName: "group.com.ggp.bydautolock")
     private init() {}
 
     // MARK: - Widget / Watch 공유 데이터

@@ -16,7 +16,7 @@ struct BydStatusEntry: TimelineEntry {
 struct BydStatusProvider: TimelineProvider {
 
     private var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: "group.com.ggpark.bydautolock")
+        UserDefaults(suiteName: "group.com.ggp.bydautolock")
     }
 
     func placeholder(in context: Context) -> BydStatusEntry {

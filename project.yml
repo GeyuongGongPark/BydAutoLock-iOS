@@ -1,6 +1,6 @@
 name: BydAutoLock
 options:
-  bundleIdPrefix: com.ggpark
+  bundleIdPrefix: com.ggp
   deploymentTarget:
     iOS: "16.0"
     watchOS: "10.0"
@@ -65,7 +65,7 @@ targets:
       properties: {}
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock
         PRODUCT_NAME: BYD AutoLock
         INFOPLIST_FILE: BydAutoLock/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLock/BydAutoLock.entitlements
@@ -86,7 +86,7 @@ targets:
       properties:
         CFBundleDisplayName: BYD AutoLock
         WKApplication: true
-        WKCompanionAppBundleIdentifier: com.ggpark.bydautolock
+        WKCompanionAppBundleIdentifier: com.ggp.bydautolock
         # 컴플리케이션 딥링크 URL scheme
         CFBundleURLTypes:
           - CFBundleURLSchemes:
@@ -95,7 +95,7 @@ targets:
       path: BydAutoLockWatch/BydAutoLockWatch.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock.watchapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.watchapp
         PRODUCT_NAME: BYD AutoLock
         INFOPLIST_FILE: BydAutoLockWatch/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWatch/BydAutoLockWatch.entitlements
@@ -122,10 +122,10 @@ targets:
       path: BydAutoLockWidget/BydAutoLockWidget.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.ggpark.bydautolock
+          - group.com.ggp.bydautolock
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ggpark.bydautolock.widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.widget
         PRODUCT_NAME: BydAutoLockWidget
         INFOPLIST_FILE: BydAutoLockWidget/Info.plist
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWidget/BydAutoLockWidget.entitlements

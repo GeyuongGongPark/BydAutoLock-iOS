@@ -451,7 +451,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
 				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.watchapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.watchapp;
 				PRODUCT_NAME = "BYD AutoLock";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -535,7 +535,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.widget;
 				PRODUCT_NAME = BydAutoLockWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -611,7 +611,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.widget;
 				PRODUCT_NAME = BydAutoLockWidget;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -632,7 +632,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock;
 				PRODUCT_NAME = "BYD AutoLock";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -652,7 +652,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock;
 				PRODUCT_NAME = "BYD AutoLock";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -665,7 +665,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
 				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ggpark.bydautolock.watchapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.watchapp;
 				PRODUCT_NAME = "BYD AutoLock";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
