@@ -1,6 +1,7 @@
 import Foundation
 import SQLite3
 
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 /// SQLite 기반 디버그 로그 저장소 (최대 5,000행)
 final class LogManager {
@@ -48,8 +49,8 @@ final class LogManager {
         var stmt: OpaquePointer?
         sqlite3_prepare_v2(db, "INSERT INTO logs (timestamp, tag, message) VALUES (?, ?, ?)", -1, &stmt, nil)
         sqlite3_bind_int64(stmt, 1, ts)
-        sqlite3_bind_text(stmt, 2, tag, -1, nil)
-        sqlite3_bind_text(stmt, 3, message, -1, nil)
+        sqlite3_bind_text(stmt, 2, tag, -1, SQLITE_TRANSIENT)
+        sqlite3_bind_text(stmt, 3, message, -1, SQLITE_TRANSIENT)
         sqlite3_step(stmt)
         sqlite3_finalize(stmt)
 
@@ -76,7 +77,7 @@ final class LogManager {
         if let t = tag, !t.isEmpty {
             sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs WHERE tag LIKE ? ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
             let pattern = "%\(t)%"
-            sqlite3_bind_text(stmt, 1, (pattern as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(stmt, 1, pattern, -1, SQLITE_TRANSIENT)
             sqlite3_bind_int64(stmt, 2, Int64(limit))
         } else {
             sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
@@ -86,8 +87,8 @@ final class LogManager {
         while sqlite3_step(stmt) == SQLITE_ROW {
             let id  = sqlite3_column_int64(stmt, 0)
             let ts  = sqlite3_column_int64(stmt, 1)
-            let tagStr = String(cString: sqlite3_column_text(stmt, 2))
-            let msg    = String(cString: sqlite3_column_text(stmt, 3))
+            let tagStr = sqlite3_column_text(stmt, 2).map { String(cString: $0) } ?? ""
+            let msg    = sqlite3_column_text(stmt, 3).map { String(cString: $0) } ?? ""
             let date   = Date(timeIntervalSince1970: Double(ts) / 1000.0)
             entries.append(LogEntry(id: id, timestamp: date, tag: tagStr, message: msg))
         }

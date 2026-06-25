@@ -276,7 +276,8 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func beginScanning() {
         guard centralManager?.state == .poweredOn else { return }
-        if isStationary && !isNear() { return }
+        // 이미 연결된 상태에서 정지 중이면 스캔 불필요 (배터리 절약)
+        if isStationary, let p = connectedPeripheral, p.state == .connected { return }
         if storage.isGeofencingEnabled && !isInsideGeofence { return }
 
         // 이미 연결되어 있으면 스킵
@@ -530,9 +531,11 @@ final class AutoLockService: NSObject, ObservableObject {
         timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
-                if self.smoothedRssi == nil && !self.isStationary {
+                if self.smoothedRssi == nil {
                     LogManager.shared.log("Watchdog", "BLE 스캔 갱신")
+                    self.isStationary = false
                     self.beginScanning()
+                    self.startStationaryTimer()
                 }
             }
         }
