@@ -37,12 +37,12 @@ targets:
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
+        UIRequiresFullScreen: true
         # 배경 실행 모드
         UIBackgroundModes:
           - bluetooth-central
           - location
           - fetch
-          - processing
         # 개인정보 권한 설명
         NSBluetoothAlwaysUsageDescription: BYD 차량 BLE 신호를 감지하여 자동 잠금/해제에 사용합니다.
         NSLocationAlwaysAndWhenInUseUsageDescription: 주차 위치 기반 지오펜싱으로 차량 근접 여부를 판단합니다.
@@ -81,10 +81,13 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Info.plist"
+    resources:
+      - path: BydAutoLockWatch/Assets.xcassets
     info:
       path: BydAutoLockWatch/Info.plist
       properties:
         CFBundleDisplayName: BYD AutoLock
+        CFBundleIconName: AppIcon
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.ggp.bydautolock
         # 컴플리케이션 딥링크 URL scheme
@@ -101,6 +104,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: BydAutoLockWatch/BydAutoLockWatch.entitlements
         WATCHOS_DEPLOYMENT_TARGET: "10.0"
         SKIP_INSTALL: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   # ── 위젯 Extension ─────────────────────────────────────────
   BydAutoLockWidget:

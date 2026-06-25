@@ -13,6 +13,7 @@
 		142D722116231C03F136EA5C /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5BD749506934B29CD1C2AC /* MainView.swift */; };
 		17A0E1EF9A8C18F6A175B3CF /* BydAutoLockWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		3553478C2056D74FD17C5428 /* EnergyConsumption.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */; };
+		3581F191827847789DC6EEFC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E1210FCAAB8C9AB72CC247A0 /* Assets.xcassets */; };
 		3DCF82775F182D136EF3E614 /* HvacStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DBF781AAAA85839E58508B /* HvacStatus.swift */; };
 		4256E5D147FBC077E721D90C /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */; };
 		51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04F548A007CC17D0532E811 /* LogManager.swift */; };
@@ -120,6 +121,7 @@
 		D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
 		D7D773CC403BBD4A21A48A4B /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		E0CB5C511395A8615721DC28 /* EnergyConsumption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyConsumption.swift; sourceTree = "<group>"; };
+		E1210FCAAB8C9AB72CC247A0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E595FC6EFD00543F1DDF5D59 /* WatchMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchMainView.swift; sourceTree = "<group>"; };
 		EDD514673509F5771630DD49 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
 		F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothSettingsView.swift; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 		FB87129C09AC24FB680E077B /* BydAutoLockWatch */ = {
 			isa = PBXGroup;
 			children = (
+				E1210FCAAB8C9AB72CC247A0 /* Assets.xcassets */,
 				BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */,
 				F49978E23297EF3CF6E12ABE /* BydAutoLockWatchApp.swift */,
 				F1CE88B07E9296793D407114 /* WatchComplication.swift */,
@@ -311,6 +314,7 @@
 			buildConfigurationList = BB9A6D93C9F80FA95D6F85B5 /* Build configuration list for PBXNativeTarget "BydAutoLockWatchApp" */;
 			buildPhases = (
 				50F1746129EF220780FF0CC6 /* Sources */,
+				CFA9818441B08B91C13F3C07 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -371,6 +375,14 @@
 			files = (
 				9B41BEC05E32BF7301616AC6 /* Assets.xcassets in Resources */,
 				8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CFA9818441B08B91C13F3C07 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3581F191827847789DC6EEFC /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
