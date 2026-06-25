@@ -144,7 +144,7 @@ final class AutoLockService: NSObject, ObservableObject {
         startSessionRefresh()
         startGpsPoll()
         startDrivingDetection()
-        storage.saveWidgetData(isRunning: true, isLocked: nil, battery: nil, rssi: nil)
+        storage.saveWidgetData(isRunning: true, isLocked: nil, battery: nil, drivingRange: nil)
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: true, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
 
@@ -186,7 +186,7 @@ final class AutoLockService: NSObject, ObservableObject {
         proximityState = .far
         LogManager.shared.log("AutoLockService", "서비스 중지")
         NotificationManager.shared.sendServiceStopped()
-        storage.saveWidgetData(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
+        storage.saveWidgetData(isRunning: false, isLocked: nil, battery: nil, drivingRange: nil)
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: false, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -195,8 +195,8 @@ final class AutoLockService: NSObject, ObservableObject {
         Task { await pollVehicleGPS() }
     }
 
-    func updateWidgetBattery(_ battery: Int) {
-        storage.saveWidgetData(isRunning: isRunning, isLocked: nil, battery: battery, rssi: rawRssi)
+    func updateWidgetStatus(battery: Int, drivingRange: Int) {
+        storage.saveWidgetData(isRunning: isRunning, isLocked: nil, battery: battery, drivingRange: drivingRange)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -510,7 +510,7 @@ final class AutoLockService: NSObject, ObservableObject {
                         ? (result ? "잠금 해제 성공" : "잠금 해제 전송됨")
                         : (result ? "잠금 성공" : "잠금 전송됨")
                     self.lastApiTime = Date()
-                    self.storage.saveWidgetData(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
+                    self.storage.saveWidgetData(isRunning: self.isRunning, isLocked: isLocked, battery: nil, drivingRange: nil)
                     WatchConnectivityManager.shared.sendStatusToWatch(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
                     WidgetCenter.shared.reloadAllTimelines()
                     if shouldUnlock { self.endRssiPollingBGTask() }

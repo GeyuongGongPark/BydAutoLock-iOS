@@ -12,11 +12,11 @@ final class StorageManager {
 
     // MARK: - Widget / Watch 공유 데이터
 
-    func saveWidgetData(isRunning: Bool, isLocked: Bool?, battery: Int?, rssi: Int?) {
+    func saveWidgetData(isRunning: Bool, isLocked: Bool?, battery: Int?, drivingRange: Int?) {
         widgetDefaults?.set(isRunning, forKey: "widget_isRunning")
-        if let v = isLocked { widgetDefaults?.set(v, forKey: "widget_isLocked") }
-        if let v = battery  { widgetDefaults?.set(v, forKey: "widget_battery") }
-        if let v = rssi     { widgetDefaults?.set(v, forKey: "widget_rssi") }
+        if let v = isLocked      { widgetDefaults?.set(v, forKey: "widget_isLocked") }
+        if let v = battery       { widgetDefaults?.set(v, forKey: "widget_battery") }
+        if let v = drivingRange  { widgetDefaults?.set(v, forKey: "widget_drivingRange") }
         widgetDefaults?.synchronize()
     }
 

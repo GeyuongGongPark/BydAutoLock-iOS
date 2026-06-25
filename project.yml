@@ -27,8 +27,8 @@ targets:
     info:
       path: BydAutoLock/Info.plist
       properties:
-        CFBundleShortVersionString: "1.2"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "1.2.1"
+        CFBundleVersion: "6"
         # 전체 화면 지원 (레터박스 제거)
         UILaunchScreen: {}
         # 세로 모드 고정
@@ -64,7 +64,9 @@ targets:
         embed: true
     entitlements:
       path: BydAutoLock/BydAutoLock.entitlements
-      properties: {}
+      properties:
+        com.apple.security.application-groups:
+          - group.com.ggp.bydautolock
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock

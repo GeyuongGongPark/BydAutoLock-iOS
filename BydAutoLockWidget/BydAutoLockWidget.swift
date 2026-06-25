@@ -4,11 +4,11 @@ import SwiftUI
 // MARK: - Data
 
 struct BydStatusEntry: TimelineEntry {
-    let date:      Date
-    let isRunning: Bool
-    let isLocked:  Bool?
-    let battery:   Int?
-    let rssi:      Int?
+    let date:         Date
+    let isRunning:    Bool
+    let isLocked:     Bool?
+    let battery:      Int?
+    let drivingRange: Int?
 }
 
 // MARK: - Provider
@@ -20,7 +20,7 @@ struct BydStatusProvider: TimelineProvider {
     }
 
     func placeholder(in context: Context) -> BydStatusEntry {
-        .init(date: Date(), isRunning: true, isLocked: true, battery: 85, rssi: -72)
+        .init(date: Date(), isRunning: true, isLocked: true, battery: 85, drivingRange: 320)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (BydStatusEntry) -> Void) {
@@ -34,11 +34,11 @@ struct BydStatusProvider: TimelineProvider {
 
     private func currentEntry() -> BydStatusEntry {
         .init(
-            date:      Date(),
-            isRunning: sharedDefaults?.bool(forKey: "widget_isRunning") ?? false,
-            isLocked:  sharedDefaults?.object(forKey: "widget_isLocked") as? Bool,
-            battery:   sharedDefaults?.object(forKey: "widget_battery")  as? Int,
-            rssi:      sharedDefaults?.object(forKey: "widget_rssi")     as? Int
+            date:         Date(),
+            isRunning:    sharedDefaults?.bool(forKey: "widget_isRunning") ?? false,
+            isLocked:     sharedDefaults?.object(forKey: "widget_isLocked")     as? Bool,
+            battery:      sharedDefaults?.object(forKey: "widget_battery")      as? Int,
+            drivingRange: sharedDefaults?.object(forKey: "widget_drivingRange") as? Int
         )
     }
 }
@@ -114,10 +114,10 @@ struct BydWidgetEntryView: View {
                 color: .blue
             )
 
-            // RSSI (있을 때만)
-            if let rssi = entry.rssi {
+            // 주행 거리 (있을 때만)
+            if let range = entry.drivingRange {
                 Divider().padding(.vertical, 8)
-                widgetCell(icon: "waveform", label: "\(rssi)", color: .purple)
+                widgetCell(icon: "road.lanes", label: "\(range)km", color: .purple)
             }
         }
         .containerBackground(.ultraThinMaterial, for: .widget)

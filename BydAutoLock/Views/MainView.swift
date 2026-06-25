@@ -1,7 +1,9 @@
 import SwiftUI
+import WidgetKit
 
 struct MainView: View {
 
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var service = AutoLockService.shared
     @State private var showDrawer = false
     @State private var vehicleStatus: VehicleStatus?
@@ -38,6 +40,9 @@ struct MainView: View {
                 }
             }
             .preferredColorScheme(.dark)
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active { WidgetCenter.shared.reloadAllTimelines() }
+        }
 
             // ── 드로어 오버레이
             if showDrawer {
@@ -354,7 +359,7 @@ struct MainView: View {
                 let status = try await service.fetchVehicleStatus(vin: vin)
                 vehicleStatus = status
                 vehicleStatusError = nil
-                service.updateWidgetBattery(status.batteryPercentage)
+                service.updateWidgetStatus(battery: status.batteryPercentage, drivingRange: Int(status.drivingRange))
             } catch {
                 vehicleStatus = nil
                 vehicleStatusError = error.localizedDescription
