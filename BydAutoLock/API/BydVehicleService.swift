@@ -469,7 +469,7 @@ actor BydVehicleService {
         return try await pollControlResult(vin: vin, commandType: commandType, serial: serial, pin: pin, attempt: attempt + 1)
     }
 
-    private func sendRemoteControl(vin: String, commandType: String, params: [String: Any]? = nil, pin: String) async throws -> Bool {
+    private func sendRemoteControl(vin: String, commandType: String, params: [String: Any]? = nil, pin: String, fireAndForget: Bool = false) async throws -> Bool {
         var inner = buildInnerBase(vin: vin)
         inner.append(("commandType", commandType))
         inner.append(("commandPwd", CryptoUtils.md5Hex(pin)))
@@ -491,6 +491,8 @@ actor BydVehicleService {
         if controlState == 2 || res > 2 {
             throw BydError.controlFailed(result["message"] as? String ?? "실패")
         }
+        // fire-and-forget: 명령 전송 후 폴링 없이 즉시 반환
+        if fireAndForget { return true }
         guard !serial.isEmpty else { return false }
         return try await pollControlResult(vin: vin, commandType: commandType, serial: serial, pin: pin, attempt: 1)
     }
@@ -503,6 +505,15 @@ actor BydVehicleService {
 
     func unlock(vin: String, pin: String) async throws -> Bool {
         return try await sendRemoteControl(vin: vin, commandType: "OPENDOOR", pin: pin)
+    }
+
+    /// 자동 동작용 fire-and-forget (폴링 없이 즉시 반환)
+    func lockAuto(vin: String, pin: String) async throws {
+        _ = try await sendRemoteControl(vin: vin, commandType: "LOCKDOOR", pin: pin, fireAndForget: true)
+    }
+
+    func unlockAuto(vin: String, pin: String) async throws {
+        _ = try await sendRemoteControl(vin: vin, commandType: "OPENDOOR", pin: pin, fireAndForget: true)
     }
 
     // MARK: - Climate

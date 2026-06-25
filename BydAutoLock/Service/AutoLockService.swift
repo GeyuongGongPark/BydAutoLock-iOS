@@ -86,8 +86,11 @@ final class AutoLockService: NSObject, ObservableObject {
 
     // 주행 중 감지 (상시)
     private var drivingMotionManager: CMMotionActivityManager?
-    private var lastKnownSpeed: Double = 0
-    private var lastSpeedTime: Date?
+
+    // 예측적 사전 잠금 해제
+    private var isPredictiveUnlockPending = false
+    private static let predictiveMargin: Double = 8      // 임계값 이전 몇 dBm에서 사전 호출
+    private static let predictiveMinSlope: Double = 0.5  // 최소 상승 기울기 (dBm/초)
 
     // RSSI 로그 집계 (10초 주기)
     private var rssiLogTimer: Timer?
@@ -161,13 +164,22 @@ final class AutoLockService: NSObject, ObservableObject {
     func stop() {
         stopBLEScan()
         watchdogTimer?.cancel()
+        watchdogTimer = nil
         sessionRefreshTimer?.cancel()
+        sessionRefreshTimer = nil
         gpsPollTimer?.cancel()
+        gpsPollTimer = nil
         rssiLogTimer?.invalidate()
+        rssiLogTimer = nil
         stationaryTimer?.cancel()
+        stationaryTimer = nil
+        motionManager?.stopActivityUpdates()
+        motionManager = nil
         drivingMotionManager?.stopActivityUpdates()
         drivingMotionManager = nil
         isDriving = false
+        isStationary = false
+        isPredictiveUnlockPending = false
         isRunning = false
         smoothedRssi = nil
         rawRssi = nil
@@ -276,8 +288,8 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func beginScanning() {
         guard centralManager?.state == .poweredOn else { return }
-        // 이미 연결된 상태에서 정지 중이면 스캔 불필요 (배터리 절약)
-        if isStationary, let p = connectedPeripheral, p.state == .connected { return }
+        // 정지 중이면 스캔 불필요 (연결 여부 무관하게 차단)
+        if isStationary { return }
         if storage.isGeofencingEnabled && !isInsideGeofence { return }
 
         // 이미 연결되어 있으면 스킵
@@ -312,8 +324,6 @@ final class AutoLockService: NSObject, ObservableObject {
         rssiTimer = timer
     }
 
-    private func isNear() -> Bool { proximityState == .near }
-
     // MARK: - RSSI Processing
 
     private func processRSSI(_ rssi: Int) {
@@ -329,6 +339,7 @@ final class AutoLockService: NSObject, ObservableObject {
                     LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
                     proximityState = .near
                     triggerCarAction(shouldUnlock: true, isManual: false)
+                    return
                 }
             }
         }
@@ -371,6 +382,7 @@ final class AutoLockService: NSObject, ObservableObject {
         smoothedRssi = nil
         rawRssi = nil
         rssiWindow.removeAll()
+        isPredictiveUnlockPending = false
 
         if proximityState == .near {
             LogManager.shared.log("BLE", "신호 소실. 즉시 안전 잠금 실행.")
@@ -391,20 +403,38 @@ final class AutoLockService: NSObject, ObservableObject {
 
         let wasNear = proximityState == .near
 
+        // 예측 호출 후 RSSI가 예측 존 밖으로 내려가면 플래그 리셋 (오발 방지)
+        if isPredictiveUnlockPending && !wasNear && rssi < unlockThreshold - Self.predictiveMargin {
+            isPredictiveUnlockPending = false
+            LogManager.shared.log("BLE", "예측 호출 취소 - RSSI 하강 (\(Int(rssi)))")
+        }
+
         if !wasNear && rssi >= unlockThreshold {
-            // 접근 감지
+            // 접근 감지 - 예측 호출이 이미 나간 경우 API 중복 호출 스킵
+            let wasPredictive = isPredictiveUnlockPending
             proximityState = .near
-            LogManager.shared.log("BLE", "접근 감지 (RSSI: \(Int(rssi)) >= \(Int(unlockThreshold)))")
-            if storage.isAutoUnlockOnApproach {
-                if isDriving {
-                    LogManager.shared.log("BLE", "잠금 해제 차단 - 주행 중")
-                } else {
-                    triggerCarAction(shouldUnlock: true, isManual: false)
-                }
+            isPredictiveUnlockPending = false
+            LogManager.shared.log("BLE", "접근 감지 (RSSI: \(Int(rssi)) >= \(Int(unlockThreshold)))\(wasPredictive ? " [예측 호출 중복 스킵]" : "")")
+            if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive {
+                triggerCarAction(shouldUnlock: true, isManual: false)
+            } else if isDriving {
+                LogManager.shared.log("BLE", "잠금 해제 차단 - 주행 중")
+            }
+        } else if !wasNear && !isPredictiveUnlockPending
+                    && rssi >= unlockThreshold - Self.predictiveMargin
+                    && rssiWindow.count >= 5
+                    && storage.isAutoUnlockOnApproach && !isDriving {
+            // 예측적 사전 호출: 임계값 근접 + 상승 기울기 확인
+            let slope = linearRegressionSlope(rssiWindow)
+            if slope >= Self.predictiveMinSlope {
+                isPredictiveUnlockPending = true
+                LogManager.shared.log("BLE", "예측 사전 해제 (RSSI: \(Int(rssi)), 기울기: \(String(format: "%.2f", slope)) dBm/s)")
+                triggerCarAction(shouldUnlock: true, isManual: false)
             }
         } else if wasNear && rssi <= lockThreshold {
             // 이탈 감지
             proximityState = .far
+            isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "이탈 감지 (RSSI: \(Int(rssi)) <= \(Int(lockThreshold)))")
             if storage.isAutoLockOnDeparture {
                 triggerCarAction(shouldUnlock: false, isManual: false)
@@ -461,9 +491,18 @@ final class AutoLockService: NSObject, ObservableObject {
 
         Task {
             do {
-                let result = shouldUnlock
-                    ? try await service.unlock(vin: vin, pin: pin)
-                    : try await service.lock(vin: vin, pin: pin)
+                // 자동 동작: fire-and-forget (폴링 없이 즉시 반환 → 체감 지연 제거)
+                // 수동 동작: 폴링으로 결과 확인
+                let result: Bool
+                if isManual {
+                    result = shouldUnlock
+                        ? try await service.unlock(vin: vin, pin: pin)
+                        : try await service.lock(vin: vin, pin: pin)
+                } else {
+                    if shouldUnlock { try await service.unlockAuto(vin: vin, pin: pin) }
+                    else            { try await service.lockAuto(vin: vin, pin: pin) }
+                    result = true
+                }
 
                 let isLocked = !shouldUnlock
                 await MainActor.run {
@@ -474,11 +513,10 @@ final class AutoLockService: NSObject, ObservableObject {
                     self.storage.saveWidgetData(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
                     WatchConnectivityManager.shared.sendStatusToWatch(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
                     WidgetCenter.shared.reloadAllTimelines()
-                    // unlock 성공 시 Background Task 종료 (더 이상 RSSI 폴링 불필요)
                     if shouldUnlock { self.endRssiPollingBGTask() }
                 }
 
-                LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨")")
+                LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨") [\(isManual ? "수동" : "자동")]")
                 NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual)
 
                 // 자동 에어컨
@@ -507,6 +545,21 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     // MARK: - Linear Regression
+
+    /// RSSI 상승/하강 기울기 (dBm/초). 양수 = 접근, 음수 = 이탈
+    private func linearRegressionSlope(_ points: [RssiPoint]) -> Double {
+        let n = Double(points.count)
+        let t0 = points.first!.time.timeIntervalSince1970
+        let xs = points.map { $0.time.timeIntervalSince1970 - t0 }
+        let ys = points.map { Double($0.dbm) }
+        let sumX  = xs.reduce(0, +)
+        let sumY  = ys.reduce(0, +)
+        let sumXY = zip(xs, ys).map(*).reduce(0, +)
+        let sumX2 = xs.map { $0 * $0 }.reduce(0, +)
+        let denom = n * sumX2 - sumX * sumX
+        guard abs(denom) > 1e-9 else { return 0 }
+        return (n * sumXY - sumX * sumY) / denom
+    }
 
     private func linearRegressionPredict(_ points: [RssiPoint]) -> Double {
         let n = Double(points.count)
@@ -748,6 +801,7 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.scanModeDescription = "연결됨"
             LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
             self.isFirstRssiAfterConnect = true
+            self.isPredictiveUnlockPending = false
             self.beginRssiPollingBGTask()
             self.startRssiTimer(for: peripheral)
         }
@@ -796,6 +850,7 @@ extension AutoLockService: GeofenceManagerDelegate {
 
     func didEnterGeofence() {
         isInsideGeofence = true
+        isStationary = false
         LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")
         if let p = connectedPeripheral, p.state == .connected {
             beginRssiPollingBGTask()
