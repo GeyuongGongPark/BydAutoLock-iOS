@@ -10,7 +10,6 @@ struct WatchMainView: View {
                 statusHeader
                 Divider()
                 lockControlRow
-                serviceToggleButton
                 if !conn.isReachable {
                     Label("iPhone 연결 안 됨", systemImage: "iphone.slash")
                         .font(.caption2)
@@ -72,20 +71,6 @@ struct WatchMainView: View {
                 conn.sendCommand("lock")
             }
         }
-    }
-
-    private var serviceToggleButton: some View {
-        Button {
-            conn.sendCommand(conn.isRunning ? "stop" : "start")
-        } label: {
-            Label(conn.isRunning ? "서비스 중지" : "서비스 시작",
-                  systemImage: conn.isRunning ? "stop.circle" : "play.circle")
-                .font(.caption)
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .tint(conn.isRunning ? .red : .green)
-        .disabled(!conn.isReachable)
     }
 
     private func controlButton(title: String, icon: String, color: Color,
