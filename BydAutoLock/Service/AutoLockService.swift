@@ -607,10 +607,10 @@ final class AutoLockService: NSObject, ObservableObject {
             lastParkingLat  = gps.latitude
             lastParkingLng  = gps.longitude
             lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
-            if storage.isGeofencingEnabled {
+            if storage.isGeofencingEnabled && gps.speed <= 5.0 {
                 geofenceManager.registerGeofence(lat: gps.latitude, lng: gps.longitude)
             }
-            LogManager.shared.log("GPS", "차량 위치 갱신: \(gps.latitude), \(gps.longitude)")
+            LogManager.shared.log("GPS", "차량 위치 갱신: \(gps.latitude), \(gps.longitude) speed:\(Int(gps.speed))km/h")
         } catch {
             LogManager.shared.log("GPS", "위치 조회 실패: \(error.localizedDescription)")
         }
@@ -796,26 +796,29 @@ extension AutoLockService: GeofenceManagerDelegate {
 
     func didEnterGeofence() {
         isInsideGeofence = true
-        LogManager.shared.log("Geofence", "지오펜스 진입. BLE 스캔 시작.")
-        beginScanning()
+        LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")
+        if let p = connectedPeripheral, p.state == .connected {
+            beginRssiPollingBGTask()
+            startRssiTimer(for: p)
+        } else {
+            beginScanning()
+        }
         startStationaryTimer()
     }
 
     func didExitGeofence() {
         isInsideGeofence = false
-        // peripheral 참조는 유지하고 연결만 해제 (재진입 시 바로 재연결)
+        // 이미 연결된 BLE는 유지 (재진입 시 바로 RSSI 재개)
+        // 스캔과 RSSI 폴링만 중단
         rssiTimer?.cancel()
         rssiTimer = nil
         endRssiPollingBGTask()
-        if let p = connectedPeripheral {
-            centralManager?.cancelPeripheralConnection(p)
-        }
         centralManager?.stopScan()
         isScanning = false
         scanModeDescription = "지오펜스 외부"
         smoothedRssi = nil
         rawRssi = nil
-        LogManager.shared.log("Geofence", "지오펜스 이탈. BLE 연결 해제.")
+        LogManager.shared.log("Geofence", "지오펜스 이탈. BLE 스캔 중단 (연결 유지).")
     }
 }
 

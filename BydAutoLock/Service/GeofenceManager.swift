@@ -16,6 +16,7 @@ final class GeofenceManager: NSObject {
     private let locationManager = CLLocationManager()
     private static let geofenceID = "byd.vehicle.parking"
     private static let radius: CLLocationDistance = 150.0
+    private var ignoringExitUntil: Date?
 
     private override init() {
         super.init()
@@ -30,6 +31,8 @@ final class GeofenceManager: NSObject {
 
     func registerGeofence(lat: Double, lng: Double) {
         guard abs(lat) > 0.1 || abs(lng) > 0.1 else { return }
+        // 재등록 직후 iOS가 발생시키는 spurious 이탈 이벤트 10초간 무시
+        ignoringExitUntil = Date().addingTimeInterval(10)
         removeGeofence()
 
         let center = CLLocationCoordinate2D(latitude: lat, longitude: lng)
@@ -57,6 +60,8 @@ extension GeofenceManager: CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         guard region.identifier == Self.geofenceID else { return }
+        // 재등록 직후 spurious 이탈 이벤트 무시
+        if let until = ignoringExitUntil, Date() < until { return }
         LogManager.shared.log("Geofence", "이탈")
         Task { @MainActor in delegate?.didExitGeofence() }
     }
