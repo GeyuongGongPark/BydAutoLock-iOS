@@ -376,7 +376,9 @@ final class AutoLockService: NSObject, ObservableObject {
             LogManager.shared.log("BLE", "신호 소실. 즉시 안전 잠금 실행.")
             NotificationManager.shared.sendSignalLost()
             proximityState = .far
-            triggerCarAction(shouldUnlock: false, isManual: false)
+            // updateCooldown: false → 신호 소실 잠금은 lastAutoLockTime 미설정
+            // 재연결 직후 unlock이 postLockUnlockCooldown에 차단되지 않도록
+            triggerCarAction(shouldUnlock: false, isManual: false, updateCooldown: false)
         }
     }
 
@@ -412,7 +414,7 @@ final class AutoLockService: NSObject, ObservableObject {
 
     // MARK: - Car Action
 
-    private func triggerCarAction(shouldUnlock: Bool, isManual: Bool) {
+    private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true) {
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
             let now = Date()
@@ -445,7 +447,7 @@ final class AutoLockService: NSObject, ObservableObject {
                 return
             }
         }
-        if !isManual {
+        if !isManual && updateCooldown {
             if shouldUnlock { lastAutoUnlockTime = Date() }
             else            { lastAutoLockTime   = Date() }
         }
@@ -598,9 +600,6 @@ final class AutoLockService: NSObject, ObservableObject {
         do {
             let gps = try await service.fetchGpsInfo(vin: vin)
             guard gps.isValid else { return }
-            lastKnownSpeed = gps.speed
-            lastSpeedTime  = Date()
-            if gps.speed > 5.0 { isDriving = true }
             storage.lastVehicleLat    = gps.latitude
             storage.lastVehicleLng    = gps.longitude
             storage.lastVehicleTime   = gps.timestamp
@@ -707,6 +706,7 @@ extension AutoLockService: CBCentralManagerDelegate {
                     p.delegate = self
                     self.connectedPeripheral = p
                     if p.state == .connected {
+                        self.isFirstRssiAfterConnect = true
                         self.beginRssiPollingBGTask()
                         self.startRssiTimer(for: p)
                         self.scanModeDescription = "연결됨 (복원)"
@@ -806,6 +806,7 @@ extension AutoLockService: GeofenceManagerDelegate {
         // peripheral 참조는 유지하고 연결만 해제 (재진입 시 바로 재연결)
         rssiTimer?.cancel()
         rssiTimer = nil
+        endRssiPollingBGTask()
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)
         }
