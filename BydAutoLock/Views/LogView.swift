@@ -1,14 +1,6 @@
 import SwiftUI
 import UIKit
 
-private struct ActivityView: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-    func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
-}
-
 struct LogView: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -16,8 +8,6 @@ struct LogView: View {
     @State private var searchTag = ""
     @State private var selectedTag: String? = nil
     @State private var showClearAlert = false
-    @State private var isSharing = false
-    @State private var shareURL: URL? = nil
 
     private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion"]
     private let logManager = LogManager.shared
@@ -84,11 +74,6 @@ struct LogView: View {
             } message: {
                 Text("모든 로그를 삭제하시겠습니까?")
             }
-            .sheet(isPresented: $isSharing) {
-                if let url = shareURL {
-                    ActivityView(activityItems: [url])
-                }
-            }
             .onAppear { reload() }
             .refreshable { reload() }
         }
@@ -111,12 +96,14 @@ struct LogView: View {
             .components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-")).inverted)
             .joined(separator: "_")
 
-        let fileName = "error_log_\(dateStr)_\(safeName).txt"
+        let fileName = "byd_log_\(dateStr)_\(safeName).txt"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        try? text.write(to: tempURL, atomically: true, encoding: .utf8)
+        guard (try? text.write(to: tempURL, atomically: true, encoding: .utf8)) != nil else { return }
 
-        shareURL = tempURL
-        isSharing = true
+        let vc = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first?.rootViewController else { return }
+        root.present(vc, animated: true)
     }
 
     private var tagFilterBar: some View {
