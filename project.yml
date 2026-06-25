@@ -48,6 +48,8 @@ targets:
         NSLocationAlwaysAndWhenInUseUsageDescription: 주차 위치 기반 지오펜싱으로 차량 근접 여부를 판단합니다.
         NSLocationWhenInUseUsageDescription: 주차 위치 기반 지오펜싱으로 차량 근접 여부를 판단합니다.
         NSMotionUsageDescription: 정지 감지로 불필요한 BLE 스캔을 줄여 배터리를 절약합니다.
+        # 수출 규정 - Apple 내장 암호화만 사용
+        ITSAppUsesNonExemptEncryption: false
         # ATS 예외 (BYD API)
         NSAppTransportSecurity:
           NSExceptionDomains:
