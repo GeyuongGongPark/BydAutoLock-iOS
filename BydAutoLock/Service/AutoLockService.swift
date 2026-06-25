@@ -4,6 +4,7 @@ import CoreLocation
 import CoreMotion
 import Combine
 import WidgetKit
+import UIKit
 
 /// BLE RSSI 기반 자동 잠금/해제 서비스
 /// Android AutoLockForegroundService를 iOS CoreBluetooth + CoreLocation으로 포팅
@@ -58,9 +59,21 @@ final class AutoLockService: NSObject, ObservableObject {
     private static let rssiWindowSize = 10
     private static let maxRejections = 3
 
-    // 자동 unlock 후 자동 lock 쿨다운 (클락션 방지)
+    // 자동 lock/unlock 쿨다운 (진동 방지)
     private var lastAutoUnlockTime: Date?
-    private static let postUnlockLockCooldown: TimeInterval = 15
+    private var lastAutoLockTime: Date?
+    private static let postUnlockLockCooldown: TimeInterval = 30   // unlock 후 lock 차단
+    private static let postLockUnlockCooldown: TimeInterval = 30   // lock 후 unlock 차단
+
+    // 반복 동작 과다 방지 (슬라이딩 윈도우)
+    private var recentAutoActionTimes = [Date]()
+    private static let autoActionWindow: TimeInterval = 120        // 2분 윈도우
+    private static let maxAutoActionsInWindow = 4                  // 2분 내 4회 초과 시 차단
+    private var autoActionSuppressedUntil: Date?
+    private static let suppressDuration: TimeInterval = 300        // 5분 차단
+
+    // 백그라운드 RSSI 폴링 보장용 Background Task
+    private var rssiPollingBGTaskID = UIBackgroundTaskIdentifier.invalid
 
     // 워치독 타이머 (5분)
     private var watchdogTimer: DispatchSourceTimer?
@@ -222,6 +235,23 @@ final class AutoLockService: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Background Task
+
+    private func beginRssiPollingBGTask() {
+        guard rssiPollingBGTaskID == .invalid else { return }
+        rssiPollingBGTaskID = UIApplication.shared.beginBackgroundTask(withName: "RssiPolling") { [weak self] in
+            self?.endRssiPollingBGTask()
+        }
+        LogManager.shared.log("BG", "RSSI 폴링 Background Task 시작")
+    }
+
+    private func endRssiPollingBGTask() {
+        guard rssiPollingBGTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(rssiPollingBGTaskID)
+        rssiPollingBGTaskID = .invalid
+        LogManager.shared.log("BG", "RSSI 폴링 Background Task 종료")
+    }
+
     // MARK: - BLE Scanning
 
     private func startBLEScan() {
@@ -234,6 +264,7 @@ final class AutoLockService: NSObject, ObservableObject {
     private func stopBLEScan() {
         rssiTimer?.cancel()
         rssiTimer = nil
+        endRssiPollingBGTask()
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)
             connectedPeripheral = nil
@@ -381,15 +412,41 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Car Action
 
     private func triggerCarAction(shouldUnlock: Bool, isManual: Bool) {
-        // 자동 unlock 직후 자동 lock 차단 (BLE 불안정으로 인한 잠금/해제 반복 → 클락션 방지)
-        if !shouldUnlock && !isManual {
-            if let t = lastAutoUnlockTime, Date().timeIntervalSince(t) < Self.postUnlockLockCooldown {
-                LogManager.shared.log("AutoLockService", "자동 잠금 차단 - unlock 쿨다운 중 (\(Int(Date().timeIntervalSince(t)))초)")
+        // 자동 동작 진동 방지 (수동 제어는 항상 허용)
+        if !isManual {
+            let now = Date()
+
+            // 과다 반복 차단 중인지 확인
+            if let suppressedUntil = autoActionSuppressedUntil, now < suppressedUntil {
+                let remaining = Int(suppressedUntil.timeIntervalSince(now))
+                LogManager.shared.log("AutoLockService", "자동 \(shouldUnlock ? "해제" : "잠금") 차단 - 반복 과다 (\(remaining)초 남음)")
+                return
+            }
+
+            // 양방향 쿨다운 체크
+            if !shouldUnlock, let t = lastAutoUnlockTime, now.timeIntervalSince(t) < Self.postUnlockLockCooldown {
+                LogManager.shared.log("AutoLockService", "자동 잠금 차단 - unlock 쿨다운 중 (\(Int(now.timeIntervalSince(t)))초)")
+                return
+            }
+            if shouldUnlock, let t = lastAutoLockTime, now.timeIntervalSince(t) < Self.postLockUnlockCooldown {
+                LogManager.shared.log("AutoLockService", "자동 해제 차단 - lock 쿨다운 중 (\(Int(now.timeIntervalSince(t)))초)")
+                return
+            }
+
+            // 슬라이딩 윈도우 횟수 체크
+            recentAutoActionTimes.append(now)
+            recentAutoActionTimes = recentAutoActionTimes.filter { now.timeIntervalSince($0) < Self.autoActionWindow }
+            if recentAutoActionTimes.count > Self.maxAutoActionsInWindow {
+                autoActionSuppressedUntil = now.addingTimeInterval(Self.suppressDuration)
+                recentAutoActionTimes.removeAll()
+                LogManager.shared.log("AutoLockService", "자동 동작 과다(\(Self.maxAutoActionsInWindow)회/\(Int(Self.autoActionWindow))초) → \(Int(Self.suppressDuration))초 차단")
+                NotificationManager.shared.sendAutoActionSuppressed()
                 return
             }
         }
-        if shouldUnlock && !isManual {
-            lastAutoUnlockTime = Date()
+        if !isManual {
+            if shouldUnlock { lastAutoUnlockTime = Date() }
+            else            { lastAutoLockTime   = Date() }
         }
 
         guard let service = vehicleService,
@@ -414,6 +471,8 @@ final class AutoLockService: NSObject, ObservableObject {
                     self.storage.saveWidgetData(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
                     WatchConnectivityManager.shared.sendStatusToWatch(isRunning: self.isRunning, isLocked: isLocked, battery: nil, rssi: self.rawRssi)
                     WidgetCenter.shared.reloadAllTimelines()
+                    // unlock 성공 시 Background Task 종료 (더 이상 RSSI 폴링 불필요)
+                    if shouldUnlock { self.endRssiPollingBGTask() }
                 }
 
                 LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨")")
@@ -645,6 +704,7 @@ extension AutoLockService: CBCentralManagerDelegate {
                     p.delegate = self
                     self.connectedPeripheral = p
                     if p.state == .connected {
+                        self.beginRssiPollingBGTask()
                         self.startRssiTimer(for: p)
                         self.scanModeDescription = "연결됨 (복원)"
                     } else {
@@ -685,6 +745,7 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.scanModeDescription = "연결됨"
             LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
             self.isFirstRssiAfterConnect = true
+            self.beginRssiPollingBGTask()
             self.startRssiTimer(for: peripheral)
         }
     }
@@ -704,6 +765,7 @@ extension AutoLockService: CBCentralManagerDelegate {
         Task { @MainActor in
             self.rssiTimer?.cancel()
             self.rssiTimer = nil
+            self.endRssiPollingBGTask()
             LogManager.shared.log("BLE", "BLE 연결 끊김: \(error?.localizedDescription ?? "정상 종료")")
             self.handleSignalLoss()
             guard self.isRunning else { return }

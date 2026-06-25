@@ -108,6 +108,15 @@ final class NotificationManager {
         )
     }
 
+    func sendAutoActionSuppressed() {
+        send(
+            id: "auto_suppressed",
+            title: "자동 잠금/해제 일시 중단",
+            body: "신호가 불안정해 자동 동작이 5분간 차단됩니다. 수동 제어는 정상 동작합니다.",
+            sound: .default
+        )
+    }
+
     // MARK: - Private
 
     private func send(id: String, title: String, body: String, sound: UNNotificationSound?) {

@@ -36,9 +36,9 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         persistForComplication()
     }
 
-    /// 컴플리케이션 Provider가 읽을 수 있도록 UserDefaults에 저장
+    /// 컴플리케이션 Provider가 읽을 수 있도록 App Group UserDefaults에 저장
     private func persistForComplication() {
-        let d = UserDefaults.standard
+        let d = UserDefaults(suiteName: "group.com.ggp.bydautolock")!
         d.set(isRunning, forKey: "watch_isRunning")
         if let v = isLocked { d.set(v, forKey: "watch_isLocked") }
         if let v = battery  { d.set(v, forKey: "watch_battery") }

@@ -83,6 +83,7 @@ targets:
         excludes:
           - "**/.DS_Store"
           - "Info.plist"
+          - "WatchComplication.swift"
     resources:
       - path: BydAutoLockWatch/Assets.xcassets
     info:
@@ -98,6 +99,12 @@ targets:
               - bydautolock
     entitlements:
       path: BydAutoLockWatch/BydAutoLockWatch.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.ggp.bydautolock
+    dependencies:
+      - target: BydAutoLockWatchComplication
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.watchapp
@@ -107,6 +114,35 @@ targets:
         WATCHOS_DEPLOYMENT_TARGET: "10.0"
         SKIP_INSTALL: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  # ── Watch 컴플리케이션 Extension ────────────────────────────
+  BydAutoLockWatchComplication:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: BydAutoLockWatchComplication
+        excludes:
+          - "**/.DS_Store"
+    info:
+      path: BydAutoLockWatchComplication/Info.plist
+      properties:
+        CFBundleDisplayName: BYD AutoLock
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: BydAutoLockWatchComplication/BydAutoLockWatchComplication.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.ggp.bydautolock
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.watchapp.complication
+        PRODUCT_NAME: BydAutoLockWatchComplication
+        INFOPLIST_FILE: BydAutoLockWatchComplication/Info.plist
+        CODE_SIGN_ENTITLEMENTS: BydAutoLockWatchComplication/BydAutoLockWatchComplication.entitlements
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        SKIP_INSTALL: YES
 
   # ── 위젯 Extension ─────────────────────────────────────────
   BydAutoLockWidget:
