@@ -51,6 +51,7 @@ final class StorageManager {
         static let acCycleMode       = "ac_cycle_mode"
         static let bleScanMode       = "ble_scan_mode"
         static let geofencingEnabled = "geofencing_enabled"
+        static let geofenceRadius    = "geofence_radius"
         static let autoUnlockOnApproach  = "auto_unlock_on_approach"
         static let autoLockOnDeparture   = "auto_lock_on_departure"
         static let debugLoggingEnabled   = "debug_logging_enabled"
@@ -177,6 +178,11 @@ final class StorageManager {
     var isGeofencingEnabled: Bool {
         get { defaults.bool(forKey: UD.geofencingEnabled) }
         set { defaults.set(newValue, forKey: UD.geofencingEnabled) }
+    }
+    /// 지오펜스 반경 (미터). 범위: 50~500m, 기본값: 150m
+    var geofenceRadius: Int {
+        get { defaults.object(forKey: UD.geofenceRadius) as? Int ?? 150 }
+        set { defaults.set(newValue, forKey: UD.geofenceRadius) }
     }
     var isAutoUnlockOnApproach: Bool {
         get { defaults.object(forKey: UD.autoUnlockOnApproach) as? Bool ?? true }

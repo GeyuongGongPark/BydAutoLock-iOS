@@ -74,6 +74,8 @@ final class AutoLockService: NSObject, ObservableObject {
 
     // 백그라운드 RSSI 폴링 보장용 Background Task
     private var rssiPollingBGTaskID = UIBackgroundTaskIdentifier.invalid
+    // BG Task 만료로 인한 BLE 끊김은 신호 소실이 아님을 표시
+    private var isIntentionalDisconnect = false
 
     // 워치독 타이머 (5분)
     private var watchdogTimer: DispatchSourceTimer?
@@ -148,8 +150,12 @@ final class AutoLockService: NSObject, ObservableObject {
         WatchConnectivityManager.shared.sendStatusToWatch(isRunning: true, isLocked: nil, battery: nil, rssi: nil)
         WidgetCenter.shared.reloadAllTimelines()
 
+        // 백그라운드 실행 유지: startUpdatingLocation으로 앱 suspend 차단
+        // (10m 정확도, GPS 사용 - 배터리 소모 있으나 안정적인 백그라운드 동작 보장)
+        geofenceManager.setup()
+        geofenceManager.startBackgroundKeepAlive()
+
         if storage.isGeofencingEnabled {
-            geofenceManager.setup()
             let lat = storage.lastVehicleLat
             let lng = storage.lastVehicleLng
             if abs(lat) > 0.1 || abs(lng) > 0.1 {
@@ -162,6 +168,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func stop() {
+        geofenceManager.stopBackgroundKeepAlive()
         stopBLEScan()
         watchdogTimer?.cancel()
         watchdogTimer = nil
@@ -252,6 +259,8 @@ final class AutoLockService: NSObject, ObservableObject {
     private func beginRssiPollingBGTask() {
         guard rssiPollingBGTaskID == .invalid else { return }
         rssiPollingBGTaskID = UIApplication.shared.beginBackgroundTask(withName: "RssiPolling") { [weak self] in
+            // BG Task 만료 → iOS가 앱을 제한해 BLE가 끊길 수 있음. 신호 소실이 아님을 표시.
+            self?.isIntentionalDisconnect = true
             self?.endRssiPollingBGTask()
         }
         LogManager.shared.log("BG", "RSSI 폴링 Background Task 시작")
@@ -802,6 +811,11 @@ extension AutoLockService: CBCentralManagerDelegate {
             LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
             self.isFirstRssiAfterConnect = true
             self.isPredictiveUnlockPending = false
+            // 지오펜스 이탈 중에는 RSSI 폴링 시작 안 함
+            guard !self.storage.isGeofencingEnabled || self.isInsideGeofence else {
+                LogManager.shared.log("BLE", "지오펜스 외부 - RSSI 폴링 스킵")
+                return
+            }
             self.beginRssiPollingBGTask()
             self.startRssiTimer(for: peripheral)
         }
@@ -824,8 +838,18 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.rssiTimer = nil
             self.endRssiPollingBGTask()
             LogManager.shared.log("BLE", "BLE 연결 끊김: \(error?.localizedDescription ?? "정상 종료")")
-            self.handleSignalLoss()
+            // BG Task 만료로 인한 끊김은 신호 소실이 아님 → 잠금 스킵
+            let wasIntentional = self.isIntentionalDisconnect
+            self.isIntentionalDisconnect = false
+            if !wasIntentional {
+                self.handleSignalLoss()
+            }
             guard self.isRunning else { return }
+            // 지오펜스 이탈 중에는 재연결 시도 안 함
+            if self.storage.isGeofencingEnabled && !self.isInsideGeofence {
+                self.scanModeDescription = "지오펜스 외부"
+                return
+            }
             // 즉시 재연결 시도 (iOS가 백그라운드에서 자동 재연결 큐에 등록)
             central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
             self.scanModeDescription = "재연결 중..."
@@ -849,6 +873,7 @@ extension AutoLockService: CBPeripheralDelegate {
 extension AutoLockService: GeofenceManagerDelegate {
 
     func didEnterGeofence() {
+        guard isRunning else { return }
         isInsideGeofence = true
         isStationary = false
         LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")
@@ -862,6 +887,7 @@ extension AutoLockService: GeofenceManagerDelegate {
     }
 
     func didExitGeofence() {
+        guard isRunning else { return }
         isInsideGeofence = false
         // 이미 연결된 BLE는 유지 (재진입 시 바로 RSSI 재개)
         // 스캔과 RSSI 폴링만 중단

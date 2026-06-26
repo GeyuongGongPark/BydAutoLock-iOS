@@ -10,6 +10,7 @@ struct ThresholdSettingsView: View {
     @State private var rssiAlpha: Double
     @State private var bleScanMode: Int
     @State private var isGeofencingEnabled: Bool
+    @State private var geofenceRadius: Double
     @State private var autoUnlock: Bool
     @State private var autoLock: Bool
     @State private var autoAcOnUnlock: Bool
@@ -24,6 +25,7 @@ struct ThresholdSettingsView: View {
         _rssiAlpha         = State(initialValue: Double(s.rssiAlpha))
         _bleScanMode       = State(initialValue: s.bleScanMode)
         _isGeofencingEnabled = State(initialValue: s.isGeofencingEnabled)
+        _geofenceRadius      = State(initialValue: Double(s.geofenceRadius))
         _autoUnlock        = State(initialValue: s.isAutoUnlockOnApproach)
         _autoLock          = State(initialValue: s.isAutoLockOnDeparture)
         _autoAcOnUnlock    = State(initialValue: s.isAutoAcOnUnlock)
@@ -88,8 +90,15 @@ struct ThresholdSettingsView: View {
                 Section {
                     Toggle("지오펜싱 활성화", isOn: $isGeofencingEnabled)
                     if isGeofencingEnabled {
-                        Text("차량에서 150m 이상 이탈 시 BLE 스캔 자동 중단 (배터리 절약)")
-                            .font(.caption).foregroundStyle(.secondary)
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text("지오펜스 반경")
+                                Spacer()
+                                Text("\(Int(geofenceRadius))m").fontWeight(.medium)
+                            }
+                            Slider(value: $geofenceRadius, in: 50...500, step: 10)
+                            Text("차량에서 이 거리 이상 이탈 시 BLE 스캔 자동 중단").font(.caption2).foregroundStyle(.secondary)
+                        }
                     }
                 } header: { Text("지오펜싱") }
 
@@ -152,6 +161,7 @@ struct ThresholdSettingsView: View {
         storage.rssiAlpha          = Float(rssiAlpha)
         storage.bleScanMode        = bleScanMode
         storage.isGeofencingEnabled = isGeofencingEnabled
+        storage.geofenceRadius      = Int(geofenceRadius)
         storage.isAutoUnlockOnApproach = autoUnlock
         storage.isAutoLockOnDeparture  = autoLock
         storage.isAutoAcOnUnlock    = autoAcOnUnlock
