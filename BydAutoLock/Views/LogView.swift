@@ -13,9 +13,30 @@ struct LogView: View {
     private let logManager = LogManager.shared
 
     var body: some View {
-        contentView
-            .safeAreaInset(edge: .top, spacing: 0) { tagFilterBar }
-            .navigationTitle("로그")
+        VStack(spacing: 0) {
+            tagFilterBar
+
+            List(entries) { entry in
+                logRow(entry)
+                    .listRowBackground(rowBackground(for: entry.tag))
+                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+            }
+            .listStyle(.plain)
+            .overlay {
+                if entries.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("로그 없음").font(.headline)
+                        Text("디버그 로깅이 활성화되어 있고\n서비스가 실행 중일 때 로그가 기록됩니다.")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+            }
+        }
+        .navigationTitle("로그")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -51,30 +72,6 @@ struct LogView: View {
         .onAppear { reload() }
         .refreshable { reload() }
         .preferredColorScheme(.dark)
-    }
-
-    @ViewBuilder
-    private var contentView: some View {
-        if entries.isEmpty {
-            // ContentUnavailableView는 iOS 17+이므로 직접 구현
-            VStack(spacing: 12) {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text("로그 없음").font(.headline)
-                Text("디버그 로깅이 활성화되어 있고\n서비스가 실행 중일 때 로그가 기록됩니다.")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            List(entries) { entry in
-                logRow(entry)
-                    .listRowBackground(rowBackground(for: entry.tag))
-                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-            }
-            .listStyle(.plain)
-        }
     }
 
     private func shareLog() {
