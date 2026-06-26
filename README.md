@@ -197,6 +197,39 @@ BydAutoLockWidget/
 
 ---
 
+## 릴리즈 노트
+
+### v1.2.2 (build 7) — 2026-06-26
+
+**백그라운드 안정화**
+- iOS가 앱을 suspend할 때 BLE RSSI 폴링이 멈추던 문제 해결
+  → `startUpdatingLocation()` (10m 정확도)으로 백그라운드 실행 유지
+- BG 작업(UIBackgroundTask) 만료로 BLE가 끊길 때 오발 잠금 방지
+
+**지오펜스 개선**
+- GPS 갱신 시 지오펜스 진입 이벤트 중복 발생 수정 (2초 디바운스 + 동일 좌표 재등록 방지)
+- 지오펜스 이탈 상태에서 불필요한 BLE 재연결 시도 차단
+- **지오펜스 반경을 설정에서 직접 조정 가능** (50~500m, 기본 150m)
+
+**버그 수정**
+- 로그 분류 필터 바가 가려지는 문제 재수정 (재발 방지)
+- Watch App Group 강제 언래핑 크래시 방지
+- LogManager 멀티스레드 안전성 확보
+
+---
+
+### v1.2.1 (build 6) — 2026-06-26
+
+- 위젯 App Group 권한 추가 및 표시 항목 개선
+- 로그 필터에 BG 태그 추가
+
+### v1.2 (build 5) — 2026-06-25
+
+- 지오펜스 내부에서 서비스 시작 시 스캔 차단 버그 수정
+- dead code 제거 및 stop() 상태 초기화
+
+---
+
 ## 참고 / 원본 프로젝트
 
 - Android 원본: [PoorGrammerA/BydAutoLock](https://github.com/PoorGrammerA/BydAutoLock)
