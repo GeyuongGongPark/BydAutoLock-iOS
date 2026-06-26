@@ -73,9 +73,31 @@
   - 파일: `AutoLockService.swift`
 
 ## 검토
-- [ ] 빌드 확인
+- [ ] 빌드 확인 (로그 필터 포함)
 - [x] 수정 파일 목록
   - `AutoLockService.swift`: isIntentionalDisconnect 플래그, didEnterGeofence/didExitGeofence guard
   - `GeofenceManager.swift`: 동일 좌표 재등록 방지, fireEnterEvent 2초 디바운스
   - `LogManager.swift`: fetchLogs queue.sync 적용
   - `BydAutoLockWatch/WatchConnectivityManager.swift`: App Group guard let 수정
+
+---
+
+## v1.2.2 추가 작업
+
+- [x] **지오펜스 반경 사용자 조정**
+  - `StorageManager.swift`: `geofenceRadius` 키 + 프로퍼티 (기본 150m, 50~500m)
+  - `GeofenceManager.swift`: 하드코딩 radius 제거 → StorageManager 참조
+  - `ThresholdSettingsView.swift`: 슬라이더 UI 추가 (지오펜싱 활성화 시 표시)
+
+- [x] **v1.2.2 build 7 버전업**
+  - `project.yml` 수정 → xcodegen generate
+
+- [x] **로그 분류 필터 바 재수정**
+  - VStack + List overlay 방식으로 변경 (safeAreaInset 실기기 미동작 확인)
+  - List를 항상 고정, 빈 상태는 overlay 처리
+
+- [x] **릴리즈 노트 작성**
+  - `README.md`에 ## 릴리즈 노트 섹션 추가
+
+## 검토
+- [ ] 빌드 확인 (로그 필터 실기기 동작 확인)

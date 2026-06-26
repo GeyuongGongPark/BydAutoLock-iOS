@@ -45,6 +45,26 @@
 
 ---
 
+## SwiftUI LogView 필터 바 레이아웃
+
+**VStack + `if entries.isEmpty` 분기는 필터 바를 가린다:**
+- `if-else`로 뷰 타입이 전환될 때 SwiftUI가 레이아웃을 재계산하면서 List가 VStack 전체를 차지
+- `safeAreaInset(edge: .top)`도 실기기에서 기대대로 동작하지 않을 수 있음
+- **해결**: List를 항상 고정 + 빈 상태는 `.overlay {}` 처리 → 뷰 타입 변환 없이 안정적
+
+```swift
+VStack(spacing: 0) {
+    tagFilterBar  // 항상 최상단
+    List(entries) { ... }
+        .listStyle(.plain)
+        .overlay {
+            if entries.isEmpty { /* 빈 상태 UI */ }
+        }
+}
+```
+
+---
+
 ## 로그 분석 선행의 중요성
 
 **코드 분석만으로는 실제 발생 여부를 확인할 수 없음:**
