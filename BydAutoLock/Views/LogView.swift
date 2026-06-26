@@ -19,12 +19,19 @@ struct LogView: View {
         VStack(spacing: 0) {
             tagFilterBar
 
-            List(entries) { entry in
-                logRow(entry)
-                    .listRowBackground(rowBackground(for: entry.tag))
-                    .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(entries) { entry in
+                        logRow(entry)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(tagColor(entry.tag).opacity(0.04))
+                        Divider().padding(.leading, 12)
+                    }
+                }
             }
-            .listStyle(.plain)
+            .refreshable { reload() }
             .overlay {
                 if entries.isEmpty {
                     VStack(spacing: 12) {
@@ -43,22 +50,16 @@ struct LogView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    shareLog()
-                } label: {
+                Button { shareLog() } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
-
                 Button {
                     let text = entries.map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }.joined(separator: "\n")
                     UIPasteboard.general.string = text
                 } label: {
                     Image(systemName: "doc.on.clipboard")
                 }
-
-                Button(role: .destructive) {
-                    showClearAlert = true
-                } label: {
+                Button(role: .destructive) { showClearAlert = true } label: {
                     Image(systemName: "trash")
                 }
             }
@@ -73,7 +74,6 @@ struct LogView: View {
             Text("모든 로그를 삭제하시겠습니까?")
         }
         .onAppear { reload() }
-        .refreshable { reload() }
         .preferredColorScheme(.dark)
     }
 
@@ -146,10 +146,6 @@ struct LogView: View {
                 .lineLimit(3)
         }
         .padding(.vertical, 2)
-    }
-
-    private func rowBackground(for tag: String) -> some View {
-        tagColor(tag).opacity(0.04)
     }
 
     private func tagColor(_ tag: String) -> Color {
