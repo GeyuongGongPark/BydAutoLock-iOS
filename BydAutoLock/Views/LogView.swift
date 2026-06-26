@@ -4,13 +4,16 @@ import UIKit
 struct LogView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @State private var entries   = [LogEntry]()
-    @State private var searchTag = ""
+    @State private var entries: [LogEntry]
     @State private var selectedTag: String? = nil
     @State private var showClearAlert = false
 
     private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion", "BG"]
     private let logManager = LogManager.shared
+
+    init() {
+        _entries = State(initialValue: LogManager.shared.fetchLogs(limit: 500))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
