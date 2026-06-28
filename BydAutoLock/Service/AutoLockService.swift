@@ -89,14 +89,18 @@ final class AutoLockService: NSObject, ObservableObject {
     // 주행 중 감지 (상시)
     private var drivingMotionManager: CMMotionActivityManager?
 
+    // 마지막으로 알려진 차량 잠금 상태 (nil = 모름)
+    private var lastKnownLocked: Bool? = nil
+
+    // 신호 소실 grace timer (BLE 끊김 후 즉시 잠금 대신 60초 유예)
+    private var signalLossTimer: DispatchSourceTimer?
+    private static let signalLossGracePeriod: TimeInterval = 60
+
     // 예측적 사전 잠금 해제
     private var isPredictiveUnlockPending = false
     private static let predictiveMargin: Double = 8      // 임계값 이전 몇 dBm에서 사전 호출
     private static let predictiveMinSlope: Double = 0.5  // 최소 상승 기울기 (dBm/초)
 
-    // RSSI 로그 집계 (10초 주기)
-    private var rssiLogTimer: Timer?
-    private var rssiSamples = [Int]()
 
     // 세션 갱신 타이머 (15분)
     private var sessionRefreshTimer: DispatchSourceTimer?
@@ -176,8 +180,8 @@ final class AutoLockService: NSObject, ObservableObject {
         sessionRefreshTimer = nil
         gpsPollTimer?.cancel()
         gpsPollTimer = nil
-        rssiLogTimer?.invalidate()
-        rssiLogTimer = nil
+        signalLossTimer?.cancel()
+        signalLossTimer = nil
         stationaryTimer?.cancel()
         stationaryTimer = nil
         motionManager?.stopActivityUpdates()
@@ -209,7 +213,9 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
         guard let service = vehicleService else { throw BydError.notLoggedIn }
-        return try await service.fetchVehicleStatus(vin: vin)
+        let status = try await service.fetchVehicleStatus(vin: vin)
+        lastKnownLocked = status.isLocked
+        return status
     }
 
     func manualLock() {
@@ -338,6 +344,13 @@ final class AutoLockService: NSObject, ObservableObject {
     private func processRSSI(_ rssi: Int) {
         rawRssi = rssi
 
+        // 신호 복구 → grace timer 취소
+        if signalLossTimer != nil {
+            LogManager.shared.log("BLE", "신호 복구. 잠금 유예 취소.")
+            signalLossTimer?.cancel()
+            signalLossTimer = nil
+        }
+
         // 재연결 직후 첫 읽기: EMA/필터 없이 raw RSSI로 즉시 unlock 판단
         if isFirstRssiAfterConnect {
             isFirstRssiAfterConnect = false
@@ -380,9 +393,6 @@ final class AutoLockService: NSObject, ObservableObject {
             smoothedRssi = Double(rssi)
         }
 
-        // RSSI 집계 로깅
-        rssiSamples.append(rssi)
-
         evaluateProximity()
     }
 
@@ -394,13 +404,32 @@ final class AutoLockService: NSObject, ObservableObject {
         isPredictiveUnlockPending = false
 
         if proximityState == .near {
-            LogManager.shared.log("BLE", "신호 소실. 즉시 안전 잠금 실행.")
-            NotificationManager.shared.sendSignalLost()
-            proximityState = .far
-            // updateCooldown: false → 신호 소실 잠금은 lastAutoLockTime 미설정
-            // 재연결 직후 unlock이 postLockUnlockCooldown에 차단되지 않도록
-            triggerCarAction(shouldUnlock: false, isManual: false, updateCooldown: false)
+            if isDriving {
+                LogManager.shared.log("BLE", "신호 소실 - 주행 중이므로 알림 및 잠금 스킵.")
+            } else {
+                LogManager.shared.log("BLE", "신호 소실. \(Int(Self.signalLossGracePeriod))초 유예 후 잠금 예정.")
+                NotificationManager.shared.sendSignalLost()
+                startSignalLossTimer()
+            }
         }
+    }
+
+    private func startSignalLossTimer() {
+        signalLossTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.signalLossGracePeriod)
+        timer.setEventHandler { [weak self] in
+            Task { @MainActor in
+                guard let self, self.signalLossTimer != nil, self.proximityState == .near else { return }
+                LogManager.shared.log("BLE", "신호 소실 \(Int(Self.signalLossGracePeriod))초 경과. 안전 잠금 실행.")
+                self.signalLossTimer = nil
+                self.proximityState = .far
+                // updateCooldown: false → 재연결 직후 unlock이 cooldown에 차단되지 않도록
+                self.triggerCarAction(shouldUnlock: false, isManual: false, updateCooldown: false)
+            }
+        }
+        timer.resume()
+        signalLossTimer = timer
     }
 
     // MARK: - Proximity Evaluation
@@ -456,6 +485,12 @@ final class AutoLockService: NSObject, ObservableObject {
     private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true) {
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
+            // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지)
+            if let known = lastKnownLocked, known == !shouldUnlock {
+                LogManager.shared.log("AutoLockService", "이미 \(shouldUnlock ? "열림" : "닫힘") 상태 - 명령 스킵")
+                return
+            }
+
             let now = Date()
 
             // 과다 반복 차단 중인지 확인
@@ -515,6 +550,7 @@ final class AutoLockService: NSObject, ObservableObject {
 
                 let isLocked = !shouldUnlock
                 await MainActor.run {
+                    self.lastKnownLocked = isLocked
                     self.lastApiResult = shouldUnlock
                         ? (result ? "잠금 해제 성공" : "잠금 해제 전송됨")
                         : (result ? "잠금 성공" : "잠금 전송됨")
@@ -549,6 +585,14 @@ final class AutoLockService: NSObject, ObservableObject {
                     self.lastApiTime = Date()
                 }
                 LogManager.shared.log("API", "오류: \(error.localizedDescription)")
+                // 자동 잠금 실패 시 45초 후 1회 재시도 (6002 등 일시적 통신 오류 대비)
+                if !isManual && !shouldUnlock {
+                    LogManager.shared.log("API", "자동 잠금 실패 - 45초 후 재시도 예정")
+                    try? await Task.sleep(nanoseconds: 45_000_000_000)
+                    guard await MainActor.run(body: { self.proximityState == .far }) else { return }
+                    try? await service.lockAuto(vin: vin, pin: pin)
+                    LogManager.shared.log("API", "자동 잠금 재시도 완료")
+                }
             }
         }
     }
@@ -590,6 +634,7 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Watchdog
 
     private func startWatchdog() {
+        watchdogTimer?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + Self.watchdogInterval, repeating: Self.watchdogInterval)
         timer.setEventHandler { [weak self] in
@@ -705,10 +750,11 @@ final class AutoLockService: NSObject, ObservableObject {
             guard let activity, activity.confidence != .low else { return }
             if activity.walking || activity.running || activity.automotive {
                 Task { @MainActor in
-                    guard let self else { return }
+                    // motionManager != nil 체크로 중복 콜백 차단 (동일 시각 다수 호출 방지)
+                    guard let self, self.motionManager != nil else { return }
                     self.isStationary = false
-                    manager.stopActivityUpdates()
                     self.motionManager = nil
+                    manager.stopActivityUpdates()
                     LogManager.shared.log("Motion", "움직임 감지. BLE 스캔 재개.")
                     self.beginScanning()
                     self.startStationaryTimer()

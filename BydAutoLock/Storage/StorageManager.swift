@@ -54,7 +54,7 @@ final class StorageManager {
         static let geofenceRadius    = "geofence_radius"
         static let autoUnlockOnApproach  = "auto_unlock_on_approach"
         static let autoLockOnDeparture   = "auto_lock_on_departure"
-        static let debugLoggingEnabled   = "debug_logging_enabled"
+
         // 알림
         static let notifyLockUnlock  = "notify_lock_unlock"
         static let notifySignalLost  = "notify_signal_lost"
@@ -173,6 +173,15 @@ final class StorageManager {
         set { defaults.set(newValue, forKey: UD.bleScanMode) }
     }
 
+    // MARK: - Vehicle Model
+
+    static let vehicleModels = ["ATTO 3", "ATTO 2", "SEAL", "DOLPHIN", "SEALION 6", "기타"]
+
+    var vehicleModel: String {
+        get { defaults.string(forKey: "vehicle_model") ?? "" }
+        set { defaults.set(newValue, forKey: "vehicle_model") }
+    }
+
     // MARK: - Geofencing
 
     var isGeofencingEnabled: Bool {
@@ -182,7 +191,7 @@ final class StorageManager {
     /// 지오펜스 반경 (미터). 범위: 50~500m, 기본값: 150m
     var geofenceRadius: Int {
         get { defaults.object(forKey: UD.geofenceRadius) as? Int ?? 150 }
-        set { defaults.set(newValue, forKey: UD.geofenceRadius) }
+        set { defaults.set(max(50, min(500, newValue)), forKey: UD.geofenceRadius) }
     }
     var isAutoUnlockOnApproach: Bool {
         get { defaults.object(forKey: UD.autoUnlockOnApproach) as? Bool ?? true }
@@ -191,13 +200,6 @@ final class StorageManager {
     var isAutoLockOnDeparture: Bool {
         get { defaults.object(forKey: UD.autoLockOnDeparture) as? Bool ?? true }
         set { defaults.set(newValue, forKey: UD.autoLockOnDeparture) }
-    }
-
-    // MARK: - Debug
-
-    var isDebugLoggingEnabled: Bool {
-        get { defaults.bool(forKey: UD.debugLoggingEnabled) }
-        set { defaults.set(newValue, forKey: UD.debugLoggingEnabled) }
     }
 
     // MARK: - Last Vehicle Location

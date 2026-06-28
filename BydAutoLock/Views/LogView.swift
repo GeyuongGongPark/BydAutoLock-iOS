@@ -12,7 +12,7 @@ struct LogView: View {
     private let logManager = LogManager.shared
 
     init() {
-        _entries = State(initialValue: LogManager.shared.fetchLogs(limit: 500))
+        _entries = State(initialValue: [])
     }
 
     var body: some View {
@@ -92,8 +92,9 @@ struct LogView: View {
         let safeName = rawName
             .components(separatedBy: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-")).inverted)
             .joined(separator: "_")
+        let modelPart = storage.vehicleModel.isEmpty ? "" : "_\(storage.vehicleModel.replacingOccurrences(of: " ", with: "_"))"
 
-        let fileName = "byd_log_\(dateStr)_\(safeName).txt"
+        let fileName = "byd_log_\(dateStr)\(modelPart)_\(safeName).txt"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         guard (try? text.write(to: tempURL, atomically: true, encoding: .utf8)) != nil else { return }
 

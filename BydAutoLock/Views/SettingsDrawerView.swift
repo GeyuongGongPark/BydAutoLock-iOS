@@ -9,6 +9,7 @@ struct SettingsDrawerView: View {
                 Section("설정") {
                     drawerLink("BYD 계정 설정",    icon: "person.badge.key.fill", color: .blue)    { AuthSettingsView() }
                     drawerLink("블루투스 기기 설정", icon: "bluetooth",             color: .cyan)    { BluetoothSettingsView() }
+                    drawerLink("차량 정보",         icon: "car.fill",              color: .indigo)  { VehicleModelSettingsView() }
                     drawerLink("RSSI 임계값 설정",  icon: "slider.horizontal.3",   color: .orange)  { ThresholdSettingsView() }
                     drawerLink("에어컨 설정",       icon: "snowflake",             color: .teal)    { AcSettingsView() }
                 }
@@ -74,8 +75,10 @@ struct SettingsDrawerView: View {
         }
     }
 
-    private func drawerLink<Dest: View>(_ title: String, icon: String, color: Color, @ViewBuilder dest: () -> Dest) -> some View {
-        NavigationLink(destination: dest().onAppear { }) {
+    private func drawerLink<Dest: View>(_ title: String, icon: String, color: Color, @ViewBuilder dest: @escaping () -> Dest) -> some View {
+        NavigationLink {
+            dest()
+        } label: {
             Label {
                 Text(title)
             } icon: {

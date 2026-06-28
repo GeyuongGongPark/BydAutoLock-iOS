@@ -52,7 +52,7 @@ final class NotificationManager {
         send(
             id: "signal_lost",
             title: "차량 신호 끊김",
-            body: "BLE 신호를 잃었습니다. 자동으로 잠금됩니다.",
+            body: "BLE 신호를 잃었습니다. 60초 후 자동으로 잠금됩니다.",
             sound: .default
         )
     }

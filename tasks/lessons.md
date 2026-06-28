@@ -65,6 +65,72 @@ VStack(spacing: 0) {
 
 ---
 
+## 화이트박스 테스트 후 .md 갱신 필수
+
+**커밋 전 반드시 순서 준수:**
+1. 수정 완료 → `tasks/todo.md` 검토 섹션 추가 (완료 체크, 잔여 이슈 기록)
+2. 교훈 → `tasks/lessons.md` 기록
+3. 그 다음 커밋 (코드 + .md 함께)
+
+**.md 갱신을 빠뜨리는 패턴**: 코드 수정에 집중하다 보고로 마무리하면 갱신 안 됨 → 코드 수정 직후 바로 .md 작성 습관 필요.
+
+---
+
+## CMMotionActivityManager 콜백 중복 방지
+
+**문제**: `startActivityUpdates(to: .main)` 콜백이 짧은 시간에 수십 번 호출 → 각각 `Task { @MainActor }` 생성 → 큐에 쌓여서 모두 실행됨 (로그에서 51회 반복 관찰)
+
+**해결**: Task 시작 시 `self.motionManager != nil` 체크로 이중 실행 차단. 첫 번째 Task에서 `motionManager = nil` 설정 → 이후 Task들은 guard에서 리턴:
+```swift
+Task { @MainActor in
+    guard let self, self.motionManager != nil else { return }
+    self.motionManager = nil
+    manager.stopActivityUpdates()
+    ...
+}
+```
+
+---
+
+## DispatchSourceTimer 재사용 시 반드시 cancel 먼저
+
+**패턴**: `startXxx()` 함수에서 새 타이머를 만들기 전 기존 타이머 cancel 누락 → 타이머 누수
+```swift
+// 잘못된 패턴
+private func startWatchdog() {
+    let timer = DispatchSource.makeTimerSource(...)  // 기존 타이머 누수!
+    ...
+    watchdogTimer = timer
+}
+
+// 올바른 패턴
+private func startWatchdog() {
+    watchdogTimer?.cancel()  // 항상 먼저 취소
+    let timer = DispatchSource.makeTimerSource(...)
+    ...
+    watchdogTimer = timer
+}
+```
+
+---
+
+## signalLossTimer 안전한 fire 조건 체크
+
+**패턴**: DispatchSourceTimer의 이벤트 핸들러가 `Task { @MainActor }` 로 래핑될 때, cancel 후 Task가 큐에 남아 실행될 수 있음. 타이머 변수 자체가 nil인지 추가로 체크해야 함:
+```swift
+guard let self, self.signalLossTimer != nil, self.proximityState == .near else { return }
+```
+
+---
+
+## 주행 중 BLE 신호 소실은 예외 처리 필요
+
+**패턴**: 주행 중에는 BLE 신호가 자연스럽게 약해짐 → "차량 신호 끊김" 알림 불필요, 자동 잠금 불필요
+- `handleSignalLoss()`에서 `isDriving` 체크로 알림/grace timer 스킵
+- `evaluateProximity()`의 unlock 트리거에는 이미 `isDriving` 체크 있음
+
+---
+
 ## 로그 분석 선행의 중요성
 
 **코드 분석만으로는 실제 발생 여부를 확인할 수 없음:**

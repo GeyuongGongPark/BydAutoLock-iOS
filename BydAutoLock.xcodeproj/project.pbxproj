@@ -25,6 +25,7 @@
 		757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6C000F741DA8D709913F0C /* BangcleCodec.swift */; };
 		7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */; };
 		8357D7BB007903C2C0BB0A1A /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */; };
+		84FD668EC96B83FD29512001 /* VehicleModelSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99A9634AF31E8CE7E4480D51 /* VehicleModelSettingsView.swift */; };
 		8A5BE94093A053994140874C /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD514673509F5771630DD49 /* CryptoUtils.swift */; };
 		8ED155E59960537FC5F7EE56 /* bangcle_tables.bin in Resources */ = {isa = PBXBuildFile; fileRef = 52E7969C847A968DA4861284 /* bangcle_tables.bin */; };
 		9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */; };
@@ -128,6 +129,7 @@
 		74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = BydAutoLockWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		7AFAF2BFAB9F389338815B7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		99A9634AF31E8CE7E4480D51 /* VehicleModelSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleModelSettingsView.swift; sourceTree = "<group>"; };
 		A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydVehicleService.swift; sourceTree = "<group>"; };
 		A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleStatus.swift; sourceTree = "<group>"; };
 		A94E35699E4E1F2C713542DD /* BydAutoLockWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWidget.entitlements; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 				D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */,
 				090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */,
 				37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */,
+				99A9634AF31E8CE7E4480D51 /* VehicleModelSettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -473,6 +476,7 @@
 				5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */,
 				D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */,
 				0A913999408078E6C703FA2B /* ThresholdSettingsView.swift in Sources */,
+				84FD668EC96B83FD29512001 /* VehicleModelSettingsView.swift in Sources */,
 				947F280D4098A130E9B1B4A5 /* VehicleStatus.swift in Sources */,
 				D96CBB0917233ACF9D8A9A38 /* WatchConnectivityManager.swift in Sources */,
 			);

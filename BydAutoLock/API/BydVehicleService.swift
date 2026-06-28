@@ -20,6 +20,7 @@ actor BydVehicleService {
     // 자격증명 (세션 만료 시 자동 재로그인)
     private var storedUsername: String?
     private var storedPassword: String?
+    private var isRelogging = false
 
     private let deviceProfile: [String: String] = [
         "ostype": "and",
@@ -192,10 +193,14 @@ actor BydVehicleService {
     }
 
     private func silentReLogin(endpoint: String, innerMap: [(key: String, value: Any?)], vin: String?) async throws -> [String: Any] {
+        // 재로그인 중 재진입 방지 (무한 재귀 차단)
+        guard !isRelogging else { throw BydError.sessionExpired }
         guard let user = storedUsername, let pwd = storedPassword, !user.isEmpty else {
             onSessionExpired?()
             throw BydError.sessionExpired
         }
+        isRelogging = true
+        defer { isRelogging = false }
         _ = try await login(username: user, password: pwd)
         return try await postTokenSecure(endpoint: endpoint, innerMap: innerMap, vin: vin)
     }

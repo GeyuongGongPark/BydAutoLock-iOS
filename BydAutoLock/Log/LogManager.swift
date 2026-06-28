@@ -38,7 +38,6 @@ final class LogManager {
     // MARK: - Write
 
     func log(_ tag: String, _ message: String) {
-        guard StorageManager.shared.isDebugLoggingEnabled else { return }
         queue.async { [weak self] in
             self?.insertLog(tag: tag, message: message)
         }

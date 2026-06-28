@@ -100,4 +100,34 @@
   - `README.md`에 ## 릴리즈 노트 섹션 추가
 
 ## 검토
-- [ ] 빌드 확인 (로그 필터 실기기 동작 확인)
+- [x] 빌드 확인 (로그 필터 실기기 동작 확인)
+
+---
+
+## 화이트박스 테스트 #2 (v1.2.2 기준)
+
+### 수정 완료
+- [x] **watchdogTimer cancel 누락** — `startWatchdog()` 시작 전 기존 타이머 취소 추가
+- [x] **signalLossTimer race condition** — guard에 `self.signalLossTimer != nil` 추가
+- [x] **LogView init 메인스레드 블로킹** — `State(initialValue: [])` 빈 배열로 초기화
+- [x] **BydVehicleService silentReLogin 무한 재귀** — `isRelogging` 플래그 추가
+- [x] **ThresholdSettingsView RSSI 역전 저장** — `unlockRssi > lockRssi` 검증 + Alert
+- [x] **StorageManager geofenceRadius setter 범위 검증 누락** — `max(50, min(500, ...))` 클램핑
+- [x] **MainView refreshVehicleStatus 중복 호출** — `guard !isRefreshing` 추가
+- [x] **주행 중 신호 소실 알림/잠금** — `isDriving` 시 handleSignalLoss 스킵
+- [x] **알림 텍스트 misleading** — "60초 후 자동으로 잠금됩니다"로 수정
+- [x] **rssiLogTimer/rssiSamples dead code** — 미사용 변수 및 참조 제거
+
+### 로그 분석 #1 (byd_log_20260628) 수정
+
+- [x] **Motion 이벤트 폭발적 중복 발생** (최대 51회 반복)
+  - 원인: `startMotionUpdates()` 콜백마다 `Task { @MainActor }` 생성 → 큐에 적재
+  - 수정: `self.motionManager != nil` guard 추가 → 첫 Task에서 nil 처리 후 이후 차단
+- [x] **자동 잠금 API 실패 시 재시도 없음** (6002 통신 오류)
+  - 수정: catch 블록에서 자동 잠금 실패 시 45초 후 1회 재시도 추가 (재접근 시 취소)
+
+### 잔여 이슈 (설계 의도 또는 실용적 영향 낮음)
+- [ ] **LogView reload() 메인스레드 동기 블로킹** — fetchLogs()가 queue.sync 사용. 실용적 영향 작음 (500건 SQLite 읽기 수 ms 수준)
+- [ ] **GeofenceManager ignoringExitUntil 10초 실제 이탈 손실** — 설계 의도 (spurious exit 차단). 시속 18km/h 이상 이탈 시에만 문제
+- [ ] **onSessionUpdated/onSessionExpired 콜백 메인스레드** — 호출 측(AutoLockService)이 Task { @MainActor } 로 처리 중이므로 사실상 안전
+- [ ] **willRestoreState에서 targetMac nil 가능** — 앱 killed 후 복원 시 발생, 드문 케이스

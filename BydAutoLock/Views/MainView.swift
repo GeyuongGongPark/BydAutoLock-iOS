@@ -350,7 +350,7 @@ struct MainView: View {
     }
 
     private func refreshVehicleStatus() {
-        guard let vin = storage.selectedVin else { return }
+        guard !isRefreshing, let vin = storage.selectedVin else { return }
         isRefreshing = true
         service.refreshParkingLocation()
         Task {
