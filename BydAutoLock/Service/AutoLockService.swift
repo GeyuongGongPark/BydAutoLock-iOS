@@ -344,11 +344,12 @@ final class AutoLockService: NSObject, ObservableObject {
     private func processRSSI(_ rssi: Int) {
         rawRssi = rssi
 
-        // 신호 복구 → grace timer 취소
+        // 신호 복구 → grace timer 취소 + 알림 쿨다운 리셋
         if signalLossTimer != nil {
             LogManager.shared.log("BLE", "신호 복구. 잠금 유예 취소.")
             signalLossTimer?.cancel()
             signalLossTimer = nil
+            NotificationManager.shared.resetSignalLostCooldown()
         }
 
         // 재연결 직후 첫 읽기: EMA/필터 없이 raw RSSI로 즉시 unlock 판단
@@ -357,6 +358,9 @@ final class AutoLockService: NSObject, ObservableObject {
             if rssi >= storage.unlockRssi && proximityState == .far && storage.isAutoUnlockOnApproach {
                 if isDriving {
                     LogManager.shared.log("BLE", "재연결 즉시 unlock 차단 - 주행 중 (raw RSSI: \(rssi))")
+                } else if lastKnownLocked == false {
+                    // 이미 잠금 해제 상태 → API 불필요, proximityState만 near로
+                    proximityState = .near
                 } else {
                     LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
                     proximityState = .near
@@ -453,7 +457,7 @@ final class AutoLockService: NSObject, ObservableObject {
             proximityState = .near
             isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "접근 감지 (RSSI: \(Int(rssi)) >= \(Int(unlockThreshold)))\(wasPredictive ? " [예측 호출 중복 스킵]" : "")")
-            if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive {
+            if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive && lastKnownLocked != false {
                 triggerCarAction(shouldUnlock: true, isManual: false)
             } else if isDriving {
                 LogManager.shared.log("BLE", "잠금 해제 차단 - 주행 중")
@@ -474,7 +478,7 @@ final class AutoLockService: NSObject, ObservableObject {
             proximityState = .far
             isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "이탈 감지 (RSSI: \(Int(rssi)) <= \(Int(lockThreshold)))")
-            if storage.isAutoLockOnDeparture {
+            if storage.isAutoLockOnDeparture && lastKnownLocked != true {
                 triggerCarAction(shouldUnlock: false, isManual: false)
             }
         }
@@ -485,9 +489,8 @@ final class AutoLockService: NSObject, ObservableObject {
     private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true) {
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
-            // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지)
+            // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지, 방어적 처리)
             if let known = lastKnownLocked, known == !shouldUnlock {
-                LogManager.shared.log("AutoLockService", "이미 \(shouldUnlock ? "열림" : "닫힘") 상태 - 명령 스킵")
                 return
             }
 
@@ -601,8 +604,9 @@ final class AutoLockService: NSObject, ObservableObject {
 
     /// RSSI 상승/하강 기울기 (dBm/초). 양수 = 접근, 음수 = 이탈
     private func linearRegressionSlope(_ points: [RssiPoint]) -> Double {
+        guard let first = points.first else { return 0 }
         let n = Double(points.count)
-        let t0 = points.first!.time.timeIntervalSince1970
+        let t0 = first.time.timeIntervalSince1970
         let xs = points.map { $0.time.timeIntervalSince1970 - t0 }
         let ys = points.map { Double($0.dbm) }
         let sumX  = xs.reduce(0, +)
@@ -615,8 +619,9 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func linearRegressionPredict(_ points: [RssiPoint]) -> Double {
+        guard let first = points.first, let last = points.last else { return 0 }
         let n = Double(points.count)
-        let t0 = points.first!.time.timeIntervalSince1970
+        let t0 = first.time.timeIntervalSince1970
         let xs = points.map { $0.time.timeIntervalSince1970 - t0 }
         let ys = points.map { Double($0.dbm) }
         let sumX  = xs.reduce(0, +)
@@ -627,7 +632,7 @@ final class AutoLockService: NSObject, ObservableObject {
         guard abs(denom) > 1e-9 else { return sumY / n }
         let slope     = (n * sumXY - sumX * sumY) / denom
         let intercept = (sumY - slope * sumX) / n
-        let lastT = (points.last!.time.timeIntervalSince1970 - t0)
+        let lastT = last.time.timeIntervalSince1970 - t0
         return slope * lastT + intercept
     }
 
@@ -670,6 +675,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     private func startSessionRefresh() {
+        sessionRefreshTimer?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + Self.sessionRefreshInterval, repeating: Self.sessionRefreshInterval)
         timer.setEventHandler { [weak self] in
@@ -693,6 +699,7 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - GPS Polling
 
     private func startGpsPoll() {
+        gpsPollTimer?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now() + Self.gpsPollInterval, repeating: Self.gpsPollInterval)
         timer.setEventHandler { [weak self] in

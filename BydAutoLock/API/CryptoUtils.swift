@@ -2,6 +2,11 @@ import Foundation
 import CommonCrypto
 import CryptoKit
 
+enum CryptoError: Error {
+    case encryptionFailed
+    case decryptionFailed
+}
+
 enum CryptoUtils {
 
     // MARK: - MD5
@@ -54,18 +59,22 @@ enum CryptoUtils {
 
     // MARK: - AES-128-CBC (Standard, Zero IV, PKCS7)
 
-    static func aesEncryptHex(_ plaintext: String, keyHex: String) -> String {
+    static func aesEncryptHex(_ plaintext: String, keyHex: String) throws -> String {
         let keyBytes = hexToBytes(keyHex)
         let iv = [UInt8](repeating: 0, count: kCCBlockSizeAES128)
-        guard let encrypted = aesCrypt(.encrypt, data: Data(plaintext.utf8), key: keyBytes, iv: iv) else { return "" }
+        guard let encrypted = aesCrypt(.encrypt, data: Data(plaintext.utf8), key: keyBytes, iv: iv) else {
+            throw CryptoError.encryptionFailed
+        }
         return encrypted.map { String(format: "%02X", $0) }.joined()
     }
 
-    static func aesDecryptUTF8(_ cipherHex: String, keyHex: String) -> String {
+    static func aesDecryptUTF8(_ cipherHex: String, keyHex: String) throws -> String {
         let keyBytes = hexToBytes(keyHex)
         let cipherData = Data(hexToBytes(cipherHex))
         let iv = [UInt8](repeating: 0, count: kCCBlockSizeAES128)
-        guard let decrypted = aesCrypt(.decrypt, data: cipherData, key: keyBytes, iv: iv) else { return "" }
+        guard let decrypted = aesCrypt(.decrypt, data: cipherData, key: keyBytes, iv: iv) else {
+            throw CryptoError.decryptionFailed
+        }
         return String(data: decrypted, encoding: .utf8) ?? ""
     }
 

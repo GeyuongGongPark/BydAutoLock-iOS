@@ -66,8 +66,8 @@ final class GeofenceManager: NSObject {
     /// - 10m 정확도 + 10m 이동 필터 → GPS 사용, 배터리 소모 있음
     /// - 이 호출이 없으면 UIBackgroundTask 만료 후 앱이 suspend되어 RSSI 폴링이 멈춤
     func startBackgroundKeepAlive() {
-        locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
-        locationManager.distanceFilter = 10
+        locationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
+        locationManager.distanceFilter = 100
         locationManager.startUpdatingLocation()
     }
 

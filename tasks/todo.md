@@ -131,3 +131,52 @@
 - [ ] **GeofenceManager ignoringExitUntil 10초 실제 이탈 손실** — 설계 의도 (spurious exit 차단). 시속 18km/h 이상 이탈 시에만 문제
 - [ ] **onSessionUpdated/onSessionExpired 콜백 메인스레드** — 호출 측(AutoLockService)이 Task { @MainActor } 로 처리 중이므로 사실상 안전
 - [ ] **willRestoreState에서 targetMac nil 가능** — 앱 killed 후 복원 시 발생, 드문 케이스
+
+---
+
+## 화이트박스 테스트 #3 (전체 코드 검수)
+
+### 수정 완료
+- [x] **1. startSessionRefresh() cancel 누락** — `sessionRefreshTimer?.cancel()` 추가
+- [x] **2. startGpsPoll() cancel 누락** — `gpsPollTimer?.cancel()` 추가
+- [x] **3 & 7. linearRegressionSlope/Predict force unwrap** — `guard let first/last` 로 안전하게
+- [x] **4. BydVehicleService URL force unwrap** — `URL(string:)!` → `guard let url` + throw
+- [x] **5. LogManager.openDatabase() 에러 무시** — `sqlite3_open` 결과 체크 및 db=nil
+- [x] **6. BangcleCodec readU16/readU32 bounds check** — `guard offset+N <= bytes.count` 추가
+- [x] **8 & 9. BydVehicleService login userId nil** — `guard let uid/sign/encry` + throw, silentReLogin 자동 해결
+- [x] **10. CryptoUtils 빈 문자열 반환** — `aesEncryptHex/aesDecryptUTF8` throws 추가, callers try로 변경
+- [x] **11. LogManager insertLog prepare 미체크** — `sqlite3_prepare_v2` 결과 == SQLITE_OK 검증
+- [x] **12. LogEntry.formattedTime DateFormatter 매번 생성** — static let으로 변경
+- [x] **13. NotificationManager signalLost 쿨다운 미리셋** — `resetSignalLostCooldown()` + processRSSI에서 호출
+- [x] **14. BangcleCodec pkcs7Unpad 부분 검증** — `allSatisfy { $0 == last }` 추가
+- [x] **15. ThresholdSettingsView init+onAppear 이중 초기화** — 중복 `onAppear { loadFromStorage() }` 제거
+
+### 검토
+- [ ] 빌드 확인
+
+---
+
+## v1.4 (build 9)
+
+### 로그 분석 #2 개선
+
+- [x] **"이미 닫힘/열림 상태 - 명령 스킵" 로그 스팸 제거**
+  - 원인: BLE 20초 재연결마다 `isFirstRssiAfterConnect` → 접근/이탈 감지 → `triggerCarAction` 호출 → `lastKnownLocked` 체크로 스킵 로그 반복
+  - 수정 1: `processRSSI` isFirstRssiAfterConnect — `lastKnownLocked == false`이면 API 없이 `proximityState = .near`만
+  - 수정 2: `evaluateProximity` 접근 감지 — `lastKnownLocked != false` 조건 추가
+  - 수정 3: `evaluateProximity` 이탈 감지 — `lastKnownLocked != true` 조건 추가
+  - 수정 4: `triggerCarAction` 중복 스킵 — 로그 제거, 방어적 처리만 유지
+
+### 백그라운드 동작 최적화
+
+- [x] **`fetch` 백그라운드 모드 제거**
+  - `UIBackgroundModes`에 `fetch` 선언만 있고 `performFetchWithCompletionHandler` 구현 없음
+  - `Info.plist` + `project.yml` 양쪽에서 제거
+
+- [x] **GPS accuracy 낮춤 (배터리 절약)**
+  - `kCLLocationAccuracyNearestTenMeters` → `kCLLocationAccuracyThreeKilometers` (셀룰러 기지국 기반)
+  - `distanceFilter` 10m → 100m
+  - BLE 신호 인식, 지오펜싱과 무관 — 앱 suspend 방지 목적만
+
+### 검토
+- [x] 수정 파일: `AutoLockService.swift`, `GeofenceManager.swift`, `Info.plist`, `project.yml`

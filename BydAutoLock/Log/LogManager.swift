@@ -20,10 +20,14 @@ final class LogManager {
         let path = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("byd_log.sqlite").path
-        sqlite3_open(path, &db)
+        guard sqlite3_open(path, &db) == SQLITE_OK else {
+            db = nil
+            return
+        }
     }
 
     private func createTable() {
+        guard db != nil else { return }
         let sql = """
             CREATE TABLE IF NOT EXISTS logs (
                 id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,9 +48,10 @@ final class LogManager {
     }
 
     private func insertLog(tag: String, message: String) {
+        guard db != nil else { return }
         let ts = Int64(Date().timeIntervalSince1970 * 1000)
         var stmt: OpaquePointer?
-        sqlite3_prepare_v2(db, "INSERT INTO logs (timestamp, tag, message) VALUES (?, ?, ?)", -1, &stmt, nil)
+        guard sqlite3_prepare_v2(db, "INSERT INTO logs (timestamp, tag, message) VALUES (?, ?, ?)", -1, &stmt, nil) == SQLITE_OK else { return }
         sqlite3_bind_int64(stmt, 1, ts)
         sqlite3_bind_text(stmt, 2, tag, -1, SQLITE_TRANSIENT)
         sqlite3_bind_text(stmt, 3, message, -1, SQLITE_TRANSIENT)
@@ -71,6 +76,7 @@ final class LogManager {
 
     func fetchLogs(limit: Int = 500, tag: String? = nil) -> [LogEntry] {
         queue.sync {
+            guard db != nil else { return [] }
             var entries = [LogEntry]()
             var stmt: OpaquePointer?
 

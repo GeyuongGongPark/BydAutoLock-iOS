@@ -35,8 +35,9 @@
 **문제**: UIBackgroundTask는 ~30초 한계, 만료 후 앱 suspend → RSSI 폴링 타이머 멈춤
 
 **해결**: `startUpdatingLocation()`으로 앱 suspend 차단
-- `desiredAccuracy = kCLLocationAccuracyNearestTenMeters`, `distanceFilter = 10` → GPS 사용, 배터리 소모 있음
-- 배터리보다 안정성이 중요한 경우 정확도를 높임 (사용자 판단에 따름)
+- `desiredAccuracy = kCLLocationAccuracyThreeKilometers`, `distanceFilter = 100` → 셀룰러 기지국 기반, GPS 칩 미사용, 배터리 절약
+- `ThreeKilometers`로도 앱 생존 효과는 동일 (iOS가 "위치 사용 중" 앱으로 인식)
+- BLE 신호 인식과 지오펜싱은 GPS accuracy와 무관 — 혼동하지 말 것
 - 서비스 시작 시 활성화, 서비스 중지 시 반드시 비활성화 (`stopUpdatingLocation()`)
 - 기존 지오펜스용 CLLocationManager를 공유해서 추가 인스턴스 없이 처리
 
@@ -128,6 +129,56 @@ guard let self, self.signalLossTimer != nil, self.proximityState == .near else {
 **패턴**: 주행 중에는 BLE 신호가 자연스럽게 약해짐 → "차량 신호 끊김" 알림 불필요, 자동 잠금 불필요
 - `handleSignalLoss()`에서 `isDriving` 체크로 알림/grace timer 스킵
 - `evaluateProximity()`의 unlock 트리거에는 이미 `isDriving` 체크 있음
+
+---
+
+## lastKnownLocked로 중복 API 호출 차단
+
+**문제**: BLE 20초 재연결 사이클마다 `isFirstRssiAfterConnect` → 접근/이탈 감지 → `triggerCarAction` 호출 → 내부에서 `lastKnownLocked` 체크로 스킵. 이 스킵 로그가 매 20초 무한 반복.
+
+**해결**: `triggerCarAction` 호출 전 `evaluateProximity`/`processRSSI` 단계에서 미리 필터링:
+```swift
+// 이탈 감지 — 이미 잠긴 상태면 API 불필요
+if storage.isAutoLockOnDeparture && lastKnownLocked != true {
+    triggerCarAction(shouldUnlock: false, isManual: false)
+}
+// 접근 감지 — 이미 열린 상태면 API 불필요
+if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive && lastKnownLocked != false {
+    triggerCarAction(shouldUnlock: true, isManual: false)
+}
+// isFirstRssiAfterConnect — 이미 열린 상태면 proximityState만 변경
+} else if lastKnownLocked == false {
+    proximityState = .near  // API 호출 없이 상태만
+}
+```
+- `lastKnownLocked == nil`(상태 모름)이면 조건을 통과해 API 호출 → 안전성 유지
+
+---
+
+## CryptoUtils throws 패턴
+
+**빈 문자열 반환보다 throw가 안전:**
+- `aesEncryptHex`/`aesDecryptUTF8` 실패 시 `""` 반환 → caller가 감지 불가 → 서버 오류로 느리게 전파됨
+- throws로 변경 → 즉시 상위 caller로 전파, BydError로 통합됨
+- `CryptoError` enum 별도 정의 (BydError와 분리 — actor 경계 없음)
+- callers(postTokenSecure, login)는 이미 throws이므로 `try` 추가만으로 충분
+
+---
+
+## SQLite 에러 체크 패턴
+
+**sqlite3 API는 에러를 무시하면 undefined behavior:**
+- `sqlite3_open` 실패 시 `db = nil` → 이후 모든 API에 nil guard 추가
+- `sqlite3_prepare_v2` 실패 시 bind/step 호출하면 crash 또는 데이터 오염
+- 패턴: `guard sqlite3_prepare_v2(...) == SQLITE_OK else { return }` + `guard db != nil else { return }`
+
+---
+
+## NotificationManager 쿨다운 리셋 패턴
+
+**신호 소실 알림 쿨다운은 신호 복구 시 리셋해야 함:**
+- `lastSignalLostTime` 리셋 없이 60초 이내 재소실 시 두 번째 알림이 안 감
+- `resetSignalLostCooldown()` 메서드를 추가하고 `processRSSI`에서 signalLossTimer 취소 시 호출
 
 ---
 

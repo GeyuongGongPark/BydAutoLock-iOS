@@ -57,6 +57,10 @@ final class NotificationManager {
         )
     }
 
+    func resetSignalLostCooldown() {
+        lastSignalLostTime = nil
+    }
+
     func sendAcStarted(temp: Double) {
         guard storage.notifyAc else { return }
         send(

@@ -108,7 +108,7 @@ actor BydVehicleService {
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let reqTimestamp = "\(nowMs)"
         let innerJson = toSortedJSON(innerMap)
-        let encryData = CryptoUtils.aesEncryptHex(innerJson, keyHex: CryptoUtils.md5Hex(encTok))
+        let encryData = try CryptoUtils.aesEncryptHex(innerJson, keyHex: CryptoUtils.md5Hex(encTok))
 
         var signFields = [String: String]()
         for (k, v) in innerMap { signFields[k] = "\(v ?? "null")" }
@@ -144,7 +144,7 @@ actor BydVehicleService {
 
         let encodedRequest = try codec.encodeEnvelope(finalOuterJson)
         let body = try JSONSerialization.data(withJSONObject: ["request": encodedRequest])
-        let url = URL(string: config.baseURL + endpoint)!
+        guard let url = URL(string: config.baseURL + endpoint) else { throw BydError.invalidResponse }
 
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -178,7 +178,7 @@ actor BydVehicleService {
         let respondData = outerResp["respondData"] as? String ?? ""
         if respondData.isEmpty { return outerResp }
 
-        let innerText = CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
+        let innerText = try CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
         guard let innerData = innerText.data(using: .utf8) else { throw BydError.invalidResponse }
         if innerText.hasPrefix("[") {
             guard let arr = try JSONSerialization.jsonObject(with: innerData) as? [[String: Any]] else {
@@ -236,7 +236,7 @@ actor BydVehicleService {
 
         let innerJson = toSortedJSON(innerMap)
         let loginKey = CryptoUtils.pwdLoginKey(password)
-        let encryData = CryptoUtils.aesEncryptHex(innerJson, keyHex: loginKey)
+        let encryData = try CryptoUtils.aesEncryptHex(innerJson, keyHex: loginKey)
 
         var signFields = [String: String]()
         for (k, v) in innerMap { signFields[k] = "\(v ?? "null")" }
@@ -279,7 +279,7 @@ actor BydVehicleService {
 
         let encodedRequest = try codec.encodeEnvelope(finalOuterJson)
         let body = try JSONSerialization.data(withJSONObject: ["request": encodedRequest])
-        let url = URL(string: config.baseURL + "/app/account/login")!
+        guard let url = URL(string: config.baseURL + "/app/account/login") else { throw BydError.invalidResponse }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -306,24 +306,27 @@ actor BydVehicleService {
         }
 
         guard let respondData = outerResp["respondData"] as? String else { throw BydError.invalidResponse }
-        let innerText = CryptoUtils.aesDecryptUTF8(respondData, keyHex: loginKey)
+        let innerText = try CryptoUtils.aesDecryptUTF8(respondData, keyHex: loginKey)
         guard let innerData = innerText.data(using: .utf8),
               let innerResp = try JSONSerialization.jsonObject(with: innerData) as? [String: Any],
               let token = innerResp["token"] as? [String: Any] else {
             throw BydError.invalidResponse
         }
 
-        userId    = token["userId"]    as? String
-        signToken = token["signToken"] as? String
-        encryToken = token["encryToken"] as? String
+        guard let uid   = token["userId"]    as? String,
+              let sign  = token["signToken"]  as? String,
+              let encry = token["encryToken"] as? String else {
+            throw BydError.invalidResponse
+        }
+        userId     = uid
+        signToken  = sign
+        encryToken = encry
 
         storedUsername = username
         storedPassword = password
 
-        if let u = userId, let s = signToken, let e = encryToken {
-            onSessionUpdated?(u, s, e)
-        }
-        return userId ?? ""
+        onSessionUpdated?(uid, sign, encry)
+        return uid
     }
 
     // MARK: - Vehicle List

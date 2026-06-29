@@ -133,7 +133,6 @@ struct ThresholdSettingsView: View {
         } message: {
             Text("잠금 해제 임계값(\(Int(unlockRssi)) dBm)이 잠금 임계값(\(Int(lockRssi)) dBm)보다 높아야 합니다.")
         }
-        .onAppear { loadFromStorage() }
     }
 
     private var rssiDiagram: some View {

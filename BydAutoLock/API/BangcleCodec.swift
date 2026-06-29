@@ -41,11 +41,13 @@ final class BangcleCodec {
     private static func loadTables(from bytes: [UInt8]) throws -> Tables {
         var offset = 0
 
-        func readU16() -> Int {
+        func readU16() throws -> Int {
+            guard offset + 2 <= bytes.count else { throw BangcleError.badMagic }
             let v = Int(bytes[offset]) | (Int(bytes[offset + 1]) << 8)
             offset += 2; return v
         }
-        func readU32() -> Int {
+        func readU32() throws -> Int {
+            guard offset + 4 <= bytes.count else { throw BangcleError.badMagic }
             let v = Int(bytes[offset]) | (Int(bytes[offset+1]) << 8) |
                     (Int(bytes[offset+2]) << 16) | (Int(bytes[offset+3]) << 24)
             offset += 4; return v
@@ -55,17 +57,17 @@ final class BangcleCodec {
         guard magic == [0x42, 0x47, 0x54, 0x42] else { throw BangcleError.badMagic }
         offset = 4
 
-        let version = readU16()
+        let version = try readU16()
         guard version == 1 else { throw BangcleError.unsupportedVersion(version) }
 
-        let count = readU16()
+        let count = try readU16()
         guard count == 8 else { throw BangcleError.wrongTableCount(count) }
 
         var offsets = [Int](repeating: 0, count: 8)
         var lengths = [Int](repeating: 0, count: 8)
         for i in 0..<8 {
-            offsets[i] = readU32()
-            lengths[i] = readU32()
+            offsets[i] = try readU32()
+            lengths[i] = try readU32()
         }
 
         func extract(_ i: Int) -> [UInt8] {
@@ -287,7 +289,12 @@ final class BangcleCodec {
         guard let last = data.last, last >= 1, last <= 16, Int(last) <= data.count else {
             throw BangcleError.invalidPadding
         }
-        return Array(data.prefix(data.count - Int(last)))
+        let padLen = Int(last)
+        let padStart = data.count - padLen
+        guard data[padStart...].allSatisfy({ $0 == last }) else {
+            throw BangcleError.invalidPadding
+        }
+        return Array(data.prefix(padStart))
     }
 
     // MARK: - Envelope API
