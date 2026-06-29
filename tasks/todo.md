@@ -195,8 +195,61 @@
 - [x] **주행 중 지오펜스 반복 "내부" 감지**
   - 원인: BYD GPS API가 실시간 speed를 반환하지 않음 (주행 중에도 speed=0). `gps.speed <= 5.0` 조건 통과 → 현재 위치(이동 중)로 지오펜스 재등록 → 즉시 내부 판정 → 잠시 후 외부로 전환 반복.
   - 수정 1: `pollVehicleGPS()` — `!isDriving` 조건 추가로 주행 중 지오펜스 재등록 차단
-  - 수정 2: `didEnterGeofence()` — `guard !isDriving` 추가로 주행 중 진입 이벤트 무시
+  - 수정 2: `didEnterGeofence()` — `guard !isDriving`을 `isInsideGeofence = true` 이후로 이동 (BLE 재개만 차단, 상태는 정확하게 유지)
+  - 파일: `AutoLockService.swift`
+
+- [x] **didEnterGeofence guard 위치 버그 (화이트박스 발견)**
+  - 원인: `guard isRunning, !isDriving else { return }`가 `isInsideGeofence = true` 보다 앞에 있어 주행 중 진입 이벤트 시 상태 미갱신
+  - 시나리오: 주행 중 목적지 도착 → 진입 이벤트 무시 → `isInsideGeofence = false` 유지 → 주행 종료 시 `!isInsideGeofence` 조건 충족 → 실제로는 내부인데 자동 잠금 오실행
+  - 수정: `isInsideGeofence = true` 먼저 세팅 → 그 다음 `guard !isDriving` (BLE 재개만 차단)
   - 파일: `AutoLockService.swift`
 
 ### 검토
 - [x] 수정 파일: `AutoLockService.swift`
+
+---
+
+## 로그 누락 버그 수정
+
+- [x] **LogManager applicationSupportDirectory 미생성으로 로그 전체 누락**
+  - 원인: `FileManager.urls(for:)`는 경로만 반환, 디렉토리 실제 생성 보장 안 함 → `sqlite3_open` 실패 → `db = nil` → 모든 로그 무시
+  - 화이트박스 테스트 #3에서 `sqlite3_open` 에러 체크는 추가했으나 실패 원인(디렉토리 미존재) 자체를 해결하지 않았음
+  - 수정: `sqlite3_open` 전 `FileManager.createDirectory(withIntermediateDirectories: true)` 추가
+  - 파일: `LogManager.swift`
+
+- [x] **LogView 빈 상태 문구 오류**
+  - "디버그 로깅이 활성화되어 있고" 문구 → v1.3에서 토글 제거됐으나 잔존 → 테스터 혼란 유발
+  - 수정: 해당 문구 제거
+  - 파일: `LogView.swift`
+
+---
+
+## 가상 테스트 — 자동 잠금/해제 로직
+
+- [x] **시나리오 1~8 전체 검토 완료** (접근/이탈/신호소실/재연결/주행중/쿨다운 등)
+
+- [x] **재시도 후 lastKnownLocked 미업데이트 버그 (가상 테스트 발견)**
+  - 원인: 자동 잠금 실패 → 45초 재시도 성공 후 `lastKnownLocked` 갱신 누락 → 이후 재연결 사이클에서 중복 잠금 API 호출 가능
+  - 수정: 재시도 성공 후 `await MainActor.run { self.lastKnownLocked = true }` 추가
+  - 파일: `AutoLockService.swift`
+
+---
+
+## 로그 누락 케이스 분석
+
+- [x] LogManager 전체 코드 흐름 검토 — 로그가 실제로 안 쌓이는 경로 찾기
+
+### 분석 결과 (byd_log_20260629_185532)
+
+- [x] **앱 suspend로 인한 로그 공백 (구조적 한계)**
+  - Watchdog(5분)/Session(15분) 로그가 수 시간 동안 없음 → 앱 완전 suspend 확인
+  - `startUpdatingLocation(ThreeKilometers)`가 모든 상황에서 suspend를 막지 못함
+  - iOS 구조적 제한 — 코드 버그 아님. 지오펜스 이벤트 사이 구간은 로그 공백이 됨
+
+- [x] **이 로그는 v1.3 이전 버전** — "신호 소실. 즉시 안전 잠금 실행." 메시지로 확인
+  - v1.4에서 수정된 버그들(주행 중 지오펜스 재등록 등)이 그대로 관찰됨
+
+- [x] **5011 에러 스팸** — 테스터 PIN 미설정 상태에서 자동 잠금/해제 반복 시도
+
+### 잔여
+- [ ] v1.4.1 버전에서도 suspend 발생하는지 추가 로그 필요

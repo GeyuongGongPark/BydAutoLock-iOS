@@ -22,6 +22,8 @@
 		5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */; };
 		5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */; };
 		6D3D4AE844CD90F2766479E6 /* BydAutoLockWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6EC4DEB8B561B0B9E3329EBF /* ModelLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 603AAD130CA59AEAF3CA80A8 /* ModelLogicTests.swift */; };
+		729D51D93A8D53D89604869A /* CryptoUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878AC140EC46BF84DE339CED /* CryptoUtilsTests.swift */; };
 		757EB1577B1EB0E58082390C /* BangcleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6C000F741DA8D709913F0C /* BangcleCodec.swift */; };
 		7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */; };
 		8357D7BB007903C2C0BB0A1A /* NotificationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */; };
@@ -48,6 +50,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		975B42B2B79750D8FB9320C9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA4CFFC435C83E381198274B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 48D53BFFBB56C277BEF7F3F7;
+			remoteInfo = BydAutoLock;
+		};
 		A19EED979F57545906F437DF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DA4CFFC435C83E381198274B /* Project object */;
@@ -117,18 +126,21 @@
 		35C32202F150EF7914B7817D /* BydAutoLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLock.entitlements; sourceTree = "<group>"; };
 		35CA6D97AAC2BB7D4D478200 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdSettingsView.swift; sourceTree = "<group>"; };
+		3FEEF94E5ECE49B29C246334 /* BydAutoLockTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BydAutoLockTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockWidget.swift; sourceTree = "<group>"; };
 		45D81A6E33A5750C43A77E43 /* ChargingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargingStatus.swift; sourceTree = "<group>"; };
 		4E9D6E35A18782AFCBFE798B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4F62F242F29A29C0B9715DB6 /* BydAutoLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAutoLockApp.swift; sourceTree = "<group>"; };
 		52E7969C847A968DA4861284 /* bangcle_tables.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = bangcle_tables.bin; sourceTree = "<group>"; };
 		5312A9DC888A5694D582ED27 /* AcSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AcSettingsView.swift; sourceTree = "<group>"; };
+		603AAD130CA59AEAF3CA80A8 /* ModelLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelLogicTests.swift; sourceTree = "<group>"; };
 		6618C7221FA7985517B64B93 /* GeofenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofenceManager.swift; sourceTree = "<group>"; };
 		695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydConfig.swift; sourceTree = "<group>"; };
 		6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEntry.swift; sourceTree = "<group>"; };
 		74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = BydAutoLockWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		7AFAF2BFAB9F389338815B7D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		878AC140EC46BF84DE339CED /* CryptoUtilsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtilsTests.swift; sourceTree = "<group>"; };
 		99A9634AF31E8CE7E4480D51 /* VehicleModelSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleModelSettingsView.swift; sourceTree = "<group>"; };
 		A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydVehicleService.swift; sourceTree = "<group>"; };
 		A69A2B988F4CC6F04F699916 /* VehicleStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleStatus.swift; sourceTree = "<group>"; };
@@ -160,6 +172,7 @@
 			isa = PBXGroup;
 			children = (
 				C5ED10E7612069439A80C3F6 /* BydAutoLock */,
+				99AF9573821DD717F004550D /* BydAutoLockTests */,
 				FB87129C09AC24FB680E077B /* BydAutoLockWatch */,
 				FE14905513C7DCBA88E03700 /* BydAutoLockWatchComplication */,
 				68D33310936CE178B7B13E97 /* BydAutoLockWidget */,
@@ -207,6 +220,15 @@
 				4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */,
 			);
 			path = BydAutoLockWidget;
+			sourceTree = "<group>";
+		};
+		99AF9573821DD717F004550D /* BydAutoLockTests */ = {
+			isa = PBXGroup;
+			children = (
+				878AC140EC46BF84DE339CED /* CryptoUtilsTests.swift */,
+				603AAD130CA59AEAF3CA80A8 /* ModelLogicTests.swift */,
+			);
+			path = BydAutoLockTests;
 			sourceTree = "<group>";
 		};
 		AF96815CD88748D75BFCCED7 /* API */ = {
@@ -265,6 +287,7 @@
 			isa = PBXGroup;
 			children = (
 				CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */,
+				3FEEF94E5ECE49B29C246334 /* BydAutoLockTests.xctest */,
 				04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */,
 				D49BAEF9A49640DE56E1D736 /* BydAutoLockWatchComplication.appex */,
 				74DBEA0D9BC0770483867D05 /* BydAutoLockWidget.appex */,
@@ -382,6 +405,24 @@
 			productReference = D49BAEF9A49640DE56E1D736 /* BydAutoLockWatchComplication.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		D95B49467866CB874FE90165 /* BydAutoLockTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27B3125FA8E2C3E36BCCAE06 /* Build configuration list for PBXNativeTarget "BydAutoLockTests" */;
+			buildPhases = (
+				4E03EE43C45499817814974C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CF4BEBD6F0318728D0292E26 /* PBXTargetDependency */,
+			);
+			name = BydAutoLockTests;
+			packageProductDependencies = (
+			);
+			productName = BydAutoLockTests;
+			productReference = 3FEEF94E5ECE49B29C246334 /* BydAutoLockTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -403,6 +444,9 @@
 					85DABB2B1A9C9B09D6D37787 = {
 						DevelopmentTeam = 8FUMN5NL47;
 					};
+					D95B49467866CB874FE90165 = {
+						DevelopmentTeam = 8FUMN5NL47;
+					};
 				};
 			};
 			buildConfigurationList = A3DAC0A728A6C752CF445C7A /* Build configuration list for PBXProject "BydAutoLock" */;
@@ -420,6 +464,7 @@
 			projectRoot = "";
 			targets = (
 				48D53BFFBB56C277BEF7F3F7 /* BydAutoLock */,
+				D95B49467866CB874FE90165 /* BydAutoLockTests */,
 				5398D270FE93AB29074E8A32 /* BydAutoLockWatchApp */,
 				85DABB2B1A9C9B09D6D37787 /* BydAutoLockWatchComplication */,
 				4DC85A7113A2EE22BCF0F540 /* BydAutoLockWidget */,
@@ -490,6 +535,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4E03EE43C45499817814974C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				729D51D93A8D53D89604869A /* CryptoUtilsTests.swift in Sources */,
+				6EC4DEB8B561B0B9E3329EBF /* ModelLogicTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		50F1746129EF220780FF0CC6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -526,6 +580,11 @@
 			target = 85DABB2B1A9C9B09D6D37787 /* BydAutoLockWatchComplication */;
 			targetProxy = A19EED979F57545906F437DF /* PBXContainerItemProxy */;
 		};
+		CF4BEBD6F0318728D0292E26 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 48D53BFFBB56C277BEF7F3F7 /* BydAutoLock */;
+			targetProxy = 975B42B2B79750D8FB9320C9 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -545,6 +604,44 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		626F469759B75AD9C825D4D9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.tests;
+				PRODUCT_NAME = BydAutoLockTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BydAutoLock.app/BydAutoLock";
+			};
+			name = Debug;
+		};
+		6B76A9C70A468C0EBE87D550 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.tests;
+				PRODUCT_NAME = BydAutoLockTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BydAutoLock.app/BydAutoLock";
 			};
 			name = Release;
 		};
@@ -799,6 +896,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		27B3125FA8E2C3E36BCCAE06 /* Build configuration list for PBXNativeTarget "BydAutoLockTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				626F469759B75AD9C825D4D9 /* Debug */,
+				6B76A9C70A468C0EBE87D550 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		3CE23E7F488B4B3F1C6B949B /* Build configuration list for PBXNativeTarget "BydAutoLock" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

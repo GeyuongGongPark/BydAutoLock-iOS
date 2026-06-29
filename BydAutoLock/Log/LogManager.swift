@@ -17,9 +17,10 @@ final class LogManager {
     }
 
     private func openDatabase() {
-        let path = FileManager.default
+        let dir = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("byd_log.sqlite").path
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let path = dir.appendingPathComponent("byd_log.sqlite").path
         guard sqlite3_open(path, &db) == SQLITE_OK else {
             db = nil
             return

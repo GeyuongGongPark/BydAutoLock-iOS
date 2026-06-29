@@ -4,10 +4,13 @@
 
 ## 워크플로우 필수 순서
 
-**커밋 전 반드시 .md 업데이트 먼저:**
-1. `tasks/todo.md` — 완료 항목 체크 및 검토 섹션 추가
-2. `tasks/lessons.md` — 새로 얻은 교훈 기록
-3. 그 다음 커밋 (코드 + .md 파일 함께)
+**모든 작업의 순서:**
+1. `tasks/todo.md` — 작업 계획 먼저 작성
+2. 코드 작업 실행
+3. `tasks/lessons.md` — 교훈 기록
+4. 그 다음 커밋 (코드 + .md 파일 함께)
+
+**순서 이탈 패턴 주의**: 코드 작업 먼저 → .md 나중 → 빠뜨리기 쉬움. 항상 todo.md 먼저.
 
 ---
 
@@ -209,6 +212,27 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 
 ---
 
+## 로그 공백 = 앱 suspend 지표
+
+**Watchdog/Session 로그가 수 시간 공백이면 앱이 suspend된 것:**
+- Watchdog은 5분, Session은 15분 주기 → 이 로그가 장시간 없으면 suspend 확인
+- `startUpdatingLocation(ThreeKilometers)`는 suspend를 완전히 막지 못함
+- 지오펜스 이벤트(CLRegionMonitoring)는 suspend 중에도 수신되어 앱을 깨우지만,
+  그 사이 구간은 항상 로그 공백이 됨 (iOS 구조적 한계)
+- 로그 분석 시 "로그가 없다"와 "suspend로 인한 공백"을 먼저 구분할 것
+
+---
+
+## SQLite 에러 체크는 원인 해결이 아님
+
+**에러 체크 추가 ≠ 에러 방지:**
+- `sqlite3_open` 실패 시 `db = nil` guard는 안전하게 처리하는 것이지, 실패 원인을 해결하는 게 아님
+- `applicationSupportDirectory`는 `FileManager.urls(for:)`로 경로를 얻어도 실제 디렉토리가 존재함을 보장하지 않음
+- SQLite DB 열기 전 반드시 `createDirectory(withIntermediateDirectories: true)` 먼저 호출할 것
+- 화이트박스 테스트에서 에러 처리를 추가할 때 "왜 에러가 발생하는가"까지 분석해야 함
+
+---
+
 ## BYD GPS API speed 신뢰 불가
 
 **`gps.speed`는 실시간 값이 아님 — 주행 중에도 speed=0 반환:**
@@ -216,6 +240,36 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 - `gps.speed <= 5.0`으로 정지 여부 판단 → 주행 중에도 지오펜스 재등록하는 버그 발생
 - 해결: CoreMotion `isDriving` 플래그를 기준으로 판단 (GPS speed는 사용하지 말 것)
 - 주의: 신호등 등 속도 0인 경우도 있어 speed만으로 시동 꺼짐 판단 불가
+
+---
+
+## 비동기 재시도 후 상태 갱신 누락 패턴
+
+**`try?` fire-and-forget 재시도 성공 여부와 상관없이 상태 갱신이 필요한 경우:**
+- 자동 잠금 실패 → 45초 후 `try? await service.lockAuto()` 재시도
+- 재시도 성공해도 `lastKnownLocked`가 이전 값으로 유지 → 다음 재연결 사이클에서 중복 API 호출
+- 재시도 코드 작성 시 반드시 상태 갱신 라인 추가:
+  ```swift
+  try? await service.lockAuto(vin: vin, pin: pin)
+  await MainActor.run { self.lastKnownLocked = true }  // 빠뜨리지 말 것
+  ```
+
+---
+
+## guard 위치가 상태 업데이트보다 앞에 오면 안 되는 패턴
+
+**상태 변수 업데이트는 early return 이전에 해야 하는 경우가 있음:**
+- `guard isRunning, !isDriving else { return }` 이 `isInsideGeofence = true` 앞에 있으면
+  → 주행 중 진입 이벤트 시 `isInsideGeofence`가 false로 유지됨
+  → 이후 주행 종료 판단 시 "지오펜스 외부"로 오판 → 잘못된 자동 잠금 실행
+- **원칙**: 조건에 따라 동작(BLE 재개 등)은 차단하되, 상태(isInsideGeofence)는 정확하게 반영해야 함
+- **수정 패턴**:
+  ```swift
+  guard isRunning else { return }
+  isInsideGeofence = true          // 상태는 먼저 업데이트
+  guard !isDriving else { return } // 동작만 차단
+  // BLE 재개 로직...
+  ```
 
 ---
 

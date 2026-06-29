@@ -175,7 +175,7 @@ final class StorageManager {
 
     // MARK: - Vehicle Model
 
-    static let vehicleModels = ["ATTO 3", "ATTO 2", "SEAL", "DOLPHIN", "SEALION 6", "기타"]
+    static let vehicleModels = ["ATTO 3", "SEAL", "DOLPHIN", "SEALION 7", "기타"]
 
     var vehicleModel: String {
         get { defaults.string(forKey: "vehicle_model") ?? "" }

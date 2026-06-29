@@ -39,7 +39,7 @@ struct LogView: View {
                             .font(.system(size: 48))
                             .foregroundStyle(.secondary)
                         Text("로그 없음").font(.headline)
-                        Text("디버그 로깅이 활성화되어 있고\n서비스가 실행 중일 때 로그가 기록됩니다.")
+                        Text("서비스가 실행 중일 때 로그가 기록됩니다.")
                             .font(.caption).foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }

@@ -594,6 +594,7 @@ final class AutoLockService: NSObject, ObservableObject {
                     try? await Task.sleep(nanoseconds: 45_000_000_000)
                     guard await MainActor.run(body: { self.proximityState == .far }) else { return }
                     try? await service.lockAuto(vin: vin, pin: pin)
+                    await MainActor.run { self.lastKnownLocked = true }
                     LogManager.shared.log("API", "자동 잠금 재시도 완료")
                 }
             }
@@ -939,8 +940,10 @@ extension AutoLockService: CBPeripheralDelegate {
 extension AutoLockService: GeofenceManagerDelegate {
 
     func didEnterGeofence() {
-        guard isRunning, !isDriving else { return }
+        guard isRunning else { return }
         isInsideGeofence = true
+        // 주행 중에는 BLE 재개만 차단 (isInsideGeofence 상태는 정확하게 유지)
+        guard !isDriving else { return }
         isStationary = false
         LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")
         if let p = connectedPeripheral, p.state == .connected {
