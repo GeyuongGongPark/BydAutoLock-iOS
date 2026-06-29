@@ -180,3 +180,23 @@
 
 ### 검토
 - [x] 수정 파일: `AutoLockService.swift`, `GeofenceManager.swift`, `Info.plist`, `project.yml`
+
+---
+
+## 로그 분석 #3 (byd_log_20260629) — 주행 관련 버그
+
+### 수정 완료
+
+- [x] **주행 종료 후 잠금 안 됨**
+  - 원인: 지오펜스 이탈(13:11:42) → 이 시점 isDriving=true → 잠금 스킵. 주행 종료(13:11:59) → isInsideGeofence=false → RSSI 폴링 없어 이탈 감지 불가. 결과: 다음 GPS 폴링(5분)까지 잠금 불가.
+  - 수정: `startDrivingDetection()` — 주행 종료 시 `!isInsideGeofence`이면 즉시 GPS 폴링 + 자동 잠금 API 호출
+  - 파일: `AutoLockService.swift`
+
+- [x] **주행 중 지오펜스 반복 "내부" 감지**
+  - 원인: BYD GPS API가 실시간 speed를 반환하지 않음 (주행 중에도 speed=0). `gps.speed <= 5.0` 조건 통과 → 현재 위치(이동 중)로 지오펜스 재등록 → 즉시 내부 판정 → 잠시 후 외부로 전환 반복.
+  - 수정 1: `pollVehicleGPS()` — `!isDriving` 조건 추가로 주행 중 지오펜스 재등록 차단
+  - 수정 2: `didEnterGeofence()` — `guard !isDriving` 추가로 주행 중 진입 이벤트 무시
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 수정 파일: `AutoLockService.swift`

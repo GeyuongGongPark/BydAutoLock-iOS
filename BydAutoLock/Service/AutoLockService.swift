@@ -721,7 +721,9 @@ final class AutoLockService: NSObject, ObservableObject {
             lastParkingLat  = gps.latitude
             lastParkingLng  = gps.longitude
             lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
-            if storage.isGeofencingEnabled && gps.speed <= 5.0 {
+            // 주행 중에는 지오펜스 재등록 차단
+            // BYD GPS API가 실시간 speed를 반환하지 않아 gps.speed만으로는 주행 여부 판단 불가
+            if storage.isGeofencingEnabled && !isDriving {
                 geofenceManager.registerGeofence(lat: gps.latitude, lng: gps.longitude)
             }
             LogManager.shared.log("GPS", "차량 위치 갱신: \(gps.latitude), \(gps.longitude) speed:\(Int(gps.speed))km/h")
@@ -782,6 +784,17 @@ final class AutoLockService: NSObject, ObservableObject {
                 if self.isDriving != driving {
                     self.isDriving = driving
                     LogManager.shared.log("Motion", driving ? "주행 중 감지 - 자동 잠금 해제 일시 차단" : "주행 종료 감지 - 자동 잠금 해제 재개")
+                    if !driving && self.storage.isGeofencingEnabled {
+                        // 주행 종료 → 현재 주차 위치로 지오펜스 즉시 갱신
+                        Task { await self.pollVehicleGPS() }
+                        // 지오펜스 외부: 지오펜스 이탈이 주행 종료보다 먼저 발생한 케이스
+                        // BLE RSSI 기반 이탈 감지가 불가하므로 즉시 잠금
+                        if !self.isInsideGeofence && self.storage.isAutoLockOnDeparture
+                           && self.lastKnownLocked != true {
+                            LogManager.shared.log("Motion", "주행 종료 + 지오펜스 외부 → 자동 잠금 실행")
+                            self.triggerCarAction(shouldUnlock: false, isManual: false)
+                        }
+                    }
                 }
             }
         }
@@ -926,7 +939,7 @@ extension AutoLockService: CBPeripheralDelegate {
 extension AutoLockService: GeofenceManagerDelegate {
 
     func didEnterGeofence() {
-        guard isRunning else { return }
+        guard isRunning, !isDriving else { return }
         isInsideGeofence = true
         isStationary = false
         LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")

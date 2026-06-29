@@ -182,12 +182,50 @@ if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive && lastKnownLo
 
 ---
 
+## 주행 종료 후 잠금 누락 패턴
+
+**증상**: 주행 후 목적지 주차 → 차에서 내려도 자동 잠금 안 됨
+
+**원인**: 지오펜스 이탈이 주행 종료 감지보다 먼저 발생
+- 이탈 시점 → `isDriving = true`이므로 잠금 스킵
+- 주행 종료 시점 → `isInsideGeofence = false`이므로 RSSI 폴링 없음 → 이탈 감지 불가
+- 결과: 다음 GPS 폴링(5분)까지 잠금 불가
+
+**해결**: `startDrivingDetection()`에서 주행 종료 시 지오펜스 외부이면 즉시 잠금 API 호출
+```swift
+if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture {
+    triggerCarAction(shouldUnlock: false, isManual: false)
+}
+```
+
+---
+
 ## 로그 분석 선행의 중요성
 
 **코드 분석만으로는 실제 발생 여부를 확인할 수 없음:**
 - 정적 분석에서 찾은 버그 중 일부(stationaryTimer 중복 등)는 실제로는 이미 처리된 경우
 - 로그를 먼저 확인하면 실제로 발생하는 버그에 집중할 수 있음
 - 코드 분석 + 로그 분석을 함께 해야 우선순위가 명확해짐
+
+---
+
+## BYD GPS API speed 신뢰 불가
+
+**`gps.speed`는 실시간 값이 아님 — 주행 중에도 speed=0 반환:**
+- BYD API GPS 응답의 speed 필드는 캐시된 값 → 주행 중에도 0으로 옴
+- `gps.speed <= 5.0`으로 정지 여부 판단 → 주행 중에도 지오펜스 재등록하는 버그 발생
+- 해결: CoreMotion `isDriving` 플래그를 기준으로 판단 (GPS speed는 사용하지 말 것)
+- 주의: 신호등 등 속도 0인 경우도 있어 speed만으로 시동 꺼짐 판단 불가
+
+---
+
+## 주행 중 지오펜스 반복 진입/이탈 패턴
+
+**주행 중 지오펜스 재등록 → 현재 위치가 중심 → 바로 내부 감지:**
+- 이동 중인 위치로 지오펜스를 재등록하면 해당 시점엔 내부, 이동 후엔 외부가 됨
+- 로그 패턴: 지오펜스 등록 → 현재 상태: 내부 → 수십 초 후 이탈 → 반복
+- 해결: `pollVehicleGPS()`에서 `!isDriving` 조건으로 주행 중 재등록 차단
+- 해결: `didEnterGeofence()`에서 `guard !isDriving` 추가 (혹시 남은 콜백 무시)
 
 ---
 
