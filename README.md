@@ -199,6 +199,28 @@ BydAutoLockWidget/
 
 ## 릴리즈 노트
 
+### v1.4 (build 9) — 2026-06-29
+
+**백그라운드 안정화**
+- GPS 정확도를 `ThreeKilometers`(셀룰러 기지국 기반)로 낮춰 배터리 소모 절감 (앱 suspend 방지 효과 동일)
+- `fetch` 백그라운드 모드 선언 제거 (구현 없는 dead 선언)
+
+**로그 스팸 제거**
+- BLE 20초 재연결 사이클마다 반복되던 "이미 닫힘/열림 상태 - 명령 스킵" 로그 제거
+  → 접근/이탈 감지 단계에서 `lastKnownLocked` 사전 필터링으로 불필요한 API 호출 차단
+
+**코드 안전성 개선 (화이트박스 테스트 #3)**
+- 타이머 재시작 시 cancel 누락 수정 (`sessionRefreshTimer`, `gpsPollTimer`)
+- 선형 회귀 함수 force unwrap 제거 (`points.first!`, `points.last!`)
+- `URL(string:)!` force unwrap 제거 → throw로 안전 처리
+- AES 암호화/복호화 실패 시 빈 문자열 반환 → throws로 변경
+- SQLite open/prepare 에러 체크 및 `db nil` guard 전반 적용
+- BangcleCodec 테이블 로딩 bounds check, PKCS7 패딩 전체 바이트 검증
+- `DateFormatter` 매 호출마다 생성되던 문제 → static으로 변경
+- 신호 복구 시 신호 소실 알림 쿨다운 리셋
+
+---
+
 ### v1.3 (build 8) — 2026-06-28
 
 **안정성 개선**
