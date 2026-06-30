@@ -253,3 +253,67 @@
 
 ### 잔여
 - [ ] v1.4.1 버전에서도 suspend 발생하는지 추가 로그 필요
+
+---
+
+## 화이트박스 테스트 — 이번 세션 변경분
+
+- [x] BydVehicleService.swift — BydError.serviceNotRunning 케이스 검토 (이상 없음)
+- [x] AutoLockService.swift — fetchVehicleStatus 변경 검토 (이상 없음)
+- [x] BydError switch 처리 누락 여부 확인 — exhaustive switch 없음, localizedDescription 사용으로 자동 처리
+
+---
+
+## 차량 상태 새로고침 오류 문구 수정
+
+- [x] BLE 미연결 상태에서 새로고침 시 "로그인이 필요합니다" → "차량과 연결해 주세요"로 수정
+  - 원인: `fetchVehicleStatus`에서 `vehicleService == nil`이면 `BydError.notLoggedIn` throw
+  - 수정: `BydError.serviceNotRunning` 케이스 추가 + `fetchVehicleStatus`에서 해당 에러 사용
+  - 파일: `BydVehicleService.swift`, `AutoLockService.swift`
+
+---
+
+## iOS 27 베타 대응 (브랜치: ios27)
+
+### 문제 분석
+
+- **로그 증거**: `byd_log_20260630_095743_ATTO_3_BYD_BLE3.txt` 에서 22:27~07:31 (약 9시간) 동안
+  지오펜스 내부 + Watchdog 5분 주기 정상 동작 + `기기 탐색 스캔 시작` 반복에도 `타겟 발견` 0건
+- **근본 원인**: `beginScanning()`에서 `connectedPeripheral == nil`이면 `scanForPeripherals(withServices: nil)` 호출
+  → iOS 백그라운드에서 `withServices: nil` 스캔은 **원칙적으로 차단** (iOS 7+ 공식 제한)
+  → iOS 27 베타에서 이 제한이 더 엄격하게 적용됨
+- **연쇄 문제**: `stopBLEScan()`이 `connectedPeripheral = nil`로 초기화 → 다음 `beginScanning()` 시 스캔 폴백
+
+### 해결 방향
+
+`scanForPeripherals` 의존을 최소화하고, `connect()` 기반 재연결로 전환:
+1. **Peripheral UUID 영구 저장** — 한 번이라도 연결한 peripheral의 UUID를 `StorageManager`에 저장
+2. **`retrievePeripherals(withIdentifiers:)` fallback** — UUID가 있으면 스캔 없이 직접 `connect()` (백그라운드에서도 동작)
+3. **`stopBLEScan()`에서 `connectedPeripheral` 참조 유지** — `connectedPeripheral = nil` 제거
+4. **`stop()`에서 명시적 nil 처리** — 서비스 완전 종료 시에만 nil 초기화
+
+### 수정 항목
+
+- [x] **1. StorageManager — `peripheralUUID` 프로퍼티 추가**
+  - 파일: `StorageManager.swift`
+
+- [x] **2. AutoLockService — `didDiscover`에서 UUID 저장**
+  - `storage.peripheralUUID = peripheral.identifier.uuidString`
+  - 파일: `AutoLockService.swift`
+
+- [x] **3. AutoLockService — `stopBLEScan()`에서 `connectedPeripheral = nil` 제거**
+  - `cancelPeripheralConnection()` 유지, `connectedPeripheral = nil` 제거
+  - 파일: `AutoLockService.swift`
+
+- [x] **4. AutoLockService — `stop()`에서 `connectedPeripheral = nil` 추가**
+  - `stopBLEScan()` 호출 후 명시적 nil 처리
+  - 파일: `AutoLockService.swift`
+
+- [x] **5. AutoLockService — `beginScanning()`에 UUID fallback 추가**
+  - `connectedPeripheral == nil`이면 `storage.peripheralUUID`로 `retrievePeripherals` → `connect()` 시도
+  - 실패 시 기존 스캔으로 폴백 (처음 연결 시에만)
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+- [ ] 실기기 테스트 — 로그에서 `기기 탐색 스캔 시작` 대신 `UUID로 재연결 시도` 로그 확인

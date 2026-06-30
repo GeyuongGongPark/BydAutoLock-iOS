@@ -174,6 +174,7 @@ final class AutoLockService: NSObject, ObservableObject {
     func stop() {
         geofenceManager.stopBackgroundKeepAlive()
         stopBLEScan()
+        connectedPeripheral = nil
         watchdogTimer?.cancel()
         watchdogTimer = nil
         sessionRefreshTimer?.cancel()
@@ -212,7 +213,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
-        guard let service = vehicleService else { throw BydError.notLoggedIn }
+        guard let service = vehicleService else { throw BydError.serviceNotRunning }
         let status = try await service.fetchVehicleStatus(vin: vin)
         lastKnownLocked = status.isLocked
         return status
@@ -294,7 +295,7 @@ final class AutoLockService: NSObject, ObservableObject {
         endRssiPollingBGTask()
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)
-            connectedPeripheral = nil
+            // connectedPeripheral 참조는 유지 — 다음 beginScanning() 시 connect()로 재사용
         }
         centralManager?.stopScan()
         isScanning = false
@@ -318,7 +319,19 @@ final class AutoLockService: NSObject, ObservableObject {
             return
         }
 
-        // 처음 탐색 - 스캔으로 기기 발견 후 connect
+        // 저장된 UUID로 peripheral 복원 시도 (백그라운드에서도 동작)
+        if let savedUUID = storage.peripheralUUID,
+           let uuid = UUID(uuidString: savedUUID),
+           let p = centralManager?.retrievePeripherals(withIdentifiers: [uuid]).first {
+            connectedPeripheral = p
+            p.delegate = self
+            centralManager?.connect(p, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+            scanModeDescription = "재연결 중..."
+            LogManager.shared.log("BLE", "UUID로 재연결 시도: \(p.name ?? savedUUID)")
+            return
+        }
+
+        // 처음 탐색 (UUID 없거나 복원 실패) - 스캔으로 기기 발견 후 connect
         centralManager?.scanForPeripherals(withServices: nil, options: nil)
         isScanning = true
         scanModeDescription = "스캔 중"
@@ -866,6 +879,8 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.isScanning = false
             self.connectedPeripheral = peripheral
             peripheral.delegate = self
+            // UUID 저장 — 이후 백그라운드에서 retrievePeripherals로 스캔 없이 재연결 가능
+            self.storage.peripheralUUID = peripheral.identifier.uuidString
             central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
             self.scanModeDescription = "연결 중..."
             LogManager.shared.log("BLE", "타겟 발견 → 연결 시도: \(name)")

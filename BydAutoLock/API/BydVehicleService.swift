@@ -586,6 +586,7 @@ actor BydVehicleService {
 
 enum BydError: LocalizedError {
     case notLoggedIn
+    case serviceNotRunning
     case sessionExpired
     case invalidResponse
     case serverError(String, String)
@@ -596,6 +597,7 @@ enum BydError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notLoggedIn:            return "로그인이 필요합니다"
+        case .serviceNotRunning:      return "차량과 연결해 주세요"
         case .sessionExpired:         return "세션이 만료되었습니다"
         case .invalidResponse:        return "잘못된 응답 형식"
         case .serverError(let m, let c): return "서버 오류: \(m) (\(c))"

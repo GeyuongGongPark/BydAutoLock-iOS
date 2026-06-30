@@ -212,6 +212,15 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 
 ---
 
+## 에러 케이스 재사용 주의
+
+**동일한 에러 타입이 다른 원인에서 사용되면 사용자에게 혼란스러운 문구가 표시됨:**
+- `BydError.notLoggedIn`이 "세션 토큰 없음"과 "vehicleService nil(서비스 미시작)" 두 케이스에서 사용
+- 서비스 미시작 상태에서 새로고침 → "로그인이 필요합니다" 표시 → 실제 원인과 다름
+- 에러 케이스는 원인별로 분리하고 문구를 정확하게 매핑할 것
+
+---
+
 ## 로그 공백 = 앱 suspend 지표
 
 **Watchdog/Session 로그가 수 시간 공백이면 앱이 suspend된 것:**

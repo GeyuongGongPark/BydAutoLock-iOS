@@ -117,7 +117,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BydAutoLockWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = BydAutoLockWatchApp.app; path = "BYD AutoLock.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDrawerView.swift; sourceTree = "<group>"; };
 		0D111798EB9A1B0F20988046 /* WatchComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchComplication.swift; sourceTree = "<group>"; };
 		19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSettingsView.swift; sourceTree = "<group>"; };
@@ -152,7 +152,7 @@
 		B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWatch.entitlements; sourceTree = "<group>"; };
 		BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
-		CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BydAutoLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CD6D70C13350D0E2B4F5D338 /* BYD AutoLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BYD AutoLock.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D15794887327676D655DB7A3 /* BydAutoLockWatchComplication.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWatchComplication.entitlements; sourceTree = "<group>"; };
 		D49BAEF9A49640DE56E1D736 /* BydAutoLockWatchComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BydAutoLockWatchComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsView.swift; sourceTree = "<group>"; };
@@ -286,7 +286,7 @@
 		CC51188035B58DE333BEC155 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */,
+				CD6D70C13350D0E2B4F5D338 /* BYD AutoLock.app */,
 				3FEEF94E5ECE49B29C246334 /* BydAutoLockTests.xctest */,
 				04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */,
 				D49BAEF9A49640DE56E1D736 /* BydAutoLockWatchComplication.appex */,
@@ -348,7 +348,7 @@
 			packageProductDependencies = (
 			);
 			productName = BydAutoLock;
-			productReference = CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */;
+			productReference = CD6D70C13350D0E2B4F5D338 /* BYD AutoLock.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4DC85A7113A2EE22BCF0F540 /* BydAutoLockWidget */ = {
@@ -432,9 +432,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					48D53BFFBB56C277BEF7F3F7 = {
-						DevelopmentTeam = 8FUMN5NL47;
-					};
 					4DC85A7113A2EE22BCF0F540 = {
 						DevelopmentTeam = 8FUMN5NL47;
 					};
@@ -844,6 +841,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BydAutoLock/BydAutoLock.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 8FUMN5NL47;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = BydAutoLock/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -864,6 +862,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = BydAutoLock/BydAutoLock.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 8FUMN5NL47;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = BydAutoLock/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

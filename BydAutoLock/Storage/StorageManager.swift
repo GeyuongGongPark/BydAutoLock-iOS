@@ -40,6 +40,7 @@ final class StorageManager {
         static let hasCredentials    = "has_credentials"
         static let deviceMac         = "bt_device_mac"
         static let deviceName        = "bt_device_name"
+        static let peripheralUUID    = "bt_peripheral_uuid"
         static let unlockRssi        = "unlock_rssi_threshold"
         static let lockRssi          = "lock_rssi_threshold"
         static let rssiAlpha         = "rssi_smoothing_alpha"
@@ -124,6 +125,10 @@ final class StorageManager {
     var deviceName: String? {
         get { defaults.string(forKey: UD.deviceName) }
         set { defaults.set(newValue, forKey: UD.deviceName) }
+    }
+    var peripheralUUID: String? {
+        get { defaults.string(forKey: UD.peripheralUUID) }
+        set { defaults.set(newValue, forKey: UD.peripheralUUID) }
     }
 
     // MARK: - RSSI Thresholds
