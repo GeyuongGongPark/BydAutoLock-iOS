@@ -333,6 +333,20 @@ rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindo
 
 ---
 
+## departureLockTimer 취소 누락 패턴
+
+**신규 타이머 추가 시 반드시 취소해야 할 경로를 전부 체크할 것:**
+- `handleSignalLoss()` — 신호 소실로 signalLossTimer 시작 시 departureLockTimer 동시 존재 → 중복 잠금
+- `isDriving=true` 전환 시 — 주행 시작 후 타이머 만료 → 주행 중 자동 잠금 위험
+- `stop()`, 접근 감지, 예측 접근 감지 경로에서도 취소
+
+**체크리스트 (새 타이머 추가 시):**
+1. 타이머 재생성 시 기존 cancel → `timer?.cancel()` 먼저
+2. fire handler에서 `timer != nil` 체크 → Task 잔존 방지
+3. 취소 경로: stop(), 목적 달성(반대 동작 감지), 상태 변경(isDriving, 신호소실) 모두 커버
+
+---
+
 ## unlock 쿨다운으로 인한 이탈 잠금 차단 패턴
 
 **증상**: unlock 직후 RSSI 급락(ATTO 3 BLE 특성) → 이탈 감지 → `unlock 쿨다운(30s)`에 차단 → 쿨다운 만료 후 재트리거 없음 → 잠금 미발동
@@ -355,6 +369,15 @@ if remaining > 0 {
 **타이머 취소 시점**: 접근 감지, 예측 접근 기울기 확인, stop() 호출
 
 **화이트박스 주의점**: 예측 접근(`isPredictiveUnlockPending`) 경로에서도 취소 필요 — 접근 중인데 타이머 잔존하면 unlock 직후 잠금 발동 가능
+
+---
+
+## throws 추가 후 하위 오류 경로 누락 패턴
+
+**에러를 throw로 변경했더라도 내부 단계별로 모두 커버됐는지 확인:**
+- `aesDecryptUTF8`: AES 복호화 실패는 `throw` 처리했지만, 복호화 성공 후 UTF-8 디코딩 실패(`?? ""`)는 여전히 조용히 실패
+- 패턴: `guard let result = ... else { throw Error }` — 중간 단계 변환 실패도 throw해야 함
+- 빈 문자열 반환이 에러보다 나쁜 이유: 호출자가 성공으로 오해하고 잘못된 데이터로 진행
 
 ---
 

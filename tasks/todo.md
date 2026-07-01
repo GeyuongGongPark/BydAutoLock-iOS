@@ -388,3 +388,38 @@
 
 ### 검토
 - [x] 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
+## 화이트박스 테스트 #4 (main 브랜치 전체 코드)
+
+### 수정 완료
+
+- [x] **1. departureLockTimer — handleSignalLoss() 취소 누락**
+  - 신호 소실 시 signalLossTimer(60s) + departureLockTimer 동시 존재 → 중복 잠금 API 호출
+  - 수정: `handleSignalLoss()` 초반에 `departureLockTimer?.cancel()` 추가
+  - 파일: `AutoLockService.swift`
+
+- [x] **2. departureLockTimer — isDriving=true 전환 시 취소 누락**
+  - 주행 시작 후 타이머 만료 → 주행 중 자동 잠금 위험
+  - 수정: `startDrivingDetection()`에서 `isDriving=true` 분기에 취소 추가
+  - 파일: `AutoLockService.swift`
+
+- [x] **3. didDisconnectPeripheral — isStationary=true인데 connect() 재시도**
+  - 정지 중 BLE 끊김 → 불필요한 connect 재시도 → 배터리 낭비 + BLE 상태 불일치
+  - 수정: `didDisconnectPeripheral()`에서 `isStationary` 체크 추가
+  - 파일: `AutoLockService.swift`
+
+- [x] **4. aesDecryptUTF8 — UTF-8 디코딩 실패 시 빈 문자열 반환**
+  - `?? ""`로 조용히 실패 → 상위 호출자가 에러 감지 불가, JSON 파싱 실패로 느리게 전파
+  - 수정: `guard let str = String(data:encoding:) else { throw CryptoError.decryptionFailed }`
+  - 파일: `CryptoUtils.swift`
+
+### 미수정 (설계 의도 / 낮은 영향)
+- rssiWindow 유지 후 오판 가능성 → 의도된 동작, 기울기 계산으로 안전
+- fetchLogs 메인 스레드 블로킹 → 기존 알려진 이슈, 500건 SQLite 수 ms 수준
+- lockAuto fire-and-forget 에러 무시 → 의도된 설계, 45초 재시도 존재
+- stationaryTimer didExitGeofence 취소 누락 → 미미한 상태 불일치, 실제 영향 없음
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)

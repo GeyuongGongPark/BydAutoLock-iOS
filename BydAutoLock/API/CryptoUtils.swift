@@ -75,7 +75,10 @@ enum CryptoUtils {
         guard let decrypted = aesCrypt(.decrypt, data: cipherData, key: keyBytes, iv: iv) else {
             throw CryptoError.decryptionFailed
         }
-        return String(data: decrypted, encoding: .utf8) ?? ""
+        guard let str = String(data: decrypted, encoding: .utf8) else {
+            throw CryptoError.decryptionFailed
+        }
+        return str
     }
 
     private enum AESOperation { case encrypt, decrypt }

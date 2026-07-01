@@ -424,6 +424,9 @@ final class AutoLockService: NSObject, ObservableObject {
         rawRssi = nil
         // rssiWindow 유지 — BLE 20초 사이클 간 데이터 누적으로 예측 사전 해제 활성화
         isPredictiveUnlockPending = false
+        // 이탈 예약 잠금 취소 — signalLossTimer와 중복 잠금 방지
+        departureLockTimer?.cancel()
+        departureLockTimer = nil
 
         if proximityState == .near {
             if isDriving {
@@ -839,6 +842,11 @@ final class AutoLockService: NSObject, ObservableObject {
                 if self.isDriving != driving {
                     self.isDriving = driving
                     LogManager.shared.log("Motion", driving ? "주행 중 감지 - 자동 잠금 해제 일시 차단" : "주행 종료 감지 - 자동 잠금 해제 재개")
+                    if driving {
+                        // 주행 시작 → 이탈 예약 잠금 취소 (주행 중 자동 잠금 방지)
+                        self.departureLockTimer?.cancel()
+                        self.departureLockTimer = nil
+                    }
                     if !driving && self.storage.isGeofencingEnabled {
                         // 주행 종료 → 현재 주차 위치로 지오펜스 즉시 갱신
                         Task { await self.pollVehicleGPS() }
@@ -971,6 +979,11 @@ extension AutoLockService: CBCentralManagerDelegate {
             // 지오펜스 이탈 중에는 재연결 시도 안 함
             if self.storage.isGeofencingEnabled && !self.isInsideGeofence {
                 self.scanModeDescription = "지오펜스 외부"
+                return
+            }
+            // 정지 중에는 재연결 시도 안 함 (isStationary=true 상태에서 connect 방지)
+            if self.isStationary {
+                self.scanModeDescription = "정지 대기 중"
                 return
             }
             // 즉시 재연결 시도 (iOS가 백그라운드에서 자동 재연결 큐에 등록)
