@@ -282,6 +282,38 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 
 ---
 
+## isStationary 상태에서 RSSI 폴링 재시작 버그
+
+**증상**: `isStationary = true`로 BLE를 중단했는데도 RSSI 폴링이 다시 시작될 수 있음
+
+**경로**: `stopBLEScan()` → `cancelPeripheralConnection()` → 비동기 `didDisconnectPeripheral` 콜백
+→ `isRunning && isInsideGeofence`이면 `connect()` 재시도
+→ 재연결 성공 → `didConnect()`에서 `isStationary` 체크 없이 RSSI 폴링 시작
+
+**현황**: 배터리 낭비 수준의 영향, 심각하지 않아 미수정 상태로 남김
+**수정 위치**: `didConnect()`에서 `guard !isStationary` 체크 추가하면 해결 가능
+
+---
+
+## iOS 백그라운드 BLE 스캔 차단 패턴
+
+**`scanForPeripherals(withServices: nil)`은 백그라운드에서 차단됨 (iOS 7+ 공식 제한):**
+- 서비스 UUID 없이 전체 스캔하면 앱이 백그라운드일 때 OS가 스캔 자체를 차단
+- iOS 27 베타에서 이 제한이 더 엄격하게 적용되는 것으로 확인
+- 로그 증상: `기기 탐색 스캔 시작`이 5분마다 반복되지만 `타겟 발견` 로그가 수 시간 동안 없음
+
+**해결 패턴 (우선순위 순):**
+1. `connectedPeripheral`이 있으면 → `connect()` (백그라운드 OK)
+2. 저장된 UUID가 있으면 → `retrievePeripherals(withIdentifiers:)` → `connect()` (백그라운드 OK)
+3. UUID 없으면 → `scanForPeripherals` (포그라운드 최초 연결 시에만 도달)
+
+**peripheral 참조 유지 중요성:**
+- `stopBLEScan()`에서 `connectedPeripheral = nil`을 하면 다음 `beginScanning()` 시 스캔 폴백으로 떨어짐
+- `cancelPeripheralConnection()`은 하되 `connectedPeripheral = nil`은 하지 말 것 (서비스 완전 종료 시에만)
+- peripheral UUID는 첫 `didDiscover`에서 `StorageManager`에 영구 저장할 것
+
+---
+
 ## 주행 중 지오펜스 반복 진입/이탈 패턴
 
 **주행 중 지오펜스 재등록 → 현재 위치가 중심 → 바로 내부 감지:**
