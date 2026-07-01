@@ -368,7 +368,7 @@
 
   <!-- RIGHT INFO -->
   <div class="hero-info">
-    <div class="hero-badge">🔵 BYD 차량 전용 iOS 앱</div>
+    <div class="hero-badge">🔵 BYD 차량 전용 iOS 앱 &nbsp;·&nbsp; v1.4.2</div>
     <h1>가까이 가면 열리고<br><em>멀어지면 잠깁니다</em></h1>
     <p>스마트폰을 주머니에 넣고 차에 다가가기만 하면 됩니다. BLE 신호로 거리를 측정해 자동으로 잠금을 제어합니다.</p>
     <div class="hero-ctas">
@@ -417,13 +417,15 @@
   <p class="section-desc">BYD 공식 앱 API를 활용해 실제 차량 제어까지 연결합니다.</p>
   <div class="features-grid">
     <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔓</div><h3>자동 잠금 해제</h3><p>BLE RSSI가 임계값 이상이 되면 자동으로 차량 잠금을 해제합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🔒</div><h3>자동 잠금</h3><p>스마트폰이 멀어지면 자동으로 잠급니다. 차 키를 꺼내지 않아도 됩니다.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🔒</div><h3>자동 잠금</h3><p>스마트폰이 멀어지면 자동으로 잠급니다. 해제 직후라도 쿨다운 만료 후 예약 잠금이 실행됩니다.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📡</div><h3>EMA 신호 필터링</h3><p>지수 이동 평균과 선형 회귀 이상값 감지로 흔들림 없는 안정적인 거리 측정.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">❄️</div><h3>에어컨 자동 제어</h3><p>잠금 해제 시 에어컨을 자동으로 켜고, 잠금 시 끌 수 있습니다. 온도·풍량 설정 가능.</p></div>
     <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">📍</div><h3>주차 위치 기록</h3><p>차량 GPS를 주기적으로 조회해 마지막 주차 위치를 지도로 확인합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch 지원<span class="badge-wip">준비중</span></h3><p>워치에서 잠금 상태 확인 및 수동 잠금/해제 제어가 가능합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div><h3>홈 화면 위젯</h3><p>잠금 상태와 배터리를 홈 화면·잠금 화면 위젯으로 한눈에 확인.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div><h3>지오펜스</h3><p>주차 위치 근처에서만 BLE 스캔을 활성화해 배터리를 절약합니다.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch 지원</h3><p>워치에서 잠금 상태 확인, 수동 잠금/해제, 서비스 토글이 가능합니다. 컴플리케이션도 지원.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div><h3>홈 화면 위젯</h3><p>Small/Medium 홈 화면 위젯과 잠금 화면 위젯으로 잠금 상태·배터리를 한눈에 확인.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div><h3>지오펜스</h3><p>주차 위치 150m 이탈 시 BLE 스캔을 자동 중단해 배터리를 절약합니다.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">📶</div><h3>신호 소실 보호</h3><p>BLE 신호가 끊겨도 2분 그레이스 타이머로 오작동을 방지합니다. 주행 중 오감지도 차단.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">🧘</div><h3>정지 감지</h3><p>5분간 정지 중이면 BLE 스캔을 일시 중단합니다. 움직임이 감지되면 자동으로 재개.</p></div>
   </div>
 </section>
 
@@ -492,10 +494,10 @@
       <p class="subtitle">Apple의 공식 베타 배포 플랫폼입니다. 설치와 업데이트가 가장 간편합니다.</p>
       <div class="install-steps">
         <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>TestFlight 앱 설치</h4><p>App Store에서 <a href="https://apps.apple.com/kr/app/testflight/id899247664" target="_blank">TestFlight</a>를 설치합니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>초대 링크로 참여</h4><p>아래 초대 링크를 iPhone에서 열면 TestFlight가 자동으로 실행됩니다.</p><p style="margin-top:10px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text2)">🔗 TestFlight 초대 링크는 준비 중입니다</p></div></div>
+        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>초대 링크로 참여</h4><p>아래 초대 링크를 iPhone에서 열면 TestFlight가 자동으로 실행됩니다.</p><p style="margin-top:10px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text2)">🔗 Apple Developer 계정 심사 완료 후 링크가 등록됩니다</p></div></div>
         <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>설치 및 업데이트</h4><p>TestFlight에서 "설치" 버튼을 탭합니다. 새 버전이 나오면 TestFlight에서 알림으로 안내합니다.</p></div></div>
       </div>
-      <div class="note"><span class="note-icon">ℹ️</span><p>TestFlight 베타는 최대 90일간 유효합니다. 현재 베타 테스터를 모집 중입니다. GitHub Issues에서 참여를 요청해주세요.</p></div>
+      <div class="note"><span class="note-icon">ℹ️</span><p>TestFlight 베타는 최대 90일간 유효합니다. 앞으로 모든 업데이트는 TestFlight로 배포됩니다. GitHub Issues에서 참여를 요청해주세요.</p></div>
     </div>
   </div>
 
