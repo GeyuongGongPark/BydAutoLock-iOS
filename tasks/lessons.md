@@ -4,10 +4,13 @@
 
 ## 워크플로우 필수 순서
 
-**커밋 전 반드시 .md 업데이트 먼저:**
-1. `tasks/todo.md` — 완료 항목 체크 및 검토 섹션 추가
-2. `tasks/lessons.md` — 새로 얻은 교훈 기록
-3. 그 다음 커밋 (코드 + .md 파일 함께)
+**모든 작업의 순서:**
+1. `tasks/todo.md` — 작업 계획 먼저 작성
+2. 코드 작업 실행
+3. `tasks/lessons.md` — 교훈 기록
+4. 그 다음 커밋 (코드 + .md 파일 함께)
+
+**순서 이탈 패턴 주의**: 코드 작업 먼저 → .md 나중 → 빠뜨리기 쉬움. 항상 todo.md 먼저.
 
 ---
 
@@ -182,12 +185,186 @@ if storage.isAutoUnlockOnApproach && !isDriving && !wasPredictive && lastKnownLo
 
 ---
 
+## 주행 종료 후 잠금 누락 패턴
+
+**증상**: 주행 후 목적지 주차 → 차에서 내려도 자동 잠금 안 됨
+
+**원인**: 지오펜스 이탈이 주행 종료 감지보다 먼저 발생
+- 이탈 시점 → `isDriving = true`이므로 잠금 스킵
+- 주행 종료 시점 → `isInsideGeofence = false`이므로 RSSI 폴링 없음 → 이탈 감지 불가
+- 결과: 다음 GPS 폴링(5분)까지 잠금 불가
+
+**해결**: `startDrivingDetection()`에서 주행 종료 시 지오펜스 외부이면 즉시 잠금 API 호출
+```swift
+if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture {
+    triggerCarAction(shouldUnlock: false, isManual: false)
+}
+```
+
+---
+
 ## 로그 분석 선행의 중요성
 
 **코드 분석만으로는 실제 발생 여부를 확인할 수 없음:**
 - 정적 분석에서 찾은 버그 중 일부(stationaryTimer 중복 등)는 실제로는 이미 처리된 경우
 - 로그를 먼저 확인하면 실제로 발생하는 버그에 집중할 수 있음
 - 코드 분석 + 로그 분석을 함께 해야 우선순위가 명확해짐
+
+---
+
+## 에러 케이스 재사용 주의
+
+**동일한 에러 타입이 다른 원인에서 사용되면 사용자에게 혼란스러운 문구가 표시됨:**
+- `BydError.notLoggedIn`이 "세션 토큰 없음"과 "vehicleService nil(서비스 미시작)" 두 케이스에서 사용
+- 서비스 미시작 상태에서 새로고침 → "로그인이 필요합니다" 표시 → 실제 원인과 다름
+- 에러 케이스는 원인별로 분리하고 문구를 정확하게 매핑할 것
+
+---
+
+## 로그 공백 = 앱 suspend 지표
+
+**Watchdog/Session 로그가 수 시간 공백이면 앱이 suspend된 것:**
+- Watchdog은 5분, Session은 15분 주기 → 이 로그가 장시간 없으면 suspend 확인
+- `startUpdatingLocation(ThreeKilometers)`는 suspend를 완전히 막지 못함
+- 지오펜스 이벤트(CLRegionMonitoring)는 suspend 중에도 수신되어 앱을 깨우지만,
+  그 사이 구간은 항상 로그 공백이 됨 (iOS 구조적 한계)
+- 로그 분석 시 "로그가 없다"와 "suspend로 인한 공백"을 먼저 구분할 것
+
+---
+
+## SQLite 에러 체크는 원인 해결이 아님
+
+**에러 체크 추가 ≠ 에러 방지:**
+- `sqlite3_open` 실패 시 `db = nil` guard는 안전하게 처리하는 것이지, 실패 원인을 해결하는 게 아님
+- `applicationSupportDirectory`는 `FileManager.urls(for:)`로 경로를 얻어도 실제 디렉토리가 존재함을 보장하지 않음
+- SQLite DB 열기 전 반드시 `createDirectory(withIntermediateDirectories: true)` 먼저 호출할 것
+- 화이트박스 테스트에서 에러 처리를 추가할 때 "왜 에러가 발생하는가"까지 분석해야 함
+
+---
+
+## BYD GPS API speed 신뢰 불가
+
+**`gps.speed`는 실시간 값이 아님 — 주행 중에도 speed=0 반환:**
+- BYD API GPS 응답의 speed 필드는 캐시된 값 → 주행 중에도 0으로 옴
+- `gps.speed <= 5.0`으로 정지 여부 판단 → 주행 중에도 지오펜스 재등록하는 버그 발생
+- 해결: CoreMotion `isDriving` 플래그를 기준으로 판단 (GPS speed는 사용하지 말 것)
+- 주의: 신호등 등 속도 0인 경우도 있어 speed만으로 시동 꺼짐 판단 불가
+
+---
+
+## 비동기 재시도 후 상태 갱신 누락 패턴
+
+**`try?` fire-and-forget 재시도 성공 여부와 상관없이 상태 갱신이 필요한 경우:**
+- 자동 잠금 실패 → 45초 후 `try? await service.lockAuto()` 재시도
+- 재시도 성공해도 `lastKnownLocked`가 이전 값으로 유지 → 다음 재연결 사이클에서 중복 API 호출
+- 재시도 코드 작성 시 반드시 상태 갱신 라인 추가:
+  ```swift
+  try? await service.lockAuto(vin: vin, pin: pin)
+  await MainActor.run { self.lastKnownLocked = true }  // 빠뜨리지 말 것
+  ```
+
+---
+
+## guard 위치가 상태 업데이트보다 앞에 오면 안 되는 패턴
+
+**상태 변수 업데이트는 early return 이전에 해야 하는 경우가 있음:**
+- `guard isRunning, !isDriving else { return }` 이 `isInsideGeofence = true` 앞에 있으면
+  → 주행 중 진입 이벤트 시 `isInsideGeofence`가 false로 유지됨
+  → 이후 주행 종료 판단 시 "지오펜스 외부"로 오판 → 잘못된 자동 잠금 실행
+- **원칙**: 조건에 따라 동작(BLE 재개 등)은 차단하되, 상태(isInsideGeofence)는 정확하게 반영해야 함
+- **수정 패턴**:
+  ```swift
+  guard isRunning else { return }
+  isInsideGeofence = true          // 상태는 먼저 업데이트
+  guard !isDriving else { return } // 동작만 차단
+  // BLE 재개 로직...
+  ```
+
+---
+
+## rssiWindow BLE 사이클 간 클리어 → 예측 해제 불발 패턴
+
+**증상**: 차에 접근해도 예측 사전 해제가 안 되고 `접근 감지`로만 해제됨 (1~3분 지연)
+
+**원인**: ATTO 3 BLE가 20초마다 강제 끊김 → `handleSignalLoss()` → `rssiWindow.removeAll()`
+→ 매 사이클 처음부터 RSSI 데이터 쌓기 → 20초 안에 `count >= 5` 못 채움 → 예측 조건 불충족
+
+**해결**: `handleSignalLoss()`에서 `rssiWindow.removeAll()` 제거, 대신 시간 기반 필터링으로 교체
+```swift
+// processRSSI에서 count 기반 → 시간 기반
+rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindowDuration }
+// rssiWindowDuration = 60초
+```
+→ 여러 BLE 사이클에 걸쳐 데이터 누적 → `count >= 5` 빠르게 충족 → 예측 해제 활성화
+
+**주의**: 이탈 후 낮은 RSSI 데이터가 window에 잔류하나, 재접근 시 기울기가 더 크게 계산돼 오히려 더 일찍 예측 해제됨 (오발 위험 아님)
+
+---
+
+## isStationary 상태에서 RSSI 폴링 재시작 버그
+
+**증상**: `isStationary = true`로 BLE를 중단했는데도 RSSI 폴링이 다시 시작될 수 있음
+
+**경로**: `stopBLEScan()` → `cancelPeripheralConnection()` → 비동기 `didDisconnectPeripheral` 콜백
+→ `isRunning && isInsideGeofence`이면 `connect()` 재시도
+→ 재연결 성공 → `didConnect()`에서 `isStationary` 체크 없이 RSSI 폴링 시작
+
+**현황**: 배터리 낭비 수준의 영향, 심각하지 않아 미수정 상태로 남김
+**수정 위치**: `didConnect()`에서 `guard !isStationary` 체크 추가하면 해결 가능
+
+---
+
+## iOS 백그라운드 BLE 스캔 차단 패턴
+
+**`scanForPeripherals(withServices: nil)`은 백그라운드에서 차단됨 (iOS 7+ 공식 제한):**
+- 서비스 UUID 없이 전체 스캔하면 앱이 백그라운드일 때 OS가 스캔 자체를 차단
+- iOS 27 베타에서 이 제한이 더 엄격하게 적용되는 것으로 확인
+- 로그 증상: `기기 탐색 스캔 시작`이 5분마다 반복되지만 `타겟 발견` 로그가 수 시간 동안 없음
+
+**해결 패턴 (우선순위 순):**
+1. `connectedPeripheral`이 있으면 → `connect()` (백그라운드 OK)
+2. 저장된 UUID가 있으면 → `retrievePeripherals(withIdentifiers:)` → `connect()` (백그라운드 OK)
+3. UUID 없으면 → `scanForPeripherals` (포그라운드 최초 연결 시에만 도달)
+
+**peripheral 참조 유지 중요성:**
+- `stopBLEScan()`에서 `connectedPeripheral = nil`을 하면 다음 `beginScanning()` 시 스캔 폴백으로 떨어짐
+- `cancelPeripheralConnection()`은 하되 `connectedPeripheral = nil`은 하지 말 것 (서비스 완전 종료 시에만)
+- peripheral UUID는 첫 `didDiscover`에서 `StorageManager`에 영구 저장할 것
+
+---
+
+## unlock 쿨다운으로 인한 이탈 잠금 차단 패턴
+
+**증상**: unlock 직후 RSSI 급락(ATTO 3 BLE 특성) → 이탈 감지 → `unlock 쿨다운(30s)`에 차단 → 쿨다운 만료 후 재트리거 없음 → 잠금 미발동
+
+**원인**: `triggerCarAction(shouldUnlock: false)` 내부에서 쿨다운 위반 시 그냥 `return` → 이탈이 기록되지 않고 사라짐
+
+**해결**: 이탈 감지 시 쿨다운 잔여 시간을 계산 → `departureLockTimer`로 쿨다운 만료 후 잠금 예약
+```swift
+// evaluateProximity() 이탈 감지
+let remaining = max(0, Self.postUnlockLockCooldown - Date().timeIntervalSince(lastAutoUnlockTime ?? .distantPast))
+if remaining > 0 {
+    scheduleDepartureLock(after: remaining)
+} else {
+    triggerCarAction(shouldUnlock: false, isManual: false)
+}
+
+// scheduleDepartureLock: 만료 시 proximityState == .far 재확인 후 실행
+```
+
+**타이머 취소 시점**: 접근 감지, 예측 접근 기울기 확인, stop() 호출
+
+**화이트박스 주의점**: 예측 접근(`isPredictiveUnlockPending`) 경로에서도 취소 필요 — 접근 중인데 타이머 잔존하면 unlock 직후 잠금 발동 가능
+
+---
+
+## 주행 중 지오펜스 반복 진입/이탈 패턴
+
+**주행 중 지오펜스 재등록 → 현재 위치가 중심 → 바로 내부 감지:**
+- 이동 중인 위치로 지오펜스를 재등록하면 해당 시점엔 내부, 이동 후엔 외부가 됨
+- 로그 패턴: 지오펜스 등록 → 현재 상태: 내부 → 수십 초 후 이탈 → 반복
+- 해결: `pollVehicleGPS()`에서 `!isDriving` 조건으로 주행 중 재등록 차단
+- 해결: `didEnterGeofence()`에서 `guard !isDriving` 추가 (혹시 남은 콜백 무시)
 
 ---
 

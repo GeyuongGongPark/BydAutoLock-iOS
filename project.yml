@@ -27,8 +27,8 @@ targets:
     info:
       path: BydAutoLock/Info.plist
       properties:
-        CFBundleShortVersionString: "1.4"
-        CFBundleVersion: "9"
+        CFBundleShortVersionString: "1.4.2"
+        CFBundleVersion: "11"
         # 전체 화면 지원 (레터박스 제거)
         UILaunchScreen: {}
         # 세로 모드 고정
@@ -74,6 +74,23 @@ targets:
         CODE_SIGN_ENTITLEMENTS: BydAutoLock/BydAutoLock.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  # ── iPhone 앱 테스트 ───────────────────────────────────────
+  BydAutoLockTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: BydAutoLockTests
+        excludes:
+          - "**/.DS_Store"
+    dependencies:
+      - target: BydAutoLock
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ggp.bydautolock.tests
+        PRODUCT_NAME: BydAutoLockTests
+        GENERATE_INFOPLIST_FILE: YES
   # ── Apple Watch 앱 ─────────────────────────────────────────
   BydAutoLockWatchApp:
     type: application

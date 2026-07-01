@@ -180,3 +180,211 @@
 
 ### 검토
 - [x] 수정 파일: `AutoLockService.swift`, `GeofenceManager.swift`, `Info.plist`, `project.yml`
+
+---
+
+## 로그 분석 #3 (byd_log_20260629) — 주행 관련 버그
+
+### 수정 완료
+
+- [x] **주행 종료 후 잠금 안 됨**
+  - 원인: 지오펜스 이탈(13:11:42) → 이 시점 isDriving=true → 잠금 스킵. 주행 종료(13:11:59) → isInsideGeofence=false → RSSI 폴링 없어 이탈 감지 불가. 결과: 다음 GPS 폴링(5분)까지 잠금 불가.
+  - 수정: `startDrivingDetection()` — 주행 종료 시 `!isInsideGeofence`이면 즉시 GPS 폴링 + 자동 잠금 API 호출
+  - 파일: `AutoLockService.swift`
+
+- [x] **주행 중 지오펜스 반복 "내부" 감지**
+  - 원인: BYD GPS API가 실시간 speed를 반환하지 않음 (주행 중에도 speed=0). `gps.speed <= 5.0` 조건 통과 → 현재 위치(이동 중)로 지오펜스 재등록 → 즉시 내부 판정 → 잠시 후 외부로 전환 반복.
+  - 수정 1: `pollVehicleGPS()` — `!isDriving` 조건 추가로 주행 중 지오펜스 재등록 차단
+  - 수정 2: `didEnterGeofence()` — `guard !isDriving`을 `isInsideGeofence = true` 이후로 이동 (BLE 재개만 차단, 상태는 정확하게 유지)
+  - 파일: `AutoLockService.swift`
+
+- [x] **didEnterGeofence guard 위치 버그 (화이트박스 발견)**
+  - 원인: `guard isRunning, !isDriving else { return }`가 `isInsideGeofence = true` 보다 앞에 있어 주행 중 진입 이벤트 시 상태 미갱신
+  - 시나리오: 주행 중 목적지 도착 → 진입 이벤트 무시 → `isInsideGeofence = false` 유지 → 주행 종료 시 `!isInsideGeofence` 조건 충족 → 실제로는 내부인데 자동 잠금 오실행
+  - 수정: `isInsideGeofence = true` 먼저 세팅 → 그 다음 `guard !isDriving` (BLE 재개만 차단)
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 수정 파일: `AutoLockService.swift`
+
+---
+
+## 로그 누락 버그 수정
+
+- [x] **LogManager applicationSupportDirectory 미생성으로 로그 전체 누락**
+  - 원인: `FileManager.urls(for:)`는 경로만 반환, 디렉토리 실제 생성 보장 안 함 → `sqlite3_open` 실패 → `db = nil` → 모든 로그 무시
+  - 화이트박스 테스트 #3에서 `sqlite3_open` 에러 체크는 추가했으나 실패 원인(디렉토리 미존재) 자체를 해결하지 않았음
+  - 수정: `sqlite3_open` 전 `FileManager.createDirectory(withIntermediateDirectories: true)` 추가
+  - 파일: `LogManager.swift`
+
+- [x] **LogView 빈 상태 문구 오류**
+  - "디버그 로깅이 활성화되어 있고" 문구 → v1.3에서 토글 제거됐으나 잔존 → 테스터 혼란 유발
+  - 수정: 해당 문구 제거
+  - 파일: `LogView.swift`
+
+---
+
+## 가상 테스트 — 자동 잠금/해제 로직
+
+- [x] **시나리오 1~8 전체 검토 완료** (접근/이탈/신호소실/재연결/주행중/쿨다운 등)
+
+- [x] **재시도 후 lastKnownLocked 미업데이트 버그 (가상 테스트 발견)**
+  - 원인: 자동 잠금 실패 → 45초 재시도 성공 후 `lastKnownLocked` 갱신 누락 → 이후 재연결 사이클에서 중복 잠금 API 호출 가능
+  - 수정: 재시도 성공 후 `await MainActor.run { self.lastKnownLocked = true }` 추가
+  - 파일: `AutoLockService.swift`
+
+---
+
+## 로그 누락 케이스 분석
+
+- [x] LogManager 전체 코드 흐름 검토 — 로그가 실제로 안 쌓이는 경로 찾기
+
+### 분석 결과 (byd_log_20260629_185532)
+
+- [x] **앱 suspend로 인한 로그 공백 (구조적 한계)**
+  - Watchdog(5분)/Session(15분) 로그가 수 시간 동안 없음 → 앱 완전 suspend 확인
+  - `startUpdatingLocation(ThreeKilometers)`가 모든 상황에서 suspend를 막지 못함
+  - iOS 구조적 제한 — 코드 버그 아님. 지오펜스 이벤트 사이 구간은 로그 공백이 됨
+
+- [x] **이 로그는 v1.3 이전 버전** — "신호 소실. 즉시 안전 잠금 실행." 메시지로 확인
+  - v1.4에서 수정된 버그들(주행 중 지오펜스 재등록 등)이 그대로 관찰됨
+
+- [x] **5011 에러 스팸** — 테스터 PIN 미설정 상태에서 자동 잠금/해제 반복 시도
+
+### 잔여
+- [ ] v1.4.1 버전에서도 suspend 발생하는지 추가 로그 필요
+
+---
+
+## 화이트박스 테스트 — 이번 세션 변경분
+
+- [x] BydVehicleService.swift — BydError.serviceNotRunning 케이스 검토 (이상 없음)
+- [x] AutoLockService.swift — fetchVehicleStatus 변경 검토 (이상 없음)
+- [x] BydError switch 처리 누락 여부 확인 — exhaustive switch 없음, localizedDescription 사용으로 자동 처리
+
+---
+
+## 차량 상태 새로고침 오류 문구 수정
+
+- [x] BLE 미연결 상태에서 새로고침 시 "로그인이 필요합니다" → "차량과 연결해 주세요"로 수정
+  - 원인: `fetchVehicleStatus`에서 `vehicleService == nil`이면 `BydError.notLoggedIn` throw
+  - 수정: `BydError.serviceNotRunning` 케이스 추가 + `fetchVehicleStatus`에서 해당 에러 사용
+  - 파일: `BydVehicleService.swift`, `AutoLockService.swift`
+
+---
+
+## iOS 27 베타 대응 (브랜치: ios27)
+
+### 문제 분석
+
+- **로그 증거**: `byd_log_20260630_095743_ATTO_3_BYD_BLE3.txt` 에서 22:27~07:31 (약 9시간) 동안
+  지오펜스 내부 + Watchdog 5분 주기 정상 동작 + `기기 탐색 스캔 시작` 반복에도 `타겟 발견` 0건
+- **근본 원인**: `beginScanning()`에서 `connectedPeripheral == nil`이면 `scanForPeripherals(withServices: nil)` 호출
+  → iOS 백그라운드에서 `withServices: nil` 스캔은 **원칙적으로 차단** (iOS 7+ 공식 제한)
+  → iOS 27 베타에서 이 제한이 더 엄격하게 적용됨
+- **연쇄 문제**: `stopBLEScan()`이 `connectedPeripheral = nil`로 초기화 → 다음 `beginScanning()` 시 스캔 폴백
+
+### 해결 방향
+
+`scanForPeripherals` 의존을 최소화하고, `connect()` 기반 재연결로 전환:
+1. **Peripheral UUID 영구 저장** — 한 번이라도 연결한 peripheral의 UUID를 `StorageManager`에 저장
+2. **`retrievePeripherals(withIdentifiers:)` fallback** — UUID가 있으면 스캔 없이 직접 `connect()` (백그라운드에서도 동작)
+3. **`stopBLEScan()`에서 `connectedPeripheral` 참조 유지** — `connectedPeripheral = nil` 제거
+4. **`stop()`에서 명시적 nil 처리** — 서비스 완전 종료 시에만 nil 초기화
+
+### 수정 항목
+
+- [x] **1. StorageManager — `peripheralUUID` 프로퍼티 추가**
+  - 파일: `StorageManager.swift`
+
+- [x] **2. AutoLockService — `didDiscover`에서 UUID 저장**
+  - `storage.peripheralUUID = peripheral.identifier.uuidString`
+  - 파일: `AutoLockService.swift`
+
+- [x] **3. AutoLockService — `stopBLEScan()`에서 `connectedPeripheral = nil` 제거**
+  - `cancelPeripheralConnection()` 유지, `connectedPeripheral = nil` 제거
+  - 파일: `AutoLockService.swift`
+
+- [x] **4. AutoLockService — `stop()`에서 `connectedPeripheral = nil` 추가**
+  - `stopBLEScan()` 호출 후 명시적 nil 처리
+  - 파일: `AutoLockService.swift`
+
+- [x] **5. AutoLockService — `beginScanning()`에 UUID fallback 추가**
+  - `connectedPeripheral == nil`이면 `storage.peripheralUUID`로 `retrievePeripherals` → `connect()` 시도
+  - 실패 시 기존 스캔으로 폴백 (처음 연결 시에만)
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+- [x] 실기기 테스트 — `재연결 시도` 105회 정상 동작, 9시간 공백 → 38분으로 개선 확인
+
+---
+
+## 예측 사전 해제 지연 개선 (ios27 브랜치)
+
+### 문제 분석
+
+- **증상**: 차에 접근해도 자동 해제까지 1~3분 소요
+- **원인 1**: ATTO 3 BLE가 20초마다 강제 끊김 → `handleSignalLoss()` → `rssiWindow.removeAll()`
+  → 매 사이클 처음부터 데이터 쌓기 → `rssiWindow.count >= 5` 조건 못 채움 → 예측 사전 해제 불발
+- **원인 2**: iOS 27 백그라운드에서 `connect()` 응답 자체가 1~3분 걸리는 케이스 존재 (OS 한계)
+
+### 해결 방향
+
+`rssiWindow`를 연결 끊김 시 클리어하지 않고, **시간 기반(60초)** 으로만 오래된 데이터 제거
+→ 여러 BLE 연결 사이클에 걸쳐 데이터 누적 → 예측 해제 조건 충족 빨라짐
+
+### 수정 항목
+
+- [ ] **1. `handleSignalLoss()`에서 `rssiWindow.removeAll()` 제거**
+  - 파일: `AutoLockService.swift`
+
+- [ ] **2. `processRSSI()`에서 count 기반 → 시간 기반 필터링으로 교체**
+  - `rssiWindowSize = 10` 상수 → `rssiWindowDuration: TimeInterval = 60` 으로 교체
+  - `if rssiWindow.count > rssiWindowSize` → `rssiWindow.filter { 60초 이내 }` 로 변경
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 화이트박스 테스트 — 이상값 필터 영향 없음, 이탈 후 재접근 시 오발 없음
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
+## 이탈 시 잠금 실패 수정 (ios27 브랜치)
+
+### 문제 분석 (byd_log_20260701_095237)
+
+- **케이스 1 (23:11:59)**: 재연결 unlock → 5초 후 이탈 감지 → `unlock 쿨다운(30s)` 차단 → 쿨다운 만료 후 재접근 → 잠금 미발동
+- **케이스 2 (07:37:51)**: unlock → 7초 후 이탈 감지 → `unlock 쿨다운(30s)` 차단 → BLE 20s 사이클 반복으로 신호소실타이머 리셋 → 잠금 미발동
+
+**패턴**: unlock 직후 BLE 신호가 일시 급락(ATTO 3 특성) → 이탈 감지는 맞지만 쿨다운에 막힘 → 쿨다운 만료 후 재트리거 없음
+
+### 해결 방향
+
+이탈 감지 시 쿨다운 중이면 즉시 차단하는 대신, 쿨다운 만료 시점에 잠금 실행 예약 (`departureLockTimer`)
+
+### 수정 항목
+
+- [x] **1. `departureLockTimer` 변수 추가**
+  - `private var departureLockTimer: DispatchSourceTimer?`
+
+- [x] **2. `evaluateProximity()` — 이탈 감지 시 쿨다운 체크 후 예약**
+  - `triggerCarAction` 직접 호출 대신: 쿨다운 잔여 시간 계산 → 잔여 > 0이면 `scheduleDepartureLock(after:)`, 아니면 즉시 실행
+
+- [x] **3. `evaluateProximity()` — 접근/예측접근 감지 시 `departureLockTimer` 취소**
+  - 다시 접근하면 예약된 잠금 취소 (접근 감지 + 예측 접근 기울기 확인 경로 양쪽)
+
+- [x] **4. `scheduleDepartureLock(after:)` 메서드 추가**
+  - 쿨다운 만료 후 실행, `proximityState == .far` 재확인 후 `triggerCarAction`
+
+- [x] **5. `stop()`에서 `departureLockTimer` 취소**
+
+### 화이트박스 테스트
+- [x] 타이머 fire handler에서 `departureLockTimer != nil` 체크 → cancel 후 Task 잔존 방지
+- [x] `scheduleDepartureLock()` 시작 시 기존 타이머 cancel 먼저 → 중복 방지
+- [x] 예측 접근 경로에서도 타이머 취소 추가 (화이트박스에서 발견)
+- [x] 이탈 → departureLockTimer + 이후 신호소실 → signalLossTimer 동시 존재 가능하나 양쪽 모두 `lastKnownLocked != true` 체크로 중복 API 차단 → 안전
+- [x] 재이탈 감지 중복 불가 — 이탈 시 proximityState=.far, 다음 evaluateProximity에서 wasNear=false → 이탈 경로 진입 불가
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)

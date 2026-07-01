@@ -56,7 +56,7 @@ final class AutoLockService: NSObject, ObservableObject {
     private struct RssiPoint { let time: Date; let dbm: Int }
     private var rssiWindow = [RssiPoint]()
     private var consecutiveRejections = 0
-    private static let rssiWindowSize = 10
+    private static let rssiWindowDuration: TimeInterval = 60  // 연결 사이클 간 데이터 누적용
     private static let maxRejections = 3
 
     // 자동 lock/unlock 쿨다운 (진동 방지)
@@ -95,6 +95,9 @@ final class AutoLockService: NSObject, ObservableObject {
     // 신호 소실 grace timer (BLE 끊김 후 즉시 잠금 대신 60초 유예)
     private var signalLossTimer: DispatchSourceTimer?
     private static let signalLossGracePeriod: TimeInterval = 60
+
+    // 이탈 감지 시 unlock 쿨다운 중이면 만료 후 잠금 예약
+    private var departureLockTimer: DispatchSourceTimer?
 
     // 예측적 사전 잠금 해제
     private var isPredictiveUnlockPending = false
@@ -174,6 +177,7 @@ final class AutoLockService: NSObject, ObservableObject {
     func stop() {
         geofenceManager.stopBackgroundKeepAlive()
         stopBLEScan()
+        connectedPeripheral = nil
         watchdogTimer?.cancel()
         watchdogTimer = nil
         sessionRefreshTimer?.cancel()
@@ -182,6 +186,8 @@ final class AutoLockService: NSObject, ObservableObject {
         gpsPollTimer = nil
         signalLossTimer?.cancel()
         signalLossTimer = nil
+        departureLockTimer?.cancel()
+        departureLockTimer = nil
         stationaryTimer?.cancel()
         stationaryTimer = nil
         motionManager?.stopActivityUpdates()
@@ -212,7 +218,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
-        guard let service = vehicleService else { throw BydError.notLoggedIn }
+        guard let service = vehicleService else { throw BydError.serviceNotRunning }
         let status = try await service.fetchVehicleStatus(vin: vin)
         lastKnownLocked = status.isLocked
         return status
@@ -294,7 +300,7 @@ final class AutoLockService: NSObject, ObservableObject {
         endRssiPollingBGTask()
         if let p = connectedPeripheral {
             centralManager?.cancelPeripheralConnection(p)
-            connectedPeripheral = nil
+            // connectedPeripheral 참조는 유지 — 다음 beginScanning() 시 connect()로 재사용
         }
         centralManager?.stopScan()
         isScanning = false
@@ -318,7 +324,19 @@ final class AutoLockService: NSObject, ObservableObject {
             return
         }
 
-        // 처음 탐색 - 스캔으로 기기 발견 후 connect
+        // 저장된 UUID로 peripheral 복원 시도 (백그라운드에서도 동작)
+        if let savedUUID = storage.peripheralUUID,
+           let uuid = UUID(uuidString: savedUUID),
+           let p = centralManager?.retrievePeripherals(withIdentifiers: [uuid]).first {
+            connectedPeripheral = p
+            p.delegate = self
+            centralManager?.connect(p, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
+            scanModeDescription = "재연결 중..."
+            LogManager.shared.log("BLE", "UUID로 재연결 시도: \(p.name ?? savedUUID)")
+            return
+        }
+
+        // 처음 탐색 (UUID 없거나 복원 실패) - 스캔으로 기기 발견 후 connect
         centralManager?.scanForPeripherals(withServices: nil, options: nil)
         isScanning = true
         scanModeDescription = "스캔 중"
@@ -373,7 +391,7 @@ final class AutoLockService: NSObject, ObservableObject {
         // 선형 회귀 이상값 필터링
         let now = Date()
         rssiWindow.append(RssiPoint(time: now, dbm: rssi))
-        if rssiWindow.count > Self.rssiWindowSize { rssiWindow.removeFirst() }
+        rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindowDuration }
 
         if rssiWindow.count >= 4 {
             let predicted = linearRegressionPredict(rssiWindow)
@@ -404,7 +422,7 @@ final class AutoLockService: NSObject, ObservableObject {
         guard smoothedRssi != nil else { return }
         smoothedRssi = nil
         rawRssi = nil
-        rssiWindow.removeAll()
+        // rssiWindow 유지 — BLE 20초 사이클 간 데이터 누적으로 예측 사전 해제 활성화
         isPredictiveUnlockPending = false
 
         if proximityState == .near {
@@ -436,6 +454,26 @@ final class AutoLockService: NSObject, ObservableObject {
         signalLossTimer = timer
     }
 
+    private func scheduleDepartureLock(after delay: TimeInterval) {
+        departureLockTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + delay)
+        timer.setEventHandler { [weak self] in
+            Task { @MainActor in
+                guard let self, self.departureLockTimer != nil else { return }
+                self.departureLockTimer = nil
+                guard self.proximityState == .far,
+                      self.storage.isAutoLockOnDeparture,
+                      self.lastKnownLocked != true else { return }
+                LogManager.shared.log("AutoLockService", "이탈 예약 잠금 실행 (unlock 쿨다운 만료)")
+                self.triggerCarAction(shouldUnlock: false, isManual: false)
+            }
+        }
+        timer.resume()
+        departureLockTimer = timer
+        LogManager.shared.log("AutoLockService", "이탈 잠금 예약 (\(Int(delay))초 후, unlock 쿨다운 회피)")
+    }
+
     // MARK: - Proximity Evaluation
 
     private func evaluateProximity() {
@@ -452,7 +490,9 @@ final class AutoLockService: NSObject, ObservableObject {
         }
 
         if !wasNear && rssi >= unlockThreshold {
-            // 접근 감지 - 예측 호출이 이미 나간 경우 API 중복 호출 스킵
+            // 접근 감지 - 예약된 이탈 잠금 취소
+            departureLockTimer?.cancel()
+            departureLockTimer = nil
             let wasPredictive = isPredictiveUnlockPending
             proximityState = .near
             isPredictiveUnlockPending = false
@@ -469,6 +509,9 @@ final class AutoLockService: NSObject, ObservableObject {
             // 예측적 사전 호출: 임계값 근접 + 상승 기울기 확인
             let slope = linearRegressionSlope(rssiWindow)
             if slope >= Self.predictiveMinSlope {
+                // 접근 중 확인 → 예약된 이탈 잠금 취소
+                departureLockTimer?.cancel()
+                departureLockTimer = nil
                 isPredictiveUnlockPending = true
                 LogManager.shared.log("BLE", "예측 사전 해제 (RSSI: \(Int(rssi)), 기울기: \(String(format: "%.2f", slope)) dBm/s)")
                 triggerCarAction(shouldUnlock: true, isManual: false)
@@ -479,7 +522,18 @@ final class AutoLockService: NSObject, ObservableObject {
             isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "이탈 감지 (RSSI: \(Int(rssi)) <= \(Int(lockThreshold)))")
             if storage.isAutoLockOnDeparture && lastKnownLocked != true {
-                triggerCarAction(shouldUnlock: false, isManual: false)
+                // unlock 쿨다운 중이면 만료 후 잠금 예약 (즉시 차단 대신)
+                let remaining: TimeInterval
+                if let t = lastAutoUnlockTime {
+                    remaining = max(0, Self.postUnlockLockCooldown - Date().timeIntervalSince(t))
+                } else {
+                    remaining = 0
+                }
+                if remaining > 0 {
+                    scheduleDepartureLock(after: remaining)
+                } else {
+                    triggerCarAction(shouldUnlock: false, isManual: false)
+                }
             }
         }
     }
@@ -594,6 +648,7 @@ final class AutoLockService: NSObject, ObservableObject {
                     try? await Task.sleep(nanoseconds: 45_000_000_000)
                     guard await MainActor.run(body: { self.proximityState == .far }) else { return }
                     try? await service.lockAuto(vin: vin, pin: pin)
+                    await MainActor.run { self.lastKnownLocked = true }
                     LogManager.shared.log("API", "자동 잠금 재시도 완료")
                 }
             }
@@ -721,7 +776,9 @@ final class AutoLockService: NSObject, ObservableObject {
             lastParkingLat  = gps.latitude
             lastParkingLng  = gps.longitude
             lastParkingTime = Date(timeIntervalSince1970: gps.timestamp)
-            if storage.isGeofencingEnabled && gps.speed <= 5.0 {
+            // 주행 중에는 지오펜스 재등록 차단
+            // BYD GPS API가 실시간 speed를 반환하지 않아 gps.speed만으로는 주행 여부 판단 불가
+            if storage.isGeofencingEnabled && !isDriving {
                 geofenceManager.registerGeofence(lat: gps.latitude, lng: gps.longitude)
             }
             LogManager.shared.log("GPS", "차량 위치 갱신: \(gps.latitude), \(gps.longitude) speed:\(Int(gps.speed))km/h")
@@ -782,6 +839,17 @@ final class AutoLockService: NSObject, ObservableObject {
                 if self.isDriving != driving {
                     self.isDriving = driving
                     LogManager.shared.log("Motion", driving ? "주행 중 감지 - 자동 잠금 해제 일시 차단" : "주행 종료 감지 - 자동 잠금 해제 재개")
+                    if !driving && self.storage.isGeofencingEnabled {
+                        // 주행 종료 → 현재 주차 위치로 지오펜스 즉시 갱신
+                        Task { await self.pollVehicleGPS() }
+                        // 지오펜스 외부: 지오펜스 이탈이 주행 종료보다 먼저 발생한 케이스
+                        // BLE RSSI 기반 이탈 감지가 불가하므로 즉시 잠금
+                        if !self.isInsideGeofence && self.storage.isAutoLockOnDeparture
+                           && self.lastKnownLocked != true {
+                            LogManager.shared.log("Motion", "주행 종료 + 지오펜스 외부 → 자동 잠금 실행")
+                            self.triggerCarAction(shouldUnlock: false, isManual: false)
+                        }
+                    }
                 }
             }
         }
@@ -852,6 +920,8 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.isScanning = false
             self.connectedPeripheral = peripheral
             peripheral.delegate = self
+            // UUID 저장 — 이후 백그라운드에서 retrievePeripherals로 스캔 없이 재연결 가능
+            self.storage.peripheralUUID = peripheral.identifier.uuidString
             central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnDisconnectionKey: true])
             self.scanModeDescription = "연결 중..."
             LogManager.shared.log("BLE", "타겟 발견 → 연결 시도: \(name)")
@@ -928,6 +998,8 @@ extension AutoLockService: GeofenceManagerDelegate {
     func didEnterGeofence() {
         guard isRunning else { return }
         isInsideGeofence = true
+        // 주행 중에는 BLE 재개만 차단 (isInsideGeofence 상태는 정확하게 유지)
+        guard !isDriving else { return }
         isStationary = false
         LogManager.shared.log("Geofence", "지오펜스 진입. BLE 재개.")
         if let p = connectedPeripheral, p.state == .connected {
