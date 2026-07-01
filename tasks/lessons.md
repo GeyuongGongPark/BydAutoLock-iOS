@@ -282,6 +282,25 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 
 ---
 
+## rssiWindow BLE 사이클 간 클리어 → 예측 해제 불발 패턴
+
+**증상**: 차에 접근해도 예측 사전 해제가 안 되고 `접근 감지`로만 해제됨 (1~3분 지연)
+
+**원인**: ATTO 3 BLE가 20초마다 강제 끊김 → `handleSignalLoss()` → `rssiWindow.removeAll()`
+→ 매 사이클 처음부터 RSSI 데이터 쌓기 → 20초 안에 `count >= 5` 못 채움 → 예측 조건 불충족
+
+**해결**: `handleSignalLoss()`에서 `rssiWindow.removeAll()` 제거, 대신 시간 기반 필터링으로 교체
+```swift
+// processRSSI에서 count 기반 → 시간 기반
+rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindowDuration }
+// rssiWindowDuration = 60초
+```
+→ 여러 BLE 사이클에 걸쳐 데이터 누적 → `count >= 5` 빠르게 충족 → 예측 해제 활성화
+
+**주의**: 이탈 후 낮은 RSSI 데이터가 window에 잔류하나, 재접근 시 기울기가 더 크게 계산돼 오히려 더 일찍 예측 해제됨 (오발 위험 아님)
+
+---
+
 ## isStationary 상태에서 RSSI 폴링 재시작 버그
 
 **증상**: `isStationary = true`로 BLE를 중단했는데도 RSSI 폴링이 다시 시작될 수 있음
@@ -311,6 +330,31 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 - `stopBLEScan()`에서 `connectedPeripheral = nil`을 하면 다음 `beginScanning()` 시 스캔 폴백으로 떨어짐
 - `cancelPeripheralConnection()`은 하되 `connectedPeripheral = nil`은 하지 말 것 (서비스 완전 종료 시에만)
 - peripheral UUID는 첫 `didDiscover`에서 `StorageManager`에 영구 저장할 것
+
+---
+
+## unlock 쿨다운으로 인한 이탈 잠금 차단 패턴
+
+**증상**: unlock 직후 RSSI 급락(ATTO 3 BLE 특성) → 이탈 감지 → `unlock 쿨다운(30s)`에 차단 → 쿨다운 만료 후 재트리거 없음 → 잠금 미발동
+
+**원인**: `triggerCarAction(shouldUnlock: false)` 내부에서 쿨다운 위반 시 그냥 `return` → 이탈이 기록되지 않고 사라짐
+
+**해결**: 이탈 감지 시 쿨다운 잔여 시간을 계산 → `departureLockTimer`로 쿨다운 만료 후 잠금 예약
+```swift
+// evaluateProximity() 이탈 감지
+let remaining = max(0, Self.postUnlockLockCooldown - Date().timeIntervalSince(lastAutoUnlockTime ?? .distantPast))
+if remaining > 0 {
+    scheduleDepartureLock(after: remaining)
+} else {
+    triggerCarAction(shouldUnlock: false, isManual: false)
+}
+
+// scheduleDepartureLock: 만료 시 proximityState == .far 재확인 후 실행
+```
+
+**타이머 취소 시점**: 접근 감지, 예측 접근 기울기 확인, stop() 호출
+
+**화이트박스 주의점**: 예측 접근(`isPredictiveUnlockPending`) 경로에서도 취소 필요 — 접근 중인데 타이머 잔존하면 unlock 직후 잠금 발동 가능
 
 ---
 

@@ -316,4 +316,75 @@
 
 ### 검토
 - [x] 빌드 확인 (BUILD SUCCEEDED)
-- [ ] 실기기 테스트 — 로그에서 `기기 탐색 스캔 시작` 대신 `UUID로 재연결 시도` 로그 확인
+- [x] 실기기 테스트 — `재연결 시도` 105회 정상 동작, 9시간 공백 → 38분으로 개선 확인
+
+---
+
+## 예측 사전 해제 지연 개선 (ios27 브랜치)
+
+### 문제 분석
+
+- **증상**: 차에 접근해도 자동 해제까지 1~3분 소요
+- **원인 1**: ATTO 3 BLE가 20초마다 강제 끊김 → `handleSignalLoss()` → `rssiWindow.removeAll()`
+  → 매 사이클 처음부터 데이터 쌓기 → `rssiWindow.count >= 5` 조건 못 채움 → 예측 사전 해제 불발
+- **원인 2**: iOS 27 백그라운드에서 `connect()` 응답 자체가 1~3분 걸리는 케이스 존재 (OS 한계)
+
+### 해결 방향
+
+`rssiWindow`를 연결 끊김 시 클리어하지 않고, **시간 기반(60초)** 으로만 오래된 데이터 제거
+→ 여러 BLE 연결 사이클에 걸쳐 데이터 누적 → 예측 해제 조건 충족 빨라짐
+
+### 수정 항목
+
+- [ ] **1. `handleSignalLoss()`에서 `rssiWindow.removeAll()` 제거**
+  - 파일: `AutoLockService.swift`
+
+- [ ] **2. `processRSSI()`에서 count 기반 → 시간 기반 필터링으로 교체**
+  - `rssiWindowSize = 10` 상수 → `rssiWindowDuration: TimeInterval = 60` 으로 교체
+  - `if rssiWindow.count > rssiWindowSize` → `rssiWindow.filter { 60초 이내 }` 로 변경
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 화이트박스 테스트 — 이상값 필터 영향 없음, 이탈 후 재접근 시 오발 없음
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
+## 이탈 시 잠금 실패 수정 (ios27 브랜치)
+
+### 문제 분석 (byd_log_20260701_095237)
+
+- **케이스 1 (23:11:59)**: 재연결 unlock → 5초 후 이탈 감지 → `unlock 쿨다운(30s)` 차단 → 쿨다운 만료 후 재접근 → 잠금 미발동
+- **케이스 2 (07:37:51)**: unlock → 7초 후 이탈 감지 → `unlock 쿨다운(30s)` 차단 → BLE 20s 사이클 반복으로 신호소실타이머 리셋 → 잠금 미발동
+
+**패턴**: unlock 직후 BLE 신호가 일시 급락(ATTO 3 특성) → 이탈 감지는 맞지만 쿨다운에 막힘 → 쿨다운 만료 후 재트리거 없음
+
+### 해결 방향
+
+이탈 감지 시 쿨다운 중이면 즉시 차단하는 대신, 쿨다운 만료 시점에 잠금 실행 예약 (`departureLockTimer`)
+
+### 수정 항목
+
+- [x] **1. `departureLockTimer` 변수 추가**
+  - `private var departureLockTimer: DispatchSourceTimer?`
+
+- [x] **2. `evaluateProximity()` — 이탈 감지 시 쿨다운 체크 후 예약**
+  - `triggerCarAction` 직접 호출 대신: 쿨다운 잔여 시간 계산 → 잔여 > 0이면 `scheduleDepartureLock(after:)`, 아니면 즉시 실행
+
+- [x] **3. `evaluateProximity()` — 접근/예측접근 감지 시 `departureLockTimer` 취소**
+  - 다시 접근하면 예약된 잠금 취소 (접근 감지 + 예측 접근 기울기 확인 경로 양쪽)
+
+- [x] **4. `scheduleDepartureLock(after:)` 메서드 추가**
+  - 쿨다운 만료 후 실행, `proximityState == .far` 재확인 후 `triggerCarAction`
+
+- [x] **5. `stop()`에서 `departureLockTimer` 취소**
+
+### 화이트박스 테스트
+- [x] 타이머 fire handler에서 `departureLockTimer != nil` 체크 → cancel 후 Task 잔존 방지
+- [x] `scheduleDepartureLock()` 시작 시 기존 타이머 cancel 먼저 → 중복 방지
+- [x] 예측 접근 경로에서도 타이머 취소 추가 (화이트박스에서 발견)
+- [x] 이탈 → departureLockTimer + 이후 신호소실 → signalLossTimer 동시 존재 가능하나 양쪽 모두 `lastKnownLocked != true` 체크로 중복 API 차단 → 안전
+- [x] 재이탈 감지 중복 불가 — 이탈 시 proximityState=.far, 다음 evaluateProximity에서 wasNear=false → 이탈 경로 진입 불가
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)

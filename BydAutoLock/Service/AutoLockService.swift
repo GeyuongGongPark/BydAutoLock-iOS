@@ -56,7 +56,7 @@ final class AutoLockService: NSObject, ObservableObject {
     private struct RssiPoint { let time: Date; let dbm: Int }
     private var rssiWindow = [RssiPoint]()
     private var consecutiveRejections = 0
-    private static let rssiWindowSize = 10
+    private static let rssiWindowDuration: TimeInterval = 60  // 연결 사이클 간 데이터 누적용
     private static let maxRejections = 3
 
     // 자동 lock/unlock 쿨다운 (진동 방지)
@@ -95,6 +95,9 @@ final class AutoLockService: NSObject, ObservableObject {
     // 신호 소실 grace timer (BLE 끊김 후 즉시 잠금 대신 60초 유예)
     private var signalLossTimer: DispatchSourceTimer?
     private static let signalLossGracePeriod: TimeInterval = 60
+
+    // 이탈 감지 시 unlock 쿨다운 중이면 만료 후 잠금 예약
+    private var departureLockTimer: DispatchSourceTimer?
 
     // 예측적 사전 잠금 해제
     private var isPredictiveUnlockPending = false
@@ -183,6 +186,8 @@ final class AutoLockService: NSObject, ObservableObject {
         gpsPollTimer = nil
         signalLossTimer?.cancel()
         signalLossTimer = nil
+        departureLockTimer?.cancel()
+        departureLockTimer = nil
         stationaryTimer?.cancel()
         stationaryTimer = nil
         motionManager?.stopActivityUpdates()
@@ -386,7 +391,7 @@ final class AutoLockService: NSObject, ObservableObject {
         // 선형 회귀 이상값 필터링
         let now = Date()
         rssiWindow.append(RssiPoint(time: now, dbm: rssi))
-        if rssiWindow.count > Self.rssiWindowSize { rssiWindow.removeFirst() }
+        rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindowDuration }
 
         if rssiWindow.count >= 4 {
             let predicted = linearRegressionPredict(rssiWindow)
@@ -417,7 +422,7 @@ final class AutoLockService: NSObject, ObservableObject {
         guard smoothedRssi != nil else { return }
         smoothedRssi = nil
         rawRssi = nil
-        rssiWindow.removeAll()
+        // rssiWindow 유지 — BLE 20초 사이클 간 데이터 누적으로 예측 사전 해제 활성화
         isPredictiveUnlockPending = false
 
         if proximityState == .near {
@@ -449,6 +454,26 @@ final class AutoLockService: NSObject, ObservableObject {
         signalLossTimer = timer
     }
 
+    private func scheduleDepartureLock(after delay: TimeInterval) {
+        departureLockTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + delay)
+        timer.setEventHandler { [weak self] in
+            Task { @MainActor in
+                guard let self, self.departureLockTimer != nil else { return }
+                self.departureLockTimer = nil
+                guard self.proximityState == .far,
+                      self.storage.isAutoLockOnDeparture,
+                      self.lastKnownLocked != true else { return }
+                LogManager.shared.log("AutoLockService", "이탈 예약 잠금 실행 (unlock 쿨다운 만료)")
+                self.triggerCarAction(shouldUnlock: false, isManual: false)
+            }
+        }
+        timer.resume()
+        departureLockTimer = timer
+        LogManager.shared.log("AutoLockService", "이탈 잠금 예약 (\(Int(delay))초 후, unlock 쿨다운 회피)")
+    }
+
     // MARK: - Proximity Evaluation
 
     private func evaluateProximity() {
@@ -465,7 +490,9 @@ final class AutoLockService: NSObject, ObservableObject {
         }
 
         if !wasNear && rssi >= unlockThreshold {
-            // 접근 감지 - 예측 호출이 이미 나간 경우 API 중복 호출 스킵
+            // 접근 감지 - 예약된 이탈 잠금 취소
+            departureLockTimer?.cancel()
+            departureLockTimer = nil
             let wasPredictive = isPredictiveUnlockPending
             proximityState = .near
             isPredictiveUnlockPending = false
@@ -482,6 +509,9 @@ final class AutoLockService: NSObject, ObservableObject {
             // 예측적 사전 호출: 임계값 근접 + 상승 기울기 확인
             let slope = linearRegressionSlope(rssiWindow)
             if slope >= Self.predictiveMinSlope {
+                // 접근 중 확인 → 예약된 이탈 잠금 취소
+                departureLockTimer?.cancel()
+                departureLockTimer = nil
                 isPredictiveUnlockPending = true
                 LogManager.shared.log("BLE", "예측 사전 해제 (RSSI: \(Int(rssi)), 기울기: \(String(format: "%.2f", slope)) dBm/s)")
                 triggerCarAction(shouldUnlock: true, isManual: false)
@@ -492,7 +522,18 @@ final class AutoLockService: NSObject, ObservableObject {
             isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "이탈 감지 (RSSI: \(Int(rssi)) <= \(Int(lockThreshold)))")
             if storage.isAutoLockOnDeparture && lastKnownLocked != true {
-                triggerCarAction(shouldUnlock: false, isManual: false)
+                // unlock 쿨다운 중이면 만료 후 잠금 예약 (즉시 차단 대신)
+                let remaining: TimeInterval
+                if let t = lastAutoUnlockTime {
+                    remaining = max(0, Self.postUnlockLockCooldown - Date().timeIntervalSince(t))
+                } else {
+                    remaining = 0
+                }
+                if remaining > 0 {
+                    scheduleDepartureLock(after: remaining)
+                } else {
+                    triggerCarAction(shouldUnlock: false, isManual: false)
+                }
             }
         }
     }
