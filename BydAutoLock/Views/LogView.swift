@@ -74,7 +74,6 @@ struct LogView: View {
             Text("모든 로그를 삭제하시겠습니까?")
         }
         .onAppear { reload() }
-        .preferredColorScheme(.dark)
     }
 
     private func shareLog() {

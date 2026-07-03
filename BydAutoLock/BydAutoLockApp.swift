@@ -3,10 +3,20 @@ import SwiftUI
 @main
 struct BydAutoLockApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @AppStorage("app_color_scheme") private var colorSchemeRaw: String = "system"
 
     var body: some Scene {
         WindowGroup {
             MainView()
+                .preferredColorScheme(resolvedScheme)
+        }
+    }
+
+    private var resolvedScheme: ColorScheme? {
+        switch colorSchemeRaw {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil
         }
     }
 }

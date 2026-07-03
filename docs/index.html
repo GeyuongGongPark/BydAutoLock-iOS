@@ -12,12 +12,28 @@
       --border: rgba(255,255,255,.08); --text: #f5f5f7; --text2: #98989f;
       --blue: #2f6bff; --green: #32d758; --orange: #ff9f0a; --red: #ff4d40; --cyan: #64d2ff;
       --radius: 18px;
+      --nav-bg: rgba(0,0,0,.75);
+    }
+    [data-theme="light"] {
+      --bg: #f5f5f7; --surface: #ffffff; --surface2: #e8e8ed;
+      --border: rgba(0,0,0,.1); --text: #1d1d1f; --text2: #6e6e73;
+      --nav-bg: rgba(245,245,247,.8);
+    }
+    @media (prefers-color-scheme: light) {
+      [data-theme="system"] {
+        --bg: #f5f5f7; --surface: #ffffff; --surface2: #e8e8ed;
+        --border: rgba(0,0,0,.1); --text: #1d1d1f; --text2: #6e6e73;
+        --nav-bg: rgba(245,245,247,.8);
+      }
     }
     html { scroll-behavior: smooth; }
     body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 
     /* NAV */
-    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; background: rgba(0,0,0,.75); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; background: var(--nav-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .theme-toggle { display: flex; gap: 2px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+    .theme-btn { width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background .15s; color: var(--text2); }
+    .theme-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
     .nav-logo { font-size: 15px; font-weight: 600; letter-spacing: -.3px; }
     .nav-logo span { color: var(--blue); }
     .nav-links { display: flex; gap: 24px; }
@@ -210,6 +226,11 @@
     <a href="#how">작동 방식</a>
     <a href="#install">설치</a>
     <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS" target="_blank">GitHub</a>
+  </div>
+  <div class="theme-toggle">
+    <button class="theme-btn" id="theme-light" onclick="setTheme('light')" title="라이트">☀️</button>
+    <button class="theme-btn" id="theme-system" onclick="setTheme('system')" title="시스템">💻</button>
+    <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="다크">🌙</button>
   </div>
 </nav>
 
@@ -659,6 +680,15 @@ cd BydAutoLock</div></div></div>
   // Init
   S.proximity = 'far';
   updateRssi(-75);
+
+  // ── Theme
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('byd-theme', t);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('theme-' + t).classList.add('active');
+  }
+  setTheme(localStorage.getItem('byd-theme') || 'system');
 </script>
 </body>
 </html>

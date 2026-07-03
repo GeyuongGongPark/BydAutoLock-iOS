@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsDrawerView: View {
     @Binding var isOpen: Bool
+    @AppStorage("app_color_scheme") private var colorSchemeRaw: String = "system"
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,21 @@ struct SettingsDrawerView: View {
                 }
 
                 Section("기타") {
+                    Picker(selection: $colorSchemeRaw) {
+                        Text("라이트").tag("light")
+                        Text("다크").tag("dark")
+                        Text("시스템").tag("system")
+                    } label: {
+                        Label {
+                            Text("테마")
+                        } icon: {
+                            Image(systemName: "circle.lefthalf.filled")
+                                .foregroundStyle(.white)
+                                .frame(width: 28, height: 28)
+                                .background(.gray)
+                                .clipShape(RoundedRectangle(cornerRadius: 7))
+                        }
+                    }
                     drawerLink("알림 설정",   icon: "bell.badge.fill",          color: .red)    { NotificationSettingsView() }
                     drawerLink("디버그 로그", icon: "doc.text.magnifyingglass", color: .purple) { LogView() }
                     urlLink("피드백",        icon: "message.fill",             color: .yellow, url: "https://open.kakao.com/o/gGtmWXAi")
@@ -49,7 +65,6 @@ struct SettingsDrawerView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private var appVersion: String {

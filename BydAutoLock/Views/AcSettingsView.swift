@@ -80,7 +80,6 @@ struct AcSettingsView: View {
             .onChange(of: windLevel)       { storage.acWindLevel       = $0 }
             .onChange(of: cycleMode)       { storage.acCycleMode       = $0 }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func loadSettings() {

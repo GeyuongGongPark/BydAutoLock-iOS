@@ -391,6 +391,66 @@
 
 ---
 
+## 테마 설정 기능 추가
+
+### 목표
+라이트 / 다크 / 시스템 테마 선택 (기본: 시스템)
+
+### 수정 항목
+
+- [x] **1. `BydAutoLockApp.swift` — 앱 전체 `preferredColorScheme` 설정**
+  - `@AppStorage("app_color_scheme")` 추가
+  - `WindowGroup { MainView().preferredColorScheme(resolvedScheme) }`
+  - `resolvedScheme`: light → `.light`, dark → `.dark`, system → `nil`
+
+- [x] **2. `SettingsDrawerView.swift` — 테마 Picker 추가**
+  - `@AppStorage("app_color_scheme")` 추가
+  - "기타" 섹션 상단에 `Picker("테마", selection: $colorSchemeRaw)` 추가
+  - `.preferredColorScheme(.dark)` 하드코딩 제거
+
+- [x] **3. 각 View `.preferredColorScheme(.dark)` 제거**
+  - `MainView.swift`, `AcSettingsView.swift`, `LogView.swift`
+
+### 검토
+- [x] 시뮬레이터 빌드 확인
+
+---
+
+## Live Activity (Dynamic Island + 잠금화면)
+
+### 목표
+잠금/해제 이벤트 발생 시 Dynamic Island + 잠금화면에 10초간 상태 표시
+
+### 수정 항목
+
+- [ ] **1. `BydAutoLockWidget/BydLockActivityAttributes.swift` — 공유 모델 (새 파일)**
+  - `ActivityAttributes` 구조체: `ContentState(isLocked, eventLabel)`, `vehicleName`
+  - 메인 앱 + 위젯 두 타겟에서 공유 (`project.yml` sources 추가)
+
+- [ ] **2. `BydAutoLockWidget/BydAutoLockLiveActivity.swift` — 뷰 (새 파일)**
+  - Dynamic Island: compact leading/trailing, minimal, expanded
+  - 잠금화면: 차량 아이콘 + 이벤트 레이블 + 잠금 상태
+
+- [ ] **3. `BydAutoLockWidget/BydAutoLockWidget.swift` — WidgetBundle 전환**
+  - `@main` 제거 후 `BydAutoLockWidgetBundle` 추가
+
+- [ ] **4. `BydAutoLock/Service/BydLiveActivityManager.swift` — 관리자 (새 파일)**
+  - `@available(iOS 16.1, *)` 조건부 클래스
+  - `show(isLocked:eventLabel:)`: 기존 Activity 종료 → 새로 시작 → 10초 후 `.immediate` 종료
+
+- [ ] **5. `BydAutoLock/Service/AutoLockService.swift` — 호출 추가**
+  - `triggerCarAction` 성공 블록 (NotificationManager 호출 직후)에 `if #available(iOS 16.1, *)` 추가
+
+- [ ] **6. `project.yml` — 설정 추가**
+  - 메인 앱 + 위젯 Info.plist: `NSSupportsLiveActivities: true`
+  - 메인 앱 sources에 공유 파일 경로 추가
+
+### 검토
+- [ ] 시뮬레이터 빌드 확인
+- [ ] Dynamic Island 시뮬레이터 테스트 (iPhone 16 Pro)
+
+---
+
 ## 화이트박스 테스트 #4 (main 브랜치 전체 코드)
 
 ### 수정 완료

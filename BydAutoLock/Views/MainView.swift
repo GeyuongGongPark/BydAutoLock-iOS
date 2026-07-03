@@ -39,7 +39,6 @@ struct MainView: View {
                     }
                 }
             }
-            .preferredColorScheme(.dark)
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active { WidgetCenter.shared.reloadAllTimelines() }
         }
