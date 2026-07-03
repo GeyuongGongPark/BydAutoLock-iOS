@@ -78,9 +78,13 @@ struct LogView: View {
 
     private func shareLog() {
         let all = logManager.fetchLogs(limit: 5000)
-        let text = all.reversed()
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        let header = "BYD AutoLock v\(appVersion) (build \(buildNumber))\n---\n"
+        let body = all.reversed()
             .map { "[\($0.formattedTime)] [\($0.tag)] \($0.message)" }
             .joined(separator: "\n")
+        let text = header + body
 
         let df = DateFormatter()
         df.dateFormat = "yyyyMMdd_HHmmss"

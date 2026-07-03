@@ -417,3 +417,102 @@ if remaining > 0 {
 
 ---
 
+## CMMotionActivityManager 재호출 시 이전 manager 정리 필수
+
+**`startMotionUpdates()`가 여러 번 호출될 때 이전 manager가 살아있는 문제:**
+
+경로: `centralManagerDidUpdateState(.poweredOn)` → `startStationaryTimer()` 반복 호출 가능
+→ DispatchSourceTimer cancel 후 이미 dispatch된 핸들러가 실행됨
+→ 5분 후 `startMotionUpdates()` 중복 호출
+→ `motionManager = manager` 로 덮어쓰기만 하면 이전 manager는 `stopActivityUpdates()` 없이 살아있음
+→ 이전 manager의 콜백 계속 발생 → "움직임 감지" 중복 로그
+
+**해결**: 새 manager 생성 전 이전 manager를 먼저 정리:
+```swift
+private func startMotionUpdates() {
+    guard CMMotionActivityManager.isActivityAvailable() else { return }
+    motionManager?.stopActivityUpdates()  // 이전 manager 먼저 정리
+    let manager = CMMotionActivityManager()
+    motionManager = manager
+    ...
+}
+```
+
+**원칙**: 외부 시스템 리소스(CMMotionActivityManager, CLLocationManager 등)를 교체할 때는
+반드시 이전 인스턴스의 cleanup(stopUpdates, invalidate 등)을 먼저 호출할 것.
+
+---
+
+## 신호 소실 알림 쿨다운 리셋 위치 패턴
+
+**문제**: `processRSSI`에서 신호 복구 시 `resetSignalLostCooldown()` 호출 → BLE 20초 재연결 사이클 때마다 쿨다운이 nil로 리셋 → 매 20초 알림 폭탄
+
+**올바른 리셋 위치**:
+- **리셋하면 안 됨**: `processRSSI` 신호 복구 시 — BLE 사이클 재연결이므로 "새로운 신호 소실 알림" 불필요
+- **리셋해야 함**: 자동 잠금 성공 후 — 이후 다시 이탈하면 알림 받아야 함
+- **리셋해야 함**: `stop()` — 서비스 재시작 시 초기 상태
+
+**쿨다운**: 60초 → 5분(300초). BLE가 5분마다 끊기더라도 최대 5분에 한 번만 알림.
+
+**결과**:
+- 차 안 BLE 20초 사이클: 알림 없음 (쿨다운 5분이 채워지지 않음)
+- 실제 신호 소실 → 잠금 실행 → `resetSignalLostCooldown()` → 다음 이탈 시 즉시 알림 가능
+
+---
+
+## 이탈 감지 경로의 isDriving 체크 누락 패턴
+
+**접근 감지에는 isDriving 체크가 있는데, 이탈 감지에는 없는 비대칭 패턴:**
+
+- `evaluateProximity()` 접근 감지 경로: `if storage.isAutoUnlockOnApproach && !isDriving` ← isDriving 체크 O
+- `evaluateProximity()` 이탈 감지 경로: `if storage.isAutoLockOnDeparture && lastKnownLocked != true` ← isDriving 체크 X
+
+**로그에서 확인된 버그 시나리오**:
+```
+주행 중 감지 → NEAR 상태에서 주행 시작 → RSSI 급락(-85)
+→ 이탈 감지 (wasNear=true, rssi <= lockThreshold) → isDriving 미체크 → 잠금 API 실행
+```
+
+**수정**: 이탈 감지 후 잠금 전 `isDriving` 체크 추가:
+```swift
+if isDriving {
+    LogManager.shared.log("BLE", "잠금 차단 - 주행 중")
+} else if storage.isAutoLockOnDeparture && lastKnownLocked != true {
+    // 잠금 로직
+}
+```
+
+**원칙**: 잠금/해제 각 경로마다 독립적으로 `isDriving` 체크를 검토할 것. 한 쪽에 있다고 다른 쪽에도 있다고 가정하지 말 것.
+
+---
+
+## 예측 해제 취소 후 진행 중인 API 결과 처리 패턴
+
+**증상**: "예측 호출 취소 - RSSI 하강" 이후에도 잠금 해제 API 성공 → `lastKnownLocked = false` 업데이트
+
+**원인**: 예측 해제 시 `triggerCarAction()` → 내부 `Task { }` 생성 → API 호출 비동기 진행
+→ API 응답 대기 중 RSSI 하강 → `isPredictiveUnlockPending = false` (플래그만 리셋)
+→ 이미 실행 중인 Task는 계속 진행 → API 성공 → `lastKnownLocked = false` 업데이트
+→ `proximityState == .far` 상태에서 `lastKnownLocked = false` → 이탈 감지 조건 불충족 → 잠금 불가
+
+**해결**: `triggerCarAction(wasPredictive: Bool = false)` 파라미터 추가
+→ 자동 해제 API 완료 후 취소 여부 확인:
+```swift
+if wasPredictive && shouldUnlock {
+    let cancelled = await MainActor.run {
+        !self.isPredictiveUnlockPending && self.proximityState == .far
+    }
+    if cancelled {
+        LogManager.shared.log("API", "예측 해제 API 완료됐으나 취소 상태 - lastKnownLocked 업데이트 스킵")
+        return
+    }
+}
+```
+
+**케이스 검증**:
+- 접근 감지 후 API 완료: `proximityState == .near` → `cancelled = false` → 정상 처리 ✓
+- RSSI 하강 취소 + API 완료: `isPredictiveUnlockPending = false`, `proximityState = .far` → `cancelled = true` → 스킵 ✓
+- signal loss 중 API 완료: `isPredictiveUnlockPending = false`, `proximityState` 유지(.far) → `cancelled = true` → 스킵 ✓
+
+---
+

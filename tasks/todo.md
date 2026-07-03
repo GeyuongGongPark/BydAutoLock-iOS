@@ -416,6 +416,54 @@
 
 ---
 
+## 로그 분석 #4 (SEALION 7 / ATTO 3, 2026-07-03)
+
+### 수정 항목
+
+- [x] **1. startMotionUpdates() — 기존 manager stopActivityUpdates 누락**
+  - 원인: `motionManager = manager` 전 이전 manager `stopActivityUpdates()` 없이 덮어씀
+  - 경로: `centralManagerDidUpdateState(.poweredOn)` → `startStationaryTimer()` 여러 번 호출 가능
+    → timer cancel 후 이미 dispatch된 핸들러 실행 → `startMotionUpdates()` 중복 호출
+    → 이전 manager 살아있어 콜백 계속 발생 → "움직임 감지" 중복 로그
+  - 수정: `startMotionUpdates()` 첫 줄에 `motionManager?.stopActivityUpdates()` 추가
+  - 파일: `AutoLockService.swift`
+
+- [x] **2. 예측 해제 취소 후에도 API 잠금 해제가 실행되는 문제**
+  - 원인: `isPredictiveUnlockPending = true` → `triggerCarAction()` Task 시작
+    → API 응답 대기 중 RSSI 하강 → `isPredictiveUnlockPending = false` 리셋
+    → 하지만 이미 진행 중인 Task는 계속 실행 → API 성공 → `lastKnownLocked = false` 업데이트
+    → `proximityState == .far` 상태에서 lastKnownLocked=false → 이탈 감지 불가 → 문 안 잠김
+  - 수정: `triggerCarAction(wasPredictive:)` 파라미터 추가
+    → Task 내 API 완료 후 취소 여부 확인 (`!isPredictiveUnlockPending && proximityState == .far`)
+    → 취소 상태이면 lastKnownLocked 업데이트 스킵 + 로그
+  - 파일: `AutoLockService.swift`
+
+- [x] **3. 로그에 앱 버전 포함**
+  - 서비스 시작 시: `LogManager.shared.log("App", "BYD AutoLock v\(version) (build \(build))")` 기록
+  - 내보내기 파일 헤더: `BYD AutoLock v... (build ...)\n---\n` 첫 줄 추가
+  - 파일: `AutoLockService.swift`, `LogView.swift`
+
+- [x] **4. 주행 중 이탈 감지 → 자동 잠금 실행 (SEALION 7 두 번째 로그, 07-02 14:28)**
+- [x] **5. 신호 소실 알림 폭탄 (DOLPHIN 피드백 — 차 안에서 알림 지속)**
+  - 원인: 20초 BLE 사이클(끊김→재연결) 시 `processRSSI`에서 `resetSignalLostCooldown()` 호출
+    → 쿨다운 nil 리셋 → 20초 후 또 끊김 → 또 알림 → 반복
+  - 수정 1: `processRSSI`에서 `resetSignalLostCooldown()` 호출 제거 (코멘트로 이유 명시)
+  - 수정 2: `signalLostCooldown` 60초 → 300초(5분)
+  - 수정 3: 자동 잠금 성공 후 `resetSignalLostCooldown()` 호출 (다음 이탈 시 즉시 알림)
+  - 수정 4: `stop()`에서 `resetSignalLostCooldown()` 호출 (서비스 재시작 시 초기화)
+  - 파일: `NotificationManager.swift`, `AutoLockService.swift`
+  - 원인: `evaluateProximity()` 이탈 감지 경로에 `isDriving` 체크 없음
+    → 주행 중 RSSI 급락 → 이탈 감지 → `triggerCarAction(shouldUnlock: false)` 실행
+  - 접근 감지 경로에는 이미 `!isDriving` 체크가 있었으나 이탈 감지 경로는 누락됨
+  - 수정: 이탈 감지 후 잠금 API 호출 전 `if isDriving` 분기 추가 + 로그
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 화이트박스 테스트 — 취소/접근/신호소실 케이스 모두 검증
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
 ## Live Activity (Dynamic Island + 잠금화면)
 
 ### 목표

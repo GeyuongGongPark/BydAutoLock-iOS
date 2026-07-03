@@ -170,6 +170,9 @@ final class AutoLockService: NSObject, ObservableObject {
             }
         }
 
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        LogManager.shared.log("App", "BYD AutoLock v\(appVersion) (build \(buildNumber))")
         LogManager.shared.log("AutoLockService", "서비스 시작 - 대상: \(targetName ?? mac)")
         NotificationManager.shared.sendServiceStarted()
     }
@@ -201,6 +204,7 @@ final class AutoLockService: NSObject, ObservableObject {
         smoothedRssi = nil
         rawRssi = nil
         proximityState = .far
+        NotificationManager.shared.resetSignalLostCooldown()
         LogManager.shared.log("AutoLockService", "서비스 중지")
         NotificationManager.shared.sendServiceStopped()
         storage.saveWidgetData(isRunning: false, isLocked: nil, battery: nil, drivingRange: nil)
@@ -362,12 +366,12 @@ final class AutoLockService: NSObject, ObservableObject {
     private func processRSSI(_ rssi: Int) {
         rawRssi = rssi
 
-        // 신호 복구 → grace timer 취소 + 알림 쿨다운 리셋
+        // 신호 복구 → grace timer 취소
+        // (알림 쿨다운은 리셋하지 않음 — BLE 20초 재연결 사이클마다 알림 폭탄 방지)
         if signalLossTimer != nil {
             LogManager.shared.log("BLE", "신호 복구. 잠금 유예 취소.")
             signalLossTimer?.cancel()
             signalLossTimer = nil
-            NotificationManager.shared.resetSignalLostCooldown()
         }
 
         // 재연결 직후 첫 읽기: EMA/필터 없이 raw RSSI로 즉시 unlock 판단
@@ -517,14 +521,16 @@ final class AutoLockService: NSObject, ObservableObject {
                 departureLockTimer = nil
                 isPredictiveUnlockPending = true
                 LogManager.shared.log("BLE", "예측 사전 해제 (RSSI: \(Int(rssi)), 기울기: \(String(format: "%.2f", slope)) dBm/s)")
-                triggerCarAction(shouldUnlock: true, isManual: false)
+                triggerCarAction(shouldUnlock: true, isManual: false, wasPredictive: true)
             }
         } else if wasNear && rssi <= lockThreshold {
             // 이탈 감지
             proximityState = .far
             isPredictiveUnlockPending = false
             LogManager.shared.log("BLE", "이탈 감지 (RSSI: \(Int(rssi)) <= \(Int(lockThreshold)))")
-            if storage.isAutoLockOnDeparture && lastKnownLocked != true {
+            if isDriving {
+                LogManager.shared.log("BLE", "잠금 차단 - 주행 중")
+            } else if storage.isAutoLockOnDeparture && lastKnownLocked != true {
                 // unlock 쿨다운 중이면 만료 후 잠금 예약 (즉시 차단 대신)
                 let remaining: TimeInterval
                 if let t = lastAutoUnlockTime {
@@ -543,7 +549,7 @@ final class AutoLockService: NSObject, ObservableObject {
 
     // MARK: - Car Action
 
-    private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true) {
+    private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true, wasPredictive: Bool = false) {
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
             // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지, 방어적 처리)
@@ -606,6 +612,14 @@ final class AutoLockService: NSObject, ObservableObject {
                     if shouldUnlock { try await service.unlockAuto(vin: vin, pin: pin) }
                     else            { try await service.lockAuto(vin: vin, pin: pin) }
                     result = true
+                    // 예측 해제였는데 API 진행 중 취소된 경우 — lastKnownLocked 업데이트 스킵
+                    if wasPredictive && shouldUnlock {
+                        let cancelled = await MainActor.run { !self.isPredictiveUnlockPending && self.proximityState == .far }
+                        if cancelled {
+                            LogManager.shared.log("API", "예측 해제 API 완료됐으나 취소 상태 - lastKnownLocked 업데이트 스킵")
+                            return
+                        }
+                    }
                 }
 
                 let isLocked = !shouldUnlock
@@ -623,6 +637,10 @@ final class AutoLockService: NSObject, ObservableObject {
 
                 LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨") [\(isManual ? "수동" : "자동")]")
                 NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual)
+                // 자동 잠금 성공 시 신호소실 알림 쿨다운 리셋 → 다음 신호 소실 시 즉시 알림 가능
+                if !isManual && !shouldUnlock {
+                    NotificationManager.shared.resetSignalLostCooldown()
+                }
 
                 // 자동 에어컨
                 if shouldUnlock && storage.isAutoAcOnUnlock {
@@ -811,6 +829,8 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func startMotionUpdates() {
         guard CMMotionActivityManager.isActivityAvailable() else { return }
+        // 이전 manager가 살아있으면 먼저 정리 (중복 콜백 방지)
+        motionManager?.stopActivityUpdates()
         let manager = CMMotionActivityManager()
         motionManager = manager
         manager.startActivityUpdates(to: .main) { [weak self] activity in

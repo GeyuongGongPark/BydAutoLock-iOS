@@ -9,7 +9,7 @@ final class NotificationManager {
     private let center = UNUserNotificationCenter.current()
     private let storage = StorageManager.shared
     private var lastSignalLostTime: Date?
-    private static let signalLostCooldown: TimeInterval = 60
+    private static let signalLostCooldown: TimeInterval = 300   // 5분 (BLE 20초 사이클 알림 폭탄 방지)
 
     private init() {}
 
