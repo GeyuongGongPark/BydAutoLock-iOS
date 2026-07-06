@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>개인정보 처리방침 – BYD AutoLock</title>
+  <meta name="description" content="BYD AutoLock 앱의 개인정보 처리방침입니다." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --surface: #0e0e10; --surface2: #1a1a1e;
+      --border: rgba(255,255,255,.08); --text: #f5f5f7; --text2: #98989f;
+      --blue: #2f6bff; --radius: 18px;
+      --nav-bg: rgba(0,0,0,.75);
+    }
+    [data-theme="light"] {
+      --bg: #f5f5f7; --surface: #ffffff; --surface2: #e8e8ed;
+      --border: rgba(0,0,0,.1); --text: #1d1d1f; --text2: #6e6e73;
+      --nav-bg: rgba(245,245,247,.8);
+    }
+    @media (prefers-color-scheme: light) {
+      [data-theme="system"] {
+        --bg: #f5f5f7; --surface: #ffffff; --surface2: #e8e8ed;
+        --border: rgba(0,0,0,.1); --text: #1d1d1f; --text2: #6e6e73;
+        --nav-bg: rgba(245,245,247,.8);
+      }
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; line-height: 1.7; -webkit-font-smoothing: antialiased; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; background: var(--nav-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 15px; font-weight: 600; letter-spacing: -.3px; text-decoration: none; color: var(--text); }
+    .nav-logo span { color: var(--blue); }
+    .theme-toggle { display: flex; gap: 2px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+    .theme-btn { width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background .15s; color: var(--text2); }
+    .theme-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 96px 24px 80px; }
+
+    .page-header { margin-bottom: 48px; }
+    .page-header h1 { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 8px; }
+    .page-header .meta { font-size: 14px; color: var(--text2); }
+
+    .lang-tabs { display: flex; gap: 8px; margin-bottom: 40px; }
+    .lang-tab { padding: 7px 18px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; }
+    .lang-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    .content { display: none; }
+    .content.active { display: block; }
+
+    h2 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; margin: 40px 0 12px; }
+    h2:first-child { margin-top: 0; }
+    p { color: var(--text2); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th { text-align: left; padding: 10px 14px; background: var(--surface2); color: var(--text); font-weight: 600; border-bottom: 1px solid var(--border); }
+    th:first-child { border-radius: 10px 0 0 0; }
+    th:last-child { border-radius: 0 10px 0 0; }
+    td { padding: 10px 14px; color: var(--text2); border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+    tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+    tbody { background: var(--surface); }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; margin: 16px 0; }
+    .card p { margin: 0; }
+
+    .highlight { color: var(--blue); font-weight: 500; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    footer { text-align: center; color: var(--text2); font-size: 13px; padding: 40px 24px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body data-theme="system">
+
+<nav>
+  <a href="/" class="nav-logo">BYD <span>AutoLock</span></a>
+  <div class="theme-toggle">
+    <button class="theme-btn" onclick="setTheme('dark')" title="다크">🌙</button>
+    <button class="theme-btn active" onclick="setTheme('system')" title="시스템">⚙️</button>
+    <button class="theme-btn" onclick="setTheme('light')" title="라이트">☀️</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>개인정보 처리방침</h1>
+    <p class="meta">Privacy Policy &nbsp;·&nbsp; 최종 업데이트: 2026-07-06</p>
+  </div>
+
+  <div class="lang-tabs">
+    <button class="lang-tab active" onclick="switchLang('ko')">한국어</button>
+    <button class="lang-tab" onclick="switchLang('en')">English</button>
+  </div>
+
+  <!-- 한국어 -->
+  <div id="ko" class="content active">
+
+    <div class="card">
+      <p><span class="highlight">BYD AutoLock</span>은 사용자의 개인정보를 개발자 서버로 수집하거나 제3자와 공유하지 않습니다. 모든 민감 정보는 사용자 기기 내에서만 처리됩니다.</p>
+    </div>
+
+    <h2>1. 수집하는 정보 및 사용 목적</h2>
+    <table>
+      <thead>
+        <tr><th>정보</th><th>사용 목적</th><th>저장 위치</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BYD 계정 (ID · 비밀번호)</td>
+          <td>BYD 서버 인증 및 차량 제어 API 호출</td>
+          <td>기기 내 (iOS Keychain / App Group)</td>
+        </tr>
+        <tr>
+          <td>위치 정보</td>
+          <td>주차 위치 기반 지오펜싱 — 차량 근접 여부 판단</td>
+          <td>기기 내에만 저장, 외부 전송 없음</td>
+        </tr>
+        <tr>
+          <td>Bluetooth (BLE)</td>
+          <td>BYD 차량 BLE 신호 감지 — 거리 측정 및 자동 잠금/해제</td>
+          <td>수집 없음 (실시간 처리만)</td>
+        </tr>
+        <tr>
+          <td>동작 센서 (Motion)</td>
+          <td>정지/이동 감지 — 불필요한 BLE 스캔 줄여 배터리 절약</td>
+          <td>수집 없음 (실시간 처리만)</td>
+        </tr>
+        <tr>
+          <td>앱 진단 로그</td>
+          <td>오류 진단 및 기능 개선</td>
+          <td>기기 내에만 저장, 사용자가 직접 내보내기 가능</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. 외부 서버 전송</h2>
+    <p>앱은 차량 제어 및 상태 조회를 위해 <strong>BYD 공식 서버 (byd.auto)</strong>에만 통신합니다. 개발자가 운영하는 별도 서버는 없으며, 사용자 정보가 개발자에게 전달되지 않습니다.</p>
+    <table>
+      <thead>
+        <tr><th>전송 대상</th><th>전송 내용</th><th>목적</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BYD 서버 (byd.auto)</td>
+          <td>계정 인증 토큰, 차량 제어 명령</td>
+          <td>차량 잠금/해제 · 상태 조회</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. 제3자 공유</h2>
+    <p>사용자의 어떠한 정보도 제3자와 공유하지 않습니다. 광고, 분석, 마케팅 목적의 SDK가 포함되어 있지 않습니다.</p>
+
+    <h2>4. 데이터 보관 및 삭제</h2>
+    <p>모든 데이터는 사용자 기기 내에 저장됩니다. 앱을 삭제하면 기기에 저장된 모든 데이터가 함께 삭제됩니다. 개발자는 사용자의 데이터를 보유하지 않습니다.</p>
+
+    <h2>5. 아동 개인정보</h2>
+    <p>이 앱은 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 의도적으로 수집하지 않습니다.</p>
+
+    <h2>6. 비공식 앱 안내</h2>
+    <p>BYD AutoLock은 BYD가 공식적으로 제작하거나 승인한 앱이 아닌, 독립 개발자가 만든 비공식 서드파티 앱입니다. BYD의 공개 API를 사용하며, 사용자가 자신의 BYD 계정으로 직접 로그인하여 동작합니다.</p>
+
+    <h2>7. 문의</h2>
+    <p>개인정보 처리방침에 대한 문의는 아래로 연락해 주세요.</p>
+    <div class="card">
+      <p>이메일: <a href="mailto:contact@bydautolock.app">contact@bydautolock.app</a></p>
+    </div>
+
+    <h2>8. 방침 변경</h2>
+    <p>본 방침이 변경될 경우 이 페이지에서 업데이트된 내용을 확인하실 수 있습니다. 변경 일자는 페이지 상단에 표시됩니다.</p>
+
+  </div>
+
+  <!-- English -->
+  <div id="en" class="content">
+
+    <div class="card">
+      <p><span class="highlight">BYD AutoLock</span> does not collect personal information on developer servers or share it with third parties. All sensitive data is processed solely on the user's device.</p>
+    </div>
+
+    <h2>1. Information We Collect and How We Use It</h2>
+    <table>
+      <thead>
+        <tr><th>Information</th><th>Purpose</th><th>Storage</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BYD Account (ID · Password)</td>
+          <td>Authentication with BYD servers and vehicle control API calls</td>
+          <td>On-device only (iOS Keychain / App Group)</td>
+        </tr>
+        <tr>
+          <td>Location</td>
+          <td>Geofencing based on parking location — determining vehicle proximity</td>
+          <td>On-device only, never transmitted externally</td>
+        </tr>
+        <tr>
+          <td>Bluetooth (BLE)</td>
+          <td>BYD vehicle BLE signal detection — distance measurement and auto lock/unlock</td>
+          <td>Not stored (real-time processing only)</td>
+        </tr>
+        <tr>
+          <td>Motion Sensors</td>
+          <td>Stationary/moving detection — reducing unnecessary BLE scans to save battery</td>
+          <td>Not stored (real-time processing only)</td>
+        </tr>
+        <tr>
+          <td>App Diagnostic Logs</td>
+          <td>Error diagnosis and feature improvement</td>
+          <td>On-device only; exportable by user</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. Data Transmitted to External Servers</h2>
+    <p>The app communicates only with <strong>BYD's official servers (byd.auto)</strong> for vehicle control and status queries. The developer does not operate any separate server, and no user information is transmitted to the developer.</p>
+    <table>
+      <thead>
+        <tr><th>Destination</th><th>Data Sent</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BYD Server (byd.auto)</td>
+          <td>Account authentication token, vehicle control commands</td>
+          <td>Vehicle lock/unlock · status queries</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Third-Party Sharing</h2>
+    <p>We do not share any user information with third parties. The app contains no advertising, analytics, or marketing SDKs.</p>
+
+    <h2>4. Data Retention and Deletion</h2>
+    <p>All data is stored on the user's device. Deleting the app removes all locally stored data. The developer does not retain any user data.</p>
+
+    <h2>5. Children's Privacy</h2>
+    <p>This app is not directed at children under the age of 13 and does not knowingly collect personal information from children.</p>
+
+    <h2>6. Third-Party App Disclaimer</h2>
+    <p>BYD AutoLock is an independent third-party app and is not made or endorsed by BYD. It uses BYD's publicly accessible API, and users authenticate directly with their own BYD accounts.</p>
+
+    <h2>7. Contact</h2>
+    <p>For questions regarding this privacy policy, please contact us at:</p>
+    <div class="card">
+      <p>Email: <a href="mailto:contact@bydautolock.app">contact@bydautolock.app</a></p>
+    </div>
+
+    <h2>8. Changes to This Policy</h2>
+    <p>If this policy is updated, the revised version will be available on this page. The date of the latest update is shown at the top of this page.</p>
+
+  </div>
+
+</div>
+
+<footer>
+  &copy; 2026 BYD AutoLock &nbsp;·&nbsp; <a href="/">홈으로</a>
+</footer>
+
+<script>
+  function setTheme(t) {
+    document.body.setAttribute('data-theme', t);
+    document.querySelectorAll('.theme-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['dark','system','light'][i] === t);
+    });
+    localStorage.setItem('theme', t);
+  }
+  function switchLang(lang) {
+    document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.lang-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(lang).classList.add('active');
+    event.target.classList.add('active');
+  }
+  const saved = localStorage.getItem('theme') || 'system';
+  setTheme(saved);
+</script>
+</body>
+</html>
