@@ -358,6 +358,10 @@ actor BydVehicleService {
         )
         let serial = triggerResult["requestSerial"] as? String
 
+        // tbox가 차량 센서 데이터를 수집해 서버에 올리는 데 약 2~3초 소요
+        // 1.5초 대기 후 폴링 시작 → attempt 1 성공 가능성 향상
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+
         // tbox 응답 지연(3002 처리 중) 대응 — 최대 5회 재시도, 2초 간격
         var result: [String: Any]? = nil
         for attempt in 1...5 {

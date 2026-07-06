@@ -193,6 +193,7 @@ final class AutoLockService: NSObject, ObservableObject {
         gpsPollTimer = nil
         signalLossTimer?.cancel()
         signalLossTimer = nil
+        NotificationManager.shared.cancelSignalLostNotification()
         departureLockTimer?.cancel()
         departureLockTimer = nil
         rssiDisplayNilTimer?.cancel()
@@ -385,12 +386,13 @@ final class AutoLockService: NSObject, ObservableObject {
         rssiDisplayNilTimer?.cancel()
         rssiDisplayNilTimer = nil
 
-        // 신호 복구 → grace timer 취소
+        // 신호 복구 → grace timer 및 pending 알림 취소
         // (알림 쿨다운은 리셋하지 않음 — BLE 20초 재연결 사이클마다 알림 폭탄 방지)
         if signalLossTimer != nil {
-            LogManager.shared.log("BLE", "신호 복구. 잠금 유예 취소.")
+            LogManager.shared.log("BLE", "신호 복구. 안전 잠금 취소.")
             signalLossTimer?.cancel()
             signalLossTimer = nil
+            NotificationManager.shared.cancelSignalLostNotification()
         }
 
         // 재연결 직후 첫 읽기: EMA/필터 없이 raw RSSI로 즉시 unlock 판단
@@ -469,7 +471,7 @@ final class AutoLockService: NSObject, ObservableObject {
             if isDriving {
                 LogManager.shared.log("BLE", "신호 소실 - 주행 중이므로 알림 및 잠금 스킵.")
             } else {
-                LogManager.shared.log("BLE", "신호 소실. \(Int(Self.signalLossGracePeriod))초 유예 후 잠금 예정.")
+                LogManager.shared.log("BLE", "신호 소실. \(Int(Self.signalLossGracePeriod))초 내 미복구 시 안전 잠금.")
                 NotificationManager.shared.sendSignalLost()
                 startSignalLossTimer()
             }
@@ -483,7 +485,7 @@ final class AutoLockService: NSObject, ObservableObject {
         timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self, self.signalLossTimer != nil, self.proximityState == .near else { return }
-                LogManager.shared.log("BLE", "신호 소실 \(Int(Self.signalLossGracePeriod))초 경과. 안전 잠금 실행.")
+                LogManager.shared.log("BLE", "신호 \(Int(Self.signalLossGracePeriod))초간 미복구 → 안전 잠금 실행.")
                 self.signalLossTimer = nil
                 self.proximityState = .far
                 // updateCooldown: false → 재연결 직후 unlock이 cooldown에 차단되지 않도록

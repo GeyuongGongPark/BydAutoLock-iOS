@@ -49,12 +49,21 @@ final class NotificationManager {
         let now = Date()
         if let last = lastSignalLostTime, now.timeIntervalSince(last) < Self.signalLostCooldown { return }
         lastSignalLostTime = now
+        // 30초 지연 발송 — BLE 재연결 사이클(~20초)이나 isDriving 전환 지연으로 인한
+        // 오탐 알림 방지. 신호 복구 시 cancelSignalLostNotification()으로 취소됨.
         send(
             id: "signal_lost",
             title: "차량 신호 끊김",
-            body: "BLE 신호를 잃었습니다. 60초 후 자동으로 잠금됩니다.",
-            sound: .default
+            body: "BLE 신호를 잃었습니다. 60초 내 미복구 시 안전 잠금합니다.",
+            sound: .default,
+            delay: 30
         )
+    }
+
+    func cancelSignalLostNotification() {
+        center.removePendingNotificationRequests(withIdentifiers: ["signal_lost"])
+        // pending 알림이 취소됐으므로 쿨다운도 리셋 — 다음 소실 시 즉시 알림 가능하도록
+        lastSignalLostTime = nil
     }
 
     func resetSignalLostCooldown() {
@@ -123,7 +132,7 @@ final class NotificationManager {
 
     // MARK: - Private
 
-    private func send(id: String, title: String, body: String, sound: UNNotificationSound?) {
+    private func send(id: String, title: String, body: String, sound: UNNotificationSound?, delay: TimeInterval = 0) {
         // 동일 id의 기존 알림 제거 (알림 누적 방지)
         center.removeDeliveredNotifications(withIdentifiers: [id])
         center.removePendingNotificationRequests(withIdentifiers: [id])
@@ -133,7 +142,10 @@ final class NotificationManager {
         content.body  = body
         content.sound = sound
 
-        let req = UNNotificationRequest(identifier: id, content: content, trigger: nil)
+        let trigger: UNNotificationTrigger? = delay > 0
+            ? UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
+            : nil
+        let req = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         center.add(req)
     }
 }

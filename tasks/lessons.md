@@ -551,3 +551,23 @@ do {
 **안전성**: `silentReLogin()`은 `isRelogging` 플래그로 무한 재귀 차단됨.
 
 ---
+
+## 신호 소실 알림 30초 지연 발송 패턴
+
+**문제**: BLE 재연결 사이클(~20초) + isDriving 감지 지연으로 인해 주행 중·차량 근처에서 "차량 신호 끊김" 알림 발송
+
+**해결**: `sendSignalLost()`를 즉시 발송 대신 30초 지연 pending 등록 (`UNTimeIntervalNotificationTrigger`)
+→ 신호 복구 시 `cancelSignalLostNotification()`으로 pending 취소
+→ 30초 내 복구되는 BLE 재연결 사이클에서는 알림이 발송되지 않음
+
+**쿨다운 리셋 위치 주의**:
+- `cancelSignalLostNotification()` 내에서 `lastSignalLostTime = nil`도 함께 리셋해야 함
+- pending 취소 시 쿨다운이 유지되면 → 실제 멀어질 때 소실 → 5분 쿨다운에 차단 → 알림 못 받음
+- 30초 지연 자체가 폭탄 방지 역할을 하므로 쿨다운 리셋해도 안전
+
+**stop()에서 pending 취소 필수**:
+- `stop()` 시 `signalLossTimer?.cancel()`만 하면 30초 pending 알림은 OS에 남아있음
+- 서비스 중지 후 30초 뒤 알림 발송 → 사용자 혼란
+- `stop()`에서 `cancelSignalLostNotification()` 반드시 호출할 것
+
+---

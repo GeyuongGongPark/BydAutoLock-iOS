@@ -27,8 +27,8 @@ targets:
     info:
       path: BydAutoLock/Info.plist
       properties:
-        CFBundleShortVersionString: "1.5.2"
-        CFBundleVersion: "14"
+        CFBundleShortVersionString: "1.5.3"
+        CFBundleVersion: "15"
         # 전체 화면 지원 (레터박스 제거)
         UILaunchScreen: {}
         # 세로 모드 고정

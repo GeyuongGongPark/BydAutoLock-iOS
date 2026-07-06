@@ -531,3 +531,34 @@
 
 ### 검토
 - [x] 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
+## v1.5.3 작업 (이번 세션)
+
+- [x] **vehicleRealTimeRequest 후 1.5초 초기 딜레이 추가** — attempt 1 성공률 향상
+  - 파일: `BydAutoLock/API/BydVehicleService.swift`
+
+- [x] **신호 소실 로그 메시지 개선** — "60초 유예 후 잠금 예정" → "60초 내 미복구 시 안전 잠금"
+  - 파일: `AutoLockService.swift`
+
+- [x] **신호 소실 푸시 알림 메시지 개선** — "60초 후 자동으로 잠금됩니다" → "60초 내 미복구 시 안전 잠금합니다"
+  - 파일: `NotificationManager.swift`
+
+- [x] **신호 소실 알림 30초 지연 발송** — 주행 중/BLE 재연결 사이클 오탐 알림 방지
+  - 파일: `NotificationManager.swift`, `AutoLockService.swift`
+
+### 화이트박스 테스트 #5 (이번 변경분)
+
+- [x] **cancelSignalLostNotification() 쿨다운 리셋 누락** (화이트박스 발견)
+  - pending 취소 후 `lastSignalLostTime` 유지 → 5분 쿨다운 진행 → 실제 이탈 시 알림 못 받음
+  - 수정: `cancelSignalLostNotification()`에 `lastSignalLostTime = nil` 추가
+  - 파일: `NotificationManager.swift`
+
+- [x] **stop() 에서 pending 알림 미취소** (화이트박스 발견)
+  - 서비스 중지 후 30초 후 알림 발송 가능
+  - 수정: `stop()`에 `cancelSignalLostNotification()` 추가
+  - 파일: `AutoLockService.swift`
+
+### 검토
+- [x] 빌드 확인 (BUILD SUCCEEDED)
