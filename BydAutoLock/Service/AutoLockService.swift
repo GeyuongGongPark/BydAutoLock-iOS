@@ -96,6 +96,10 @@ final class AutoLockService: NSObject, ObservableObject {
     private var signalLossTimer: DispatchSourceTimer?
     private static let signalLossGracePeriod: TimeInterval = 60
 
+    // RSSI 표시 nil 지연 타이머 (BLE 재연결 사이클에서 UI "신호 없음" 깜빡임 방지)
+    private var rssiDisplayNilTimer: DispatchSourceTimer?
+    private static let rssiDisplayNilDelay: TimeInterval = 5
+
     // 이탈 감지 시 unlock 쿨다운 중이면 만료 후 잠금 예약
     private var departureLockTimer: DispatchSourceTimer?
 
@@ -191,6 +195,8 @@ final class AutoLockService: NSObject, ObservableObject {
         signalLossTimer = nil
         departureLockTimer?.cancel()
         departureLockTimer = nil
+        rssiDisplayNilTimer?.cancel()
+        rssiDisplayNilTimer = nil
         stationaryTimer?.cancel()
         stationaryTimer = nil
         motionManager?.stopActivityUpdates()
@@ -222,10 +228,20 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
-        guard let service = vehicleService else { throw BydError.serviceNotRunning }
-        let status = try await service.fetchVehicleStatus(vin: vin)
-        lastKnownLocked = status.isLocked
-        return status
+        guard let service = vehicleService else {
+            LogManager.shared.log("API", "차량 상태 조회 실패: 서비스 미연결")
+            throw BydError.serviceNotRunning
+        }
+        LogManager.shared.log("API", "차량 상태 조회 시작")
+        do {
+            let status = try await service.fetchVehicleStatus(vin: vin)
+            LogManager.shared.log("API", "차량 상태 조회 완료: 배터리 \(status.batteryPercentage)%, 주행가능 \(Int(status.drivingRange))km, 잠금 \(status.isLocked ? "잠김" : "열림")")
+            lastKnownLocked = status.isLocked
+            return status
+        } catch {
+            LogManager.shared.log("API", "차량 상태 조회 오류: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     func manualLock() {
@@ -365,6 +381,9 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func processRSSI(_ rssi: Int) {
         rawRssi = rssi
+        // 재연결 시 표시 nil 타이머 취소 — "신호 없음" 깜빡임 방지
+        rssiDisplayNilTimer?.cancel()
+        rssiDisplayNilTimer = nil
 
         // 신호 복구 → grace timer 취소
         // (알림 쿨다운은 리셋하지 않음 — BLE 20초 재연결 사이클마다 알림 폭탄 방지)
@@ -422,10 +441,24 @@ final class AutoLockService: NSObject, ObservableObject {
         evaluateProximity()
     }
 
+    private func scheduleRssiDisplayNil() {
+        rssiDisplayNilTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + Self.rssiDisplayNilDelay)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.smoothedRssi = nil
+            self.rawRssi = nil
+            self.rssiDisplayNilTimer = nil
+        }
+        timer.resume()
+        rssiDisplayNilTimer = timer
+    }
+
     private func handleSignalLoss() {
-        guard smoothedRssi != nil else { return }
-        smoothedRssi = nil
-        rawRssi = nil
+        guard smoothedRssi != nil || rssiDisplayNilTimer != nil else { return }
+        // rawRssi/smoothedRssi를 즉시 nil 처리하지 않고 5초 지연 — BLE 재연결 시 "신호 없음" 깜빡임 방지
+        scheduleRssiDisplayNil()
         // rssiWindow 유지 — BLE 20초 사이클 간 데이터 누적으로 예측 사전 해제 활성화
         isPredictiveUnlockPending = false
         // 이탈 예약 잠금 취소 — signalLossTimer와 중복 잠금 방지
@@ -897,6 +930,8 @@ extension AutoLockService: CBCentralManagerDelegate {
                 self.startStationaryTimer()
             case .poweredOff:
                 LogManager.shared.log("BLE", "블루투스 꺼짐.")
+                self.rssiDisplayNilTimer?.cancel()
+                self.rssiDisplayNilTimer = nil
                 self.smoothedRssi = nil
                 self.rawRssi = nil
                 self.scanModeDescription = "블루투스 꺼짐"
@@ -1055,6 +1090,8 @@ extension AutoLockService: GeofenceManagerDelegate {
         centralManager?.stopScan()
         isScanning = false
         scanModeDescription = "지오펜스 외부"
+        rssiDisplayNilTimer?.cancel()
+        rssiDisplayNilTimer = nil
         smoothedRssi = nil
         rawRssi = nil
         LogManager.shared.log("Geofence", "지오펜스 이탈. BLE 스캔 중단 (연결 유지).")

@@ -516,3 +516,38 @@ if wasPredictive && shouldUnlock {
 
 ---
 
+
+## BLE 재연결 사이클에서 UI "신호 없음" 깜빡임 패턴
+
+**증상**: 앱 화면을 보고 있으면 RSSI 카드가 20초마다 "신호 없음"으로 잠깐 깜빡임
+
+**원인**: `handleSignalLoss()`에서 `rawRssi/smoothedRssi = nil` 즉시 처리
+→ 1-2초 후 재연결 성공 → 다시 RSSI 표시. 20초 사이클 반복으로 깜빡임.
+
+**해결**: nil 처리를 5초 지연 타이머(`rssiDisplayNilTimer`)로 처리
+→ 재연결 시 `processRSSI()`에서 타이머 취소 → UI는 값 유지, "신호 없음" 안 보임
+
+**취소 위치**: processRSSI (재연결), stop(), .poweredOff, didExitGeofence — 즉시 nil 필요한 곳에서는 타이머 취소 + 직접 nil 처리
+
+**주의**: `replace_all: true`로 Edit 툴 쓰면 파일 전체에서 모든 패턴이 교체됨 — lessons.md 같이 반복 패턴이 많은 파일에 절대 사용 금지. 항상 맨 끝에 append.
+
+---
+
+## 세션 갱신 중 복호화 실패 → silentReLogin 재시도 패턴
+
+**증상**: 로그에 `CryptoError error 1` + 세션 갱신 성공 직후 동시 발생
+
+**원인 추정**: `postTokenSecure()` actor suspend 중 `login()`이 실행되어 서버 응답 암호화 키 불일치 가능 (정확한 원인 불명, 서버 동작에 의존).
+
+**해결**: 응답 복호화 실패 시 세션 만료처럼 처리 → `silentReLogin()` 재시도
+```swift
+do {
+    innerText = try CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
+} catch {
+    LogManager.shared.log("API", "응답 복호화 실패 — 재로그인 후 재시도")
+    return try await silentReLogin(endpoint: endpoint, innerMap: innerMap, vin: vin)
+}
+```
+**안전성**: `silentReLogin()`은 `isRelogging` 플래그로 무한 재귀 차단됨.
+
+---

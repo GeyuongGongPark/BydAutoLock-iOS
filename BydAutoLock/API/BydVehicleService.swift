@@ -178,7 +178,14 @@ actor BydVehicleService {
         let respondData = outerResp["respondData"] as? String ?? ""
         if respondData.isEmpty { return outerResp }
 
-        let innerText = try CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
+        let innerText: String
+        do {
+            innerText = try CryptoUtils.aesDecryptUTF8(respondData, keyHex: CryptoUtils.md5Hex(encTok))
+        } catch {
+            // 복호화 실패 — 세션 갱신으로 인한 토큰 불일치 가능, 재로그인 후 재시도
+            LogManager.shared.log("API", "응답 복호화 실패 — 재로그인 후 재시도")
+            return try await silentReLogin(endpoint: endpoint, innerMap: innerMap, vin: vin)
+        }
         guard let innerData = innerText.data(using: .utf8) else { throw BydError.invalidResponse }
         if innerText.hasPrefix("[") {
             guard let arr = try JSONSerialization.jsonObject(with: innerData) as? [[String: Any]] else {
@@ -351,14 +358,27 @@ actor BydVehicleService {
         )
         let serial = triggerResult["requestSerial"] as? String
 
-        var pollInner = buildInnerBase(vin: vin, requestSerial: serial)
-        pollInner.append(("energyType", "0"))
-        pollInner.append(("tboxVersion", "3"))
-
-        let result = try await postTokenSecure(
-            endpoint: "/vehicleInfo/vehicle/vehicleRealTimeResult",
-            innerMap: pollInner, vin: vin
-        )
+        // tbox 응답 지연(3002 처리 중) 대응 — 최대 5회 재시도, 2초 간격
+        var result: [String: Any]? = nil
+        for attempt in 1...5 {
+            if attempt > 1 {
+                try await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+            var pollInner = buildInnerBase(vin: vin, requestSerial: serial)
+            pollInner.append(("energyType", "0"))
+            pollInner.append(("tboxVersion", "3"))
+            do {
+                result = try await postTokenSecure(
+                    endpoint: "/vehicleInfo/vehicle/vehicleRealTimeResult",
+                    innerMap: pollInner, vin: vin
+                )
+                break
+            } catch BydError.serverError(_, let code) where code == "3002" {
+                LogManager.shared.log("API", "차량 상태 조회 처리 중 (시도 \(attempt)/5)")
+                if attempt == 5 { throw BydError.controlTimeout }
+            }
+        }
+        guard let result = result else { throw BydError.invalidResponse }
 
         var status = VehicleStatus()
         status.batteryPercentage = (result["soc"] as? Int) ?? (result["elecPercent"] as? Int) ?? 0
