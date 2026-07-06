@@ -89,7 +89,7 @@
 
 <div class="container">
   <div class="page-header">
-    <h1>개인정보 처리방침</h1>
+    <h1 id="page-title">개인정보 처리방침</h1>
     <p class="meta">Privacy Policy &nbsp;·&nbsp; 최종 업데이트: 2026-07-06</p>
   </div>
 
@@ -259,7 +259,7 @@
 </div>
 
 <footer>
-  &copy; 2026 BYD AutoLock &nbsp;·&nbsp; <a href="/">홈으로</a>
+  &copy; 2026 BYD AutoLock &nbsp;·&nbsp; <a href="./index.html">홈으로</a>
 </footer>
 
 <script>
@@ -275,6 +275,8 @@
     document.querySelectorAll('.lang-tab').forEach(el => el.classList.remove('active'));
     document.getElementById(lang).classList.add('active');
     event.target.classList.add('active');
+    document.getElementById('page-title').textContent =
+      lang === 'en' ? 'Privacy Policy' : '개인정보 처리방침';
   }
   const saved = localStorage.getItem('theme') || 'system';
   setTheme(saved);
