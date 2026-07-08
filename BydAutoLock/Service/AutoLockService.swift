@@ -677,19 +677,29 @@ final class AutoLockService: NSObject, ObservableObject {
                     NotificationManager.shared.resetSignalLostCooldown()
                 }
 
-                // 자동 에어컨
+                // 자동 에어컨 (잠금/해제 명령 처리 완료 후 서버 준비 대기)
                 if shouldUnlock && storage.isAutoAcOnUnlock {
                     let temp  = Double(storage.acTargetTemp)
                     let cycle = storage.acCycleMode
                     let wind  = storage.acWindLevel > 0 ? storage.acWindLevel : nil
-                    _ = try? await service.startClimate(vin: vin, temp: temp, durationMinutes: 20,
-                                                        cycleMode: cycle, windLevel: wind, pin: pin)
-                    LogManager.shared.log("API", "에어컨 자동 시작: \(temp)°C")
-                    NotificationManager.shared.sendAcStarted(temp: temp)
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    do {
+                        let ok = try await service.startClimate(vin: vin, temp: temp, durationMinutes: 20,
+                                                                cycleMode: cycle, windLevel: wind, pin: pin)
+                        LogManager.shared.log("API", "에어컨 자동 시작: \(temp)°C → \(ok ? "성공" : "전송됨")")
+                        NotificationManager.shared.sendAcStarted(temp: temp)
+                    } catch {
+                        LogManager.shared.log("API", "에어컨 자동 시작 실패: \(error.localizedDescription)")
+                    }
                 } else if !shouldUnlock && storage.isAutoAcOffOnLock {
-                    _ = try? await service.stopClimate(vin: vin, pin: pin)
-                    LogManager.shared.log("API", "에어컨 자동 종료")
-                    NotificationManager.shared.sendAcStopped()
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    do {
+                        let ok = try await service.stopClimate(vin: vin, pin: pin)
+                        LogManager.shared.log("API", "에어컨 자동 종료 → \(ok ? "성공" : "전송됨")")
+                        NotificationManager.shared.sendAcStopped()
+                    } catch {
+                        LogManager.shared.log("API", "에어컨 자동 종료 실패: \(error.localizedDescription)")
+                    }
                 }
 
             } catch {

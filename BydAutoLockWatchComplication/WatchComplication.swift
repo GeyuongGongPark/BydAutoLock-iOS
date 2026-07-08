@@ -98,24 +98,21 @@ struct WatchComplicationView: View {
             VStack(spacing: 4) {
                 Link(destination: URL(string: "bydautolock://unlock")!) {
                     Image(systemName: "lock.open.fill")
-                        .font(.title3)
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.green)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .frame(width: 36, height: 24)
                         .background(.green.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 Link(destination: URL(string: "bydautolock://lock")!) {
                     Image(systemName: "lock.fill")
-                        .font(.title3)
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.orange)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .frame(width: 36, height: 24)
                         .background(.orange.opacity(0.2))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
-            .frame(width: 44)
         }
         .containerBackground(.clear, for: .widget)
     }
