@@ -252,15 +252,19 @@ if !driving && isGeofencingEnabled && !isInsideGeofence && isAutoLockOnDeparture
 
 ---
 
-## 비동기 재시도 후 상태 갱신 누락 패턴
+## 비동기 재시도 코드 패턴 — try? 무조건 상태 갱신 금지
 
-**`try?` fire-and-forget 재시도 성공 여부와 상관없이 상태 갱신이 필요한 경우:**
-- 자동 잠금 실패 → 45초 후 `try? await service.lockAuto()` 재시도
-- 재시도 성공해도 `lastKnownLocked`가 이전 값으로 유지 → 다음 재연결 사이클에서 중복 API 호출
-- 재시도 코드 작성 시 반드시 상태 갱신 라인 추가:
+**`try?`로 재시도하고 무조건 상태 업데이트하면 실패해도 성공으로 표시됨:**
+- `try? await service.lockAuto()` + `await MainActor.run { self.lastKnownLocked = true }` 패턴은 잘못됨
+- 에러가 발생해도 `lastKnownLocked`가 업데이트 → 앱에서는 잠겼다고 표시, 실제로는 안 잠김
+- **올바른 패턴**: `do-catch`로 감싸서 성공 시에만 상태 업데이트:
   ```swift
-  try? await service.lockAuto(vin: vin, pin: pin)
-  await MainActor.run { self.lastKnownLocked = true }  // 빠뜨리지 말 것
+  do {
+      try await service.lockAuto(vin: vin, pin: pin)
+      await MainActor.run { self.lastKnownLocked = true }  // 성공 시에만
+  } catch {
+      LogManager.shared.log("API", "재시도 실패: \(error.localizedDescription)")
+  }
   ```
 
 ---
@@ -584,5 +588,78 @@ do {
 - `stop()` 시 `signalLossTimer?.cancel()`만 하면 30초 pending 알림은 OS에 남아있음
 - 서비스 중지 후 30초 뒤 알림 발송 → 사용자 혼란
 - `stop()`에서 `cancelSignalLostNotification()` 반드시 호출할 것
+
+---
+
+## 자동 잠금/해제 검증 후 알림 패턴
+
+**문제**: fire-and-forget으로 API 명령 전송 후 즉시 알림 발송 → BYD 서버 OK지만 차량 tbox 미실행 시 "알림은 왔는데 실제로 안 됨" 현상
+
+**해결**: 명령 전송 후 35초 대기 → `fetchVehicleStatus`로 실제 상태 검증 → 일치 시 알림 / 불일치 시 재시도 → 45초 후 재검증 → 성공/실패 알림
+
+**핵심 패턴**:
+- 수동 동작: 기존처럼 즉시 알림 (폴링으로 결과 확인하므로 신뢰 가능)
+- 자동 동작: `scheduleVerifyAndNotify`로 위임, 별도 Background Task 보호
+- 검증 중 proximityState 변화 감지 → 스킵 (다시 접근/이탈한 경우 검증 의미 없음)
+- `fetchVehicleStatus` 오류 시 → 명령 전송 기준으로 알림 발송 (보수적 처리)
+
+**재시도 구분**:
+- 기존 catch 재시도: API 에러(네트워크/서버 오류) 대응
+- 새 검증 재시도: API 성공했으나 차량이 실행 안 한 경우 대응
+- 두 경로는 완전히 분리 (중복 없음)
+
+---
+
+## App Intents 구현 시 actor-isolation 주의
+
+**`BydVehicleService`가 actor이면 동기 컨텍스트에서 메서드 호출 불가:**
+- `makeServiceContext()`를 일반 `func`으로 만들면 `service.setCredentials()`, `service.restoreSession()` 호출 시 컴파일 에러
+- **해결**: `makeServiceContext()`를 `async func`으로 선언 → `await` 사용 가능
+
+```swift
+private func makeServiceContext() async throws -> (...) {
+    ...
+    await service.setCredentials(...)
+    await service.restoreSession(...)
+}
+// Intent perform()에서:
+let (...) = try await makeServiceContext()
+```
+
+---
+
+## AppShortcutsProvider phrase 규칙
+
+**모든 phrase 문자열에 `\(.applicationName)` 포함 필수 (iOS 16.4+):**
+- `AppShortcut`의 `phrases` 배열에서 단 하나의 문자열이라도 `\(.applicationName)` 없으면 빌드 에러
+- 에러: `Invalid Utterance. Every App Shortcut utterance should have one '${applicationName}' in it.`
+- **올바른 패턴**: 모든 phrases를 `"\(.applicationName) 명령"` 형태로 작성
+
+```swift
+phrases: ["\(.applicationName) 트렁크 열어", "\(.applicationName) 트렁크 열기"]
+// ❌ 아래는 컴파일 에러
+phrases: ["트렁크 열어", "\(.applicationName) 트렁크 열어"]
+```
+
+---
+
+## 서버 에러 코드별 재시도 여부 결정 패턴
+
+**재시도해도 의미 없는 에러는 즉시 종료해야 함:**
+- `5011`: 작동 비밀번호 미설정 → 재시도해도 계속 5011 → 사용자가 BYD 앱에서 PIN 설정해야 해결
+- 이런 에러를 재시도 루프에 넣으면 45초 × N번 헛된 API 호출 발생
+- **처리 패턴**: catch에서 에러 코드 확인 → 5011이면 사용자 알림 발송 + 즉시 return
+  ```swift
+  if let bydErr = error as? BydError, case .serverError(_, let code) = bydErr, code == "5011" {
+      NotificationManager.shared.sendPinNotConfigured()
+      return
+  }
+  // 그 외 일시적 오류만 재시도
+  ```
+
+**API 로그에 파라미터 값 기록 중요성:**
+- 에어컨 windLevel 문제(앱 2단 설정 → 실제 7단 동작)를 로그로 추적하기 위해 파라미터 값을 로그에 포함해야 함
+- `"에어컨 자동 시작: 22.0°C"` → 추적 불가
+- `"에어컨 자동 시작: 22.0°C, 풍속: 2단"` → 실제 전송값 추적 가능
 
 ---

@@ -281,6 +281,14 @@ struct MainView: View {
                         service.manualLock()
                     }
                 }
+                HStack(spacing: 12) {
+                    actionButton(title: "트렁크 열기", icon: "car.rear.and.tire.marks", color: .indigo) {
+                        service.manualOpenTrunk()
+                    }
+                    actionButton(title: "트렁크 닫기", icon: "car.rear.road.lane.dashed", color: .secondary) {
+                        service.manualCloseTrunk()
+                    }
+                }
             }
         }
     }

@@ -121,11 +121,31 @@ final class NotificationManager {
         )
     }
 
+    func sendPinNotConfigured() {
+        send(
+            id: "pin_not_configured",
+            title: "작동 비밀번호 미설정",
+            body: "BYD 앱에서 작동 비밀번호(핀)를 설정해야 원격 제어가 동작합니다.",
+            sound: .default
+        )
+    }
+
     func sendAutoActionSuppressed() {
         send(
             id: "auto_suppressed",
             title: "자동 잠금/해제 일시 중단",
             body: "신호가 불안정해 자동 동작이 5분간 차단됩니다. 수동 제어는 정상 동작합니다.",
+            sound: .default
+        )
+    }
+
+    func sendLockFailed(isUnlock: Bool) {
+        send(
+            id: "lock_failed",
+            title: isUnlock ? "잠금 해제 실패" : "잠금 실패",
+            body: isUnlock
+                ? "잠금 해제 명령이 전달되지 않았습니다. 차량 상태를 확인해주세요."
+                : "잠금 명령이 전달되지 않았습니다. 차량 상태를 확인해주세요.",
             sound: .default
         )
     }

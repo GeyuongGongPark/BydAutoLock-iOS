@@ -52,11 +52,38 @@ final class AutoLockService: NSObject, ObservableObject {
     private var rssiTimer: DispatchSourceTimer?
     private static let rssiReadInterval: TimeInterval = 3.0
 
+    // MARK: - 차량별 BLE 파라미터
+
+    private struct VehicleProfile {
+        let rssiWindowDuration:    TimeInterval  // RSSI 누적 윈도우 (초)
+        let signalLossGracePeriod: TimeInterval  // 안전 잠금 대기 시간 (초)
+        let predictiveMinSlope:    Double        // 예측 해제 최소 기울기 (dBm/s)
+    }
+
+    private static func makeProfile(for model: String) -> VehicleProfile {
+        switch model {
+        case "ATTO 3":
+            // 20초 BLE 사이클, 접근 기울기 0.5~2.0 dBm/s
+            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
+        case "SEALION 7":
+            // 20초 BLE 사이클, 접근 기울기 0.5~2.7 dBm/s
+            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
+        case "DOLPHIN":
+            // 데이터 수집 중 — 기본값 사용
+            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
+        default:
+            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
+        }
+    }
+
+    private var vehicleProfile: VehicleProfile {
+        Self.makeProfile(for: storage.vehicleModel)
+    }
+
     // RSSI 필터링
     private struct RssiPoint { let time: Date; let dbm: Int }
     private var rssiWindow = [RssiPoint]()
     private var consecutiveRejections = 0
-    private static let rssiWindowDuration: TimeInterval = 60  // 연결 사이클 간 데이터 누적용
     private static let maxRejections = 3
 
     // 자동 lock/unlock 쿨다운 (진동 방지)
@@ -287,6 +314,34 @@ final class AutoLockService: NSObject, ObservableObject {
         }
     }
 
+    func manualOpenTrunk() {
+        guard let service = vehicleService,
+              let vin = storage.selectedVin,
+              let pin = storage.pin else { return }
+        Task {
+            let ok = (try? await service.openTrunk(vin: vin, pin: pin)) ?? false
+            await MainActor.run {
+                self.lastApiResult = ok ? "트렁크 열기 성공" : "트렁크 열기 전송됨"
+                self.lastApiTime   = Date()
+            }
+            LogManager.shared.log("API", "트렁크 수동 열기: \(ok ? "성공" : "전송됨")")
+        }
+    }
+
+    func manualCloseTrunk() {
+        guard let service = vehicleService,
+              let vin = storage.selectedVin,
+              let pin = storage.pin else { return }
+        Task {
+            let ok = (try? await service.closeTrunk(vin: vin, pin: pin)) ?? false
+            await MainActor.run {
+                self.lastApiResult = ok ? "트렁크 닫기 성공" : "트렁크 닫기 전송됨"
+                self.lastApiTime   = Date()
+            }
+            LogManager.shared.log("API", "트렁크 수동 닫기: \(ok ? "성공" : "전송됨")")
+        }
+    }
+
     // MARK: - Background Task
 
     private func beginRssiPollingBGTask() {
@@ -416,7 +471,7 @@ final class AutoLockService: NSObject, ObservableObject {
         // 선형 회귀 이상값 필터링
         let now = Date()
         rssiWindow.append(RssiPoint(time: now, dbm: rssi))
-        rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < Self.rssiWindowDuration }
+        rssiWindow = rssiWindow.filter { now.timeIntervalSince($0.time) < vehicleProfile.rssiWindowDuration }
 
         if rssiWindow.count >= 4 {
             let predicted = linearRegressionPredict(rssiWindow)
@@ -471,7 +526,7 @@ final class AutoLockService: NSObject, ObservableObject {
             if isDriving {
                 LogManager.shared.log("BLE", "신호 소실 - 주행 중이므로 알림 및 잠금 스킵.")
             } else {
-                LogManager.shared.log("BLE", "신호 소실. \(Int(Self.signalLossGracePeriod))초 내 미복구 시 안전 잠금.")
+                LogManager.shared.log("BLE", "신호 소실. \(Int(vehicleProfile.signalLossGracePeriod))초 내 미복구 시 안전 잠금.")
                 NotificationManager.shared.sendSignalLost()
                 startSignalLossTimer()
             }
@@ -480,12 +535,19 @@ final class AutoLockService: NSObject, ObservableObject {
 
     private func startSignalLossTimer() {
         signalLossTimer?.cancel()
+        let gracePeriod = vehicleProfile.signalLossGracePeriod
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now() + Self.signalLossGracePeriod)
+        timer.schedule(deadline: .now() + gracePeriod)
         timer.setEventHandler { [weak self] in
             Task { @MainActor in
                 guard let self, self.signalLossTimer != nil, self.proximityState == .near else { return }
-                LogManager.shared.log("BLE", "신호 \(Int(Self.signalLossGracePeriod))초간 미복구 → 안전 잠금 실행.")
+                // 주행 중 발동 방지 — 탑승 직후 주행 시작 시 안전 잠금 오발 케이스
+                if self.isDriving {
+                    LogManager.shared.log("BLE", "안전 잠금 타이머 만료 - 주행 중이므로 스킵.")
+                    self.signalLossTimer = nil
+                    return
+                }
+                LogManager.shared.log("BLE", "신호 \(Int(gracePeriod))초간 미복구 → 안전 잠금 실행.")
                 self.signalLossTimer = nil
                 self.proximityState = .far
                 // updateCooldown: false → 재연결 직후 unlock이 cooldown에 차단되지 않도록
@@ -550,7 +612,7 @@ final class AutoLockService: NSObject, ObservableObject {
                     && storage.isAutoUnlockOnApproach && !isDriving {
             // 예측적 사전 호출: 임계값 근접 + 상승 기울기 확인
             let slope = linearRegressionSlope(rssiWindow)
-            if slope >= Self.predictiveMinSlope {
+            if slope >= vehicleProfile.predictiveMinSlope {
                 // 접근 중 확인 → 예약된 이탈 잠금 취소
                 departureLockTimer?.cancel()
                 departureLockTimer = nil
@@ -635,6 +697,13 @@ final class AutoLockService: NSObject, ObservableObject {
         }
 
         Task {
+            // RSSI 폴링 BG Task 만료 시점에도 API가 완료될 수 있도록 전용 BG Task 보호
+            var actionBGTaskID = UIBackgroundTaskIdentifier.invalid
+            actionBGTaskID = UIApplication.shared.beginBackgroundTask(withName: "LockUnlockAction") {
+                UIApplication.shared.endBackgroundTask(actionBGTaskID)
+            }
+            defer { UIApplication.shared.endBackgroundTask(actionBGTaskID) }
+
             do {
                 // 자동 동작: fire-and-forget (폴링 없이 즉시 반환 → 체감 지연 제거)
                 // 수동 동작: 폴링으로 결과 확인
@@ -671,7 +740,13 @@ final class AutoLockService: NSObject, ObservableObject {
                 }
 
                 LogManager.shared.log("API", "\(shouldUnlock ? "잠금 해제" : "잠금"): \(result ? "성공" : "전송됨") [\(isManual ? "수동" : "자동")]")
-                NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual)
+                if isManual {
+                    // 수동: 폴링으로 결과 확인 완료 → 즉시 알림
+                    NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: true)
+                } else {
+                    // 자동: 35초 후 실제 차량 상태 검증 후 알림 (fire-and-forget 오발 방지)
+                    self.scheduleVerifyAndNotify(shouldUnlock: shouldUnlock, service: service, vin: vin, pin: pin)
+                }
                 // 자동 잠금 성공 시 신호소실 알림 쿨다운 리셋 → 다음 신호 소실 시 즉시 알림 가능
                 if !isManual && !shouldUnlock {
                     NotificationManager.shared.resetSignalLostCooldown()
@@ -686,7 +761,7 @@ final class AutoLockService: NSObject, ObservableObject {
                     do {
                         let ok = try await service.startClimate(vin: vin, temp: temp, durationMinutes: 20,
                                                                 cycleMode: cycle, windLevel: wind, pin: pin)
-                        LogManager.shared.log("API", "에어컨 자동 시작: \(temp)°C → \(ok ? "성공" : "전송됨")")
+                        LogManager.shared.log("API", "에어컨 자동 시작: \(temp)°C, 풍속: \(wind.map { "\($0)단" } ?? "자동") → \(ok ? "성공" : "전송됨")")
                         NotificationManager.shared.sendAcStarted(temp: temp)
                     } catch {
                         LogManager.shared.log("API", "에어컨 자동 시작 실패: \(error.localizedDescription)")
@@ -708,15 +783,89 @@ final class AutoLockService: NSObject, ObservableObject {
                     self.lastApiTime = Date()
                 }
                 LogManager.shared.log("API", "오류: \(error.localizedDescription)")
-                // 자동 잠금 실패 시 45초 후 1회 재시도 (6002 등 일시적 통신 오류 대비)
-                if !isManual && !shouldUnlock {
-                    LogManager.shared.log("API", "자동 잠금 실패 - 45초 후 재시도 예정")
-                    try? await Task.sleep(nanoseconds: 45_000_000_000)
-                    guard await MainActor.run(body: { self.proximityState == .far }) else { return }
-                    try? await service.lockAuto(vin: vin, pin: pin)
-                    await MainActor.run { self.lastKnownLocked = true }
-                    LogManager.shared.log("API", "자동 잠금 재시도 완료")
+                // 5011: 작동 비밀번호 미설정 → 재시도 의미 없음, 사용자에게 설정 안내
+                if let bydErr = error as? BydError, case .serverError(_, let code) = bydErr, code == "5011" {
+                    NotificationManager.shared.sendPinNotConfigured()
+                    return
                 }
+                if !isManual {
+                    if !shouldUnlock {
+                        // 자동 잠금 실패 시 45초 후 1회 재시도 (6002 등 일시적 통신 오류 대비)
+                        LogManager.shared.log("API", "자동 잠금 실패 - 45초 후 재시도 예정")
+                        try? await Task.sleep(nanoseconds: 45_000_000_000)
+                        guard await MainActor.run(body: { self.proximityState == .far }) else { return }
+                        do {
+                            try await service.lockAuto(vin: vin, pin: pin)
+                            await MainActor.run { self.lastKnownLocked = true }
+                            LogManager.shared.log("API", "자동 잠금 재시도 완료")
+                        } catch {
+                            LogManager.shared.log("API", "자동 잠금 재시도 실패: \(error.localizedDescription)")
+                        }
+                    } else {
+                        // 자동 해제 실패 시 2초 후 1회 재시도 (6024 서버 상태 불일치 대비)
+                        LogManager.shared.log("API", "자동 해제 실패 - 2초 후 재시도 예정")
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        guard await MainActor.run(body: { self.proximityState == .near }) else { return }
+                        do {
+                            try await service.unlockAuto(vin: vin, pin: pin)
+                            await MainActor.run { self.lastKnownLocked = false }
+                            LogManager.shared.log("API", "자동 해제 재시도 완료")
+                        } catch {
+                            LogManager.shared.log("API", "자동 해제 재시도 실패: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Lock/Unlock Verification
+
+    /// 자동 잠금/해제 명령 전송 후 35초 대기 → 실제 차량 상태 검증 → 알림 발송
+    /// 불일치 시 재시도 1회 → 45초 후 재검증 → 성공/실패 알림
+    /// fetchVehicleStatus 오류 시 명령 전송 기준 알림 (상태 확인 불가)
+    private func scheduleVerifyAndNotify(shouldUnlock: Bool, service: BydVehicleService, vin: String, pin: String) {
+        Task {
+            var verifyTaskID = UIBackgroundTaskIdentifier.invalid
+            verifyTaskID = UIApplication.shared.beginBackgroundTask(withName: "LockVerify") {
+                UIApplication.shared.endBackgroundTask(verifyTaskID)
+            }
+            defer { UIApplication.shared.endBackgroundTask(verifyTaskID) }
+
+            do {
+                try await Task.sleep(nanoseconds: 35_000_000_000) // 35초 대기
+
+                // proximityState가 바뀌었으면 검증 의미 없음 (다시 접근/이탈)
+                let currentState = await MainActor.run { self.proximityState }
+                let expectedLocked = !shouldUnlock
+                if expectedLocked && currentState != .far  { return } // 잠금했는데 다시 접근
+                if !expectedLocked && currentState != .near { return } // 해제했는데 다시 이탈
+
+                let status = try await service.fetchVehicleStatus(vin: vin)
+                if status.isLocked == expectedLocked {
+                    LogManager.shared.log("API", "\(expectedLocked ? "잠금" : "해제") 검증 완료 (확인됨)")
+                    NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: false)
+                } else {
+                    // 불일치 → 재시도 1회
+                    LogManager.shared.log("API", "\(expectedLocked ? "잠금" : "해제") 검증 불일치 → 재시도")
+                    if expectedLocked { try await service.lockAuto(vin: vin, pin: pin) }
+                    else              { try await service.unlockAuto(vin: vin, pin: pin) }
+
+                    try await Task.sleep(nanoseconds: 45_000_000_000) // 45초 후 재검증
+
+                    let retryStatus = try await service.fetchVehicleStatus(vin: vin)
+                    if retryStatus.isLocked == expectedLocked {
+                        LogManager.shared.log("API", "\(expectedLocked ? "잠금" : "해제") 재시도 검증 완료")
+                        NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: false)
+                    } else {
+                        LogManager.shared.log("API", "\(expectedLocked ? "잠금" : "해제") 최종 실패")
+                        NotificationManager.shared.sendLockFailed(isUnlock: shouldUnlock)
+                    }
+                }
+            } catch {
+                // 상태 조회 실패 시 명령 전송 기준 알림 (보수적 처리)
+                LogManager.shared.log("API", "상태 검증 오류 (\(error.localizedDescription)) → 명령 전송 기준 알림")
+                NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: false)
             }
         }
     }
