@@ -17,7 +17,7 @@ struct AuthSettingsView: View {
     private let regions = ["KR", "EU", "JP", "SG", "AU", "BR", "MX", "NO", "UZ", "KZ", "IN", "ID", "VN", "SA", "OM"]
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("BYD 계정") {
                     TextField("이메일 / 아이디", text: $username)

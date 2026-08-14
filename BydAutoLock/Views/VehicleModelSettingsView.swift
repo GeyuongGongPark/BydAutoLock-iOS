@@ -32,11 +32,9 @@ struct VehicleModelSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("저장") {
-                    storage.vehicleModel = vehicleModel
-                    dismiss()
+                Button(action: { storage.vehicleModel = vehicleModel; dismiss() }) {
+                    Text("저장").fontWeight(.semibold)
                 }
-                .fontWeight(.semibold)
             }
         }
         .onAppear { vehicleModel = storage.vehicleModel }

@@ -8,7 +8,7 @@ struct BluetoothSettingsView: View {
     private let storage = StorageManager.shared
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 if let saved = storage.deviceName {
                     currentDeviceSection(saved)

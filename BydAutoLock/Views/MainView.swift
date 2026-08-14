@@ -14,7 +14,7 @@ struct MainView: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            NavigationStack {
+            NavigationView {
                 ScrollView {
                     VStack(spacing: 16) {
                         serviceToggleCard

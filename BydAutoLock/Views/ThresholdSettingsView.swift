@@ -40,7 +40,7 @@ struct ThresholdSettingsView: View {
                     HStack {
                         Text("잠금 해제 임계값")
                         Spacer()
-                        Text("\(Int(unlockRssi)) dBm").foregroundStyle(.green).fontWeight(.medium)
+                        Text("\(Int(unlockRssi)) dBm").foregroundStyle(.green).font(.body.weight(.medium))
                     }
                     Slider(value: $unlockRssi, in: -100 ... -40, step: 1)
                         .tint(.green)
@@ -51,7 +51,7 @@ struct ThresholdSettingsView: View {
                     HStack {
                         Text("잠금 임계값")
                         Spacer()
-                        Text("\(Int(lockRssi)) dBm").foregroundStyle(.orange).fontWeight(.medium)
+                        Text("\(Int(lockRssi)) dBm").foregroundStyle(.orange).font(.body.weight(.medium))
                     }
                     Slider(value: $lockRssi, in: -100 ... -40, step: 1)
                         .tint(.orange)
@@ -121,11 +121,9 @@ struct ThresholdSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("저장") {
-                    guard Int(unlockRssi) > Int(lockRssi) else { showRssiError = true; return }  // 같거나 역전 시 차단
-                    save(); dismiss()
+                Button(action: { guard Int(unlockRssi) > Int(lockRssi) else { showRssiError = true; return }; save(); dismiss() }) {
+                    Text("저장").fontWeight(.semibold)
                 }
-                .fontWeight(.semibold)
             }
         }
         .alert("설정 오류", isPresented: $showRssiError) {

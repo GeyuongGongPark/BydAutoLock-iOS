@@ -610,6 +610,25 @@ do {
 
 ---
 
+## lastKnownLocked stale state — unlock 영구 불발 버그
+
+**증상**: 앱 재설치 후 초기에만 문이 열리고, 이후 차 옆에서 RSSI가 충분해도 unlock 안 됨
+
+**원인**: `lastKnownLocked`는 앱이 보낸 명령 결과로만 업데이트됨
+- 첫 unlock 성공 → `lastKnownLocked = false`
+- 이후 BYD 앱/수동 키로 잠금 → 앱은 여전히 `false`로 알고 있음
+- 다음 접근 시 `lastKnownLocked != false` 조건 실패 → unlock API 영구 차단
+
+**해결**: 새 접근 세션 시작 시 `lastKnownLocked = nil` 리셋
+1. `didEnterGeofence()` — 지오펜스 이탈 후 재진입 = 새 세션
+2. `didConnect()` — 마지막 끊김으로부터 2분 이상 경과 후 재연결 = 새 세션
+   - ATTO 3 20초 BLE 사이클은 120초 미만이므로 영향 없음
+
+**원칙**: 외부(BYD 앱, 수동 키)로 차량 상태가 바뀌면 앱이 알 수 없음
+→ "새 접근 세션" 시작 시점을 정의해 `lastKnownLocked`를 nil로 초기화할 것
+
+---
+
 ## App Intents 구현 시 actor-isolation 주의
 
 **`BydVehicleService`가 actor이면 동기 컨텍스트에서 메서드 호출 불가:**

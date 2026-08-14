@@ -11,7 +11,7 @@ struct AcSettingsView: View {
     @State private var cycleMode:       Int   = 2
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 // ── 자동 제어
                 Section("자동 제어") {

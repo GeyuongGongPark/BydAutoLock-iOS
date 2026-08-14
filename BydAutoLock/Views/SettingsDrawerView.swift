@@ -5,7 +5,7 @@ struct SettingsDrawerView: View {
     @AppStorage("app_color_scheme") private var colorSchemeRaw: String = "system"
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 Section("설정") {
                     drawerLink("BYD 계정 설정",    icon: "person.badge.key.fill", color: .blue)    { AuthSettingsView() }

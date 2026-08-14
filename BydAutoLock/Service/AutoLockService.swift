@@ -90,6 +90,7 @@ final class AutoLockService: NSObject, ObservableObject {
     private var lastAutoUnlockTime: Date?
     private var lastAutoLockTime: Date?
     private static let postUnlockLockCooldown: TimeInterval = 30   // unlock 후 lock 차단
+    private var lastDisconnectTime: Date?                          // 재연결 세션 판단용
     private static let postLockUnlockCooldown: TimeInterval = 30   // lock 후 unlock 차단
 
     // 반복 동작 과다 방지 (슬라이딩 윈도우)
@@ -1158,6 +1159,12 @@ extension AutoLockService: CBCentralManagerDelegate {
             LogManager.shared.log("BLE", "BLE 연결 성공: \(peripheral.name ?? "")")
             self.isFirstRssiAfterConnect = true
             self.isPredictiveUnlockPending = false
+            // 2분 이상 단절 후 재연결 → 새 접근 세션으로 간주, 잠금 상태 재확인 필요
+            let disconnectDuration = self.lastDisconnectTime.map { Date().timeIntervalSince($0) } ?? 0
+            if disconnectDuration > 120 {
+                self.lastKnownLocked = nil
+                LogManager.shared.log("BLE", "장시간 단절(\(Int(disconnectDuration))초) 후 재연결 → 잠금 상태 초기화")
+            }
             // 지오펜스 이탈 중에는 RSSI 폴링 시작 안 함
             guard !self.storage.isGeofencingEnabled || self.isInsideGeofence else {
                 LogManager.shared.log("BLE", "지오펜스 외부 - RSSI 폴링 스킵")
@@ -1184,6 +1191,7 @@ extension AutoLockService: CBCentralManagerDelegate {
             self.rssiTimer?.cancel()
             self.rssiTimer = nil
             self.endRssiPollingBGTask()
+            self.lastDisconnectTime = Date()
             LogManager.shared.log("BLE", "BLE 연결 끊김: \(error?.localizedDescription ?? "정상 종료")")
             // BG Task 만료로 인한 끊김은 신호 소실이 아님 → 잠금 스킵
             let wasIntentional = self.isIntentionalDisconnect
@@ -1227,6 +1235,9 @@ extension AutoLockService: GeofenceManagerDelegate {
     func didEnterGeofence() {
         guard isRunning else { return }
         isInsideGeofence = true
+        // 지오펜스 재진입 = 새 접근 세션 → 외부에서 잠금 상태가 바뀌었을 수 있으므로 초기화
+        lastKnownLocked = nil
+        LogManager.shared.log("Geofence", "지오펜스 진입 → 잠금 상태 초기화")
         // 주행 중에는 BLE 재개만 차단 (isInsideGeofence 상태는 정확하게 유지)
         guard !isDriving else { return }
         isStationary = false

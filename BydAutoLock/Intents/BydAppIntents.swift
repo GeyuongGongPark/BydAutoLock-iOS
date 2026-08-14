@@ -28,6 +28,7 @@ private enum BydIntentError: LocalizedError {
 
 // MARK: - Intents
 
+@available(iOS 16.0, *)
 struct LockCarIntent: AppIntent {
     static var title: LocalizedStringResource = "차량 잠금"
     static var description = IntentDescription("BYD 차량을 잠급니다.")
@@ -41,6 +42,7 @@ struct LockCarIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct UnlockCarIntent: AppIntent {
     static var title: LocalizedStringResource = "차량 잠금 해제"
     static var description = IntentDescription("BYD 차량 잠금을 해제합니다.")
@@ -54,6 +56,7 @@ struct UnlockCarIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct OpenTrunkIntent: AppIntent {
     static var title: LocalizedStringResource = "트렁크 열기"
     static var description = IntentDescription("BYD 차량 트렁크를 엽니다.")
@@ -67,6 +70,7 @@ struct OpenTrunkIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct CloseTrunkIntent: AppIntent {
     static var title: LocalizedStringResource = "트렁크 닫기"
     static var description = IntentDescription("BYD 차량 트렁크를 닫습니다.")
@@ -80,6 +84,7 @@ struct CloseTrunkIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct StartClimateIntent: AppIntent {
     static var title: LocalizedStringResource = "에어컨 켜기"
     static var description = IntentDescription("BYD 차량 에어컨을 켭니다.")
@@ -99,6 +104,7 @@ struct StartClimateIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct StopClimateIntent: AppIntent {
     static var title: LocalizedStringResource = "에어컨 끄기"
     static var description = IntentDescription("BYD 차량 에어컨을 끕니다.")

@@ -2,14 +2,14 @@ name: BydAutoLock
 options:
   bundleIdPrefix: com.ggp
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "15.0"
     watchOS: "10.0"
   defaultConfig: Debug
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    DEVELOPMENT_TEAM: "8FUMN5NL47"
+    DEVELOPMENT_TEAM: "B95H9G55RC"
 
 targets:
 
@@ -17,7 +17,7 @@ targets:
   BydAutoLock:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "15.0"
     sources:
       - path: BydAutoLock
         excludes:
@@ -27,8 +27,8 @@ targets:
     info:
       path: BydAutoLock/Info.plist
       properties:
-        CFBundleShortVersionString: "1.5.6"
-        CFBundleVersion: "19"
+        CFBundleShortVersionString: "1.5.7"
+        CFBundleVersion: "20"
         # 전체 화면 지원 (레터박스 제거)
         UILaunchScreen: {}
         # 세로 모드 고정
@@ -80,7 +80,7 @@ targets:
   BydAutoLockTests:
     type: bundle.unit-test
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "15.0"
     sources:
       - path: BydAutoLockTests
         excludes:
