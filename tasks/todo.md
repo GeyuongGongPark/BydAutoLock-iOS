@@ -1,5 +1,17 @@
 # 코드/로그 검수 후 수정 계획
 
+## SEALION 7 차종별 파라미터 조정 (2026-08-18)
+
+- [x] `makeProfile(for:)` SEALION 7 파라미터 조정
+  - `signalLossGracePeriod`: 60 → 90초 (BLE 재연결 불규칙, 잘못된 잠금 방지)
+  - `predictiveMinSlope`: 0.5 → 0.8 (기울기 최대 2.7 dBm/s, 노이즈 필터링 강화)
+  - `rssiWindowDuration`: 60 유지
+- [x] ATTO 3 파라미터 — 기울기 최대 2.0 dBm/s, 기본값(0.5) 유지 (충분)
+- [x] 빌드 확인 — 상수값 변경만, 컴파일 에러 없음
+- [x] lessons.md 업데이트
+
+---
+
 ## 분석 근거
 - 코드 정적 분석 (3개 서브에이전트)
 - 실제 로그 분석: byd_log_20260626_093153, byd_log_20260626_093647

@@ -662,6 +662,33 @@ phrases: ["트렁크 열어", "\(.applicationName) 트렁크 열어"]
 
 ---
 
+## 차종별 VehicleProfile 파라미터 조정 기준
+
+**구조**: `makeProfile(for:)` switch 분기로 차종별 파라미터 적용 (AutoLockService.swift:63)
+**적용 위치**: `vehicleProfile` 프로퍼티가 `StorageManager.vehicleModel`을 읽어 자동 선택
+
+**SEALION 7 vs ATTO 3 로그 기반 차이:**
+
+| 파라미터 | ATTO 3 | SEALION 7 | 이유 |
+|---|---|---|---|
+| `signalLossGracePeriod` | 60초 | **90초** | BLE 재연결 불규칙, 주차 직후 오잠금 방지 |
+| `predictiveMinSlope` | 0.5 | **0.8** | 기울기 최대 2.7(vs ATTO 2.0), 노이즈 필터링 강화 |
+| `rssiWindowDuration` | 60초 | 60초 | 동일 (20초 BLE 사이클 × 3) |
+
+**`signalLossGracePeriod` 조정 영향**:
+- 늘릴수록 신호 소실 후 안전 잠금까지 더 오래 기다림
+- BLE 사이클 끊김(~20초)을 더 많이 허용 → 오잠금 방지
+- 단점: 실제 이탈 시 안전 잠금 지연 (evaluateProximity의 이탈 감지가 더 빠르므로 실용적 영향 미미)
+
+**`predictiveMinSlope` 조정 영향**:
+- 올릴수록 더 강한 기울기에서만 예측 해제 트리거
+- 매우 느린 접근(< 0.8 dBm/s) 시 예측 해제 불발 → `접근 감지`로 1~2분 지연 대체
+- 실제 빠른 접근(1.0+ dBm/s)엔 영향 없음
+
+**원칙**: 더 많은 로그 데이터 수집 후 추가 보정 예정. 데이터 없이 추정으로 조정하면 안 됨.
+
+---
+
 ## 서버 에러 코드별 재시도 여부 결정 패턴
 
 **재시도해도 의미 없는 에러는 즉시 종료해야 함:**

@@ -67,7 +67,9 @@ final class AutoLockService: NSObject, ObservableObject {
             return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
         case "SEALION 7":
             // 20초 BLE 사이클, 접근 기울기 0.5~2.7 dBm/s
-            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
+            // gracePeriod 90초: BLE 재연결 불규칙, 주차 직후 오잠금 방지
+            // minSlope 0.8: 기울기 범위가 커서 노이즈 필터링 강화
+            return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 90, predictiveMinSlope: 0.8)
         case "DOLPHIN":
             // 데이터 수집 중 — 기본값 사용
             return VehicleProfile(rssiWindowDuration: 60, signalLossGracePeriod: 60, predictiveMinSlope: 0.5)
