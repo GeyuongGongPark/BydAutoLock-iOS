@@ -662,6 +662,36 @@ phrases: ["트렁크 열어", "\(.applicationName) 트렁크 열어"]
 
 ---
 
+## 재연결 즉시 unlock 오발동 패턴
+
+**증상 1 (이중 unlock)**: 예측 해제 진행 중 BLE 재연결 → 재연결 즉시 unlock도 별도 발동 → API 2회 중복 호출
+
+**증상 2 (lock 직후 unlock)**: 자동 잠금 성공 → BLE 재연결 사이클 → raw RSSI 1샘플로 즉시 unlock 결정
+
+**원인**: `isFirstRssiAfterConnect` 경로에서 `isPredictiveUnlockPending`과 `lastKnownLocked == true` 체크 없음
+
+**수정**: 재연결 즉시 unlock은 `lastKnownLocked == nil` (상태 불명)인 경우에만 허용
+```swift
+} else if isPredictiveUnlockPending {
+    // 예측 해제 진행 중 → 이중 API 방지
+} else if lastKnownLocked == false {
+    proximityState = .near  // 이미 열림, API 없음
+} else if lastKnownLocked == nil {
+    triggerCarAction(shouldUnlock: true, ...)  // 상태 불명 → 즉시 허용
+}
+// lastKnownLocked == true → EMA 경로 위임 (raw 1샘플로 결정 안 함)
+```
+
+**`lastKnownLocked == nil` 시점** (즉시 unlock 허용되는 경우):
+- 앱 첫 실행
+- 지오펜스 재진입 (`didEnterGeofence`에서 nil 초기화)
+- 2분 이상 BLE 단절 후 재연결 (`didConnect`에서 nil 초기화)
+- 잠금/해제 2회 연속 실패 (`scheduleVerifyAndNotify` 최종 실패 시 nil 초기화)
+
+**`lastKnownLocked == true` → EMA 위임 부작용**: 차 앞에 서 있으면 최대 1 BLE 사이클(~20초) 추가 대기. 허용 가능한 수준.
+
+---
+
 ## vehicleProfile 파라미터와 static let 중복 선언 트랩
 
 **패턴**: 차종별 파라미터를 `VehicleProfile`로 분리한 뒤 기존 `static let` Dead Code를 제거하지 않으면 혼용 위험 발생.

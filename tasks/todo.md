@@ -1,5 +1,15 @@
 # 코드/로그 검수 후 수정 계획
 
+## 재연결 즉시 unlock 오발동 수정 (2026-08-19)
+
+**증상**: 로그에서 이중 unlock (예측 해제 + 재연결 즉시 unlock 동시), lock 후 55초 뒤 재연결로 즉시 열림
+- [x] P1-1: 재연결 즉시 unlock 경로에 `isPredictiveUnlockPending` 체크 추가
+- [x] P1-2: `lastKnownLocked == nil` (상태 불명)인 경우에만 즉시 unlock 허용. `true`이면 EMA 경로 위임
+- [x] 화이트박스 검토 — 6개 시나리오 모두 정상
+- [x] lessons.md 업데이트
+
+---
+
 ## 화이트박스 테스트 수정 (2026-08-19)
 
 - [x] P0-1: `static let signalLossGracePeriod` Dead Code 제거

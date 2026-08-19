@@ -459,15 +459,20 @@ final class AutoLockService: NSObject, ObservableObject {
             if rssi >= storage.unlockRssi && proximityState == .far && storage.isAutoUnlockOnApproach {
                 if isDriving {
                     LogManager.shared.log("BLE", "재연결 즉시 unlock 차단 - 주행 중 (raw RSSI: \(rssi))")
+                } else if isPredictiveUnlockPending {
+                    // 예측 해제 진행 중 → 이중 API 호출 방지, EMA 경로로 위임
+                    LogManager.shared.log("BLE", "재연결 즉시 unlock 차단 - 예측 해제 진행 중 (raw RSSI: \(rssi))")
                 } else if lastKnownLocked == false {
                     // 이미 잠금 해제 상태 → API 불필요, proximityState만 near로
                     proximityState = .near
-                } else {
+                } else if lastKnownLocked == nil {
+                    // 상태 불명 (장시간 단절 후 초기화, 지오펜스 재진입 등) → 즉시 unlock 허용
                     LogManager.shared.log("BLE", "재연결 즉시 unlock (raw RSSI: \(rssi) >= unlockRssi: \(storage.unlockRssi))")
                     proximityState = .near
                     triggerCarAction(shouldUnlock: true, isManual: false)
                     return
                 }
+                // lastKnownLocked == true: 잠금 상태 확인됨 → raw 1샘플로 즉시 결정하지 않고 EMA 경로 위임
             }
         }
 
