@@ -122,9 +122,8 @@ final class AutoLockService: NSObject, ObservableObject {
     // 마지막으로 알려진 차량 잠금 상태 (nil = 모름)
     private var lastKnownLocked: Bool? = nil
 
-    // 신호 소실 grace timer (BLE 끊김 후 즉시 잠금 대신 60초 유예)
+    // 신호 소실 grace timer (BLE 끊김 후 즉시 잠금 대신 유예 — 시간은 vehicleProfile.signalLossGracePeriod)
     private var signalLossTimer: DispatchSourceTimer?
-    private static let signalLossGracePeriod: TimeInterval = 60
 
     // RSSI 표시 nil 지연 타이머 (BLE 재연결 사이클에서 UI "신호 없음" 깜빡임 방지)
     private var rssiDisplayNilTimer: DispatchSourceTimer?
@@ -135,8 +134,8 @@ final class AutoLockService: NSObject, ObservableObject {
 
     // 예측적 사전 잠금 해제
     private var isPredictiveUnlockPending = false
-    private static let predictiveMargin: Double = 8      // 임계값 이전 몇 dBm에서 사전 호출
-    private static let predictiveMinSlope: Double = 0.5  // 최소 상승 기울기 (dBm/초)
+    private static let predictiveMargin: Double = 8  // 임계값 이전 몇 dBm에서 사전 호출
+    // predictiveMinSlope는 차종별 vehicleProfile.predictiveMinSlope 사용
 
 
     // 세션 갱신 타이머 (15분)
@@ -236,6 +235,7 @@ final class AutoLockService: NSObject, ObservableObject {
         drivingMotionManager = nil
         isDriving = false
         isStationary = false
+        isInsideGeofence = false
         isPredictiveUnlockPending = false
         isRunning = false
         smoothedRssi = nil
@@ -863,6 +863,9 @@ final class AutoLockService: NSObject, ObservableObject {
                     } else {
                         LogManager.shared.log("API", "\(expectedLocked ? "잠금" : "해제") 최종 실패")
                         NotificationManager.shared.sendLockFailed(isUnlock: shouldUnlock)
+                        // 최종 실패 시 lastKnownLocked를 nil로 리셋 — 실제 차량 상태 불명이므로
+                        // 다음 접근 세션에서 unlock 조건이 차단되지 않도록
+                        await MainActor.run { self.lastKnownLocked = nil }
                     }
                 }
             } catch {
@@ -1073,6 +1076,18 @@ final class AutoLockService: NSObject, ObservableObject {
                            && self.lastKnownLocked != true {
                             LogManager.shared.log("Motion", "주행 종료 + 지오펜스 외부 → 자동 잠금 실행")
                             self.triggerCarAction(shouldUnlock: false, isManual: false)
+                        } else if self.isInsideGeofence {
+                            // 주행 중 지오펜스 진입으로 차단됐던 BLE 재개를 즉시 실행
+                            // (didEnterGeofence에서 isDriving=true로 차단된 경우를 복구)
+                            self.isStationary = false
+                            LogManager.shared.log("Motion", "주행 종료 + 지오펜스 내부 → BLE 재개")
+                            if let p = self.connectedPeripheral, p.state == .connected {
+                                self.beginRssiPollingBGTask()
+                                self.startRssiTimer(for: p)
+                            } else {
+                                self.beginScanning()
+                            }
+                            self.startStationaryTimer()
                         }
                     }
                 }
@@ -1091,7 +1106,7 @@ extension AutoLockService: CBCentralManagerDelegate {
             case .poweredOn:
                 LogManager.shared.log("BLE", "블루투스 켜짐. 스캔 시작.")
                 self.beginScanning()
-                self.startStationaryTimer()
+                if !self.isStationary { self.startStationaryTimer() }
             case .poweredOff:
                 LogManager.shared.log("BLE", "블루투스 꺼짐.")
                 self.rssiDisplayNilTimer?.cancel()

@@ -1,5 +1,29 @@
 # 코드/로그 검수 후 수정 계획
 
+## 화이트박스 테스트 수정 (2026-08-19)
+
+- [x] P0-1: `static let signalLossGracePeriod` Dead Code 제거
+- [x] P0-2: `static let predictiveMinSlope` Dead Code 제거
+- [x] P1-1: `stop()`에 `isInsideGeofence = false` 추가
+- [x] P1-2: `scheduleVerifyAndNotify` 최종 실패 시 `lastKnownLocked = nil` 리셋
+- [x] P1-3: `.poweredOn` 핸들러에서 `isStationary=true`이면 `startStationaryTimer()` 스킵
+- [x] P2-3: `sendLowBattery` 사운드 `.default`로 수정
+- [x] lessons.md 업데이트
+
+---
+
+## 주행 중 지오펜스 진입 시 BLE 재개 누락 버그 수정 (2026-08-19)
+
+**증상**: 가까이 가도 안 열리고 멀어져도 안 잠김 (ATTO 3 로그 분석)
+**원인**: 주행 중 지오펜스 진입 → `isDriving=true`로 BLE 재개 차단 → 주행 종료 시 BLE 재개 복구 경로 없음
+
+- [x] `AutoLockService.swift` 주행 종료 핸들러에 `isInsideGeofence=true` 케이스 추가
+  - 주행 종료 + 지오펜스 내부 → 즉시 BLE 재개 (기존에는 pollVehicleGPS → registerGeofence → didEnterGeofence 재호출까지 대기)
+- [x] 화이트박스 테스트 — beginRssiPollingBGTask(guard), startRssiTimer(cancel 후 재시작), beginScanning(연결 중이면 스킵) 모두 안전
+- [x] lessons.md 업데이트
+
+---
+
 ## SEALION 7 차종별 파라미터 조정 (2026-08-18)
 
 - [x] `makeProfile(for:)` SEALION 7 파라미터 조정

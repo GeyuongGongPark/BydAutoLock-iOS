@@ -662,6 +662,94 @@ phrases: ["트렁크 열어", "\(.applicationName) 트렁크 열어"]
 
 ---
 
+## vehicleProfile 파라미터와 static let 중복 선언 트랩
+
+**패턴**: 차종별 파라미터를 `VehicleProfile`로 분리한 뒤 기존 `static let` Dead Code를 제거하지 않으면 혼용 위험 발생.
+
+```swift
+// 위험: 이 두 줄이 공존하면 코드 편집 시 static let을 실수로 참조할 수 있음
+private static let signalLossGracePeriod: TimeInterval = 60  // Dead Code — 제거 필요
+let gracePeriod = vehicleProfile.signalLossGracePeriod        // 실제 사용
+```
+
+- SEALION 7에 90초 grace period를 적용했는데 `Self.signalLossGracePeriod`(60초)가 혼입되면 파라미터 무력화
+- **원칙**: `vehicleProfile`로 이관한 파라미터의 `static let` 원본은 즉시 제거할 것
+
+---
+
+## stop() 호출 시 상태 변수 리셋 체크리스트
+
+**`stop()`에서 반드시 리셋해야 할 상태 변수:**
+- `isDriving = false`
+- `isStationary = false`
+- `isInsideGeofence = false` ← 누락 시 재시작 후 지오펜스 외부인데 BLE 스캔 시작
+- `isPredictiveUnlockPending = false`
+- `isRunning = false`
+
+**재현**: 지오펜스 내부에서 `stop()` → `start()` → `beginScanning()`에서 `isInsideGeofence=true`로 판단 → 지오펜스 미등록 상태에서 BLE 스캔 시작.
+
+---
+
+## scheduleVerifyAndNotify 최종 실패 시 lastKnownLocked 리셋
+
+**문제**: 자동 잠금/해제 API 2회 연속 실패 시 `sendLockFailed` 알림을 보내고 종료하는데, 이때 `lastKnownLocked`가 의도한 상태(`true`/`false`)로 유지되면 stale state가 됨.
+
+**재현**:
+1. 자동 잠금 실행 → `lastKnownLocked = true`
+2. 35초 검증 불일치 → 재시도 → 45초 검증 불일치 → `sendLockFailed`
+3. 실제로는 잠기지 않았지만 `lastKnownLocked = true` 유지
+4. 이후 접근 시 `lastKnownLocked != false` 조건 실패 → unlock 영구 차단
+
+**해결**: 최종 실패 경로에서 `lastKnownLocked = nil` 리셋. `nil`은 "상태 불명"으로 다음 접근 세션에서 조건을 통과해 API 호출.
+
+---
+
+## .poweredOn 시 isStationary 상태 무관 startStationaryTimer 호출 금지
+
+**문제**: 블루투스 껐다 켤 때 `centralManagerDidUpdateState(.poweredOn)` → `startStationaryTimer()` 무조건 호출 → `isStationary=true` 상태에서 타이머 재시작 → 모션 manager 중복 등록.
+
+**수정**:
+```swift
+case .poweredOn:
+    self.beginScanning()
+    if !self.isStationary { self.startStationaryTimer() }
+```
+
+---
+
+## 주행 중 지오펜스 진입 → 주행 종료 시 BLE 재개 누락 패턴
+
+**증상**: 주행 중 지오펜스 진입 후 차에서 내려도 unlock/lock이 발동 안 됨
+
+**경로**:
+1. `didEnterGeofence()`: `isInsideGeofence = true`, `guard !isDriving else { return }` → BLE 재개 차단
+2. 주행 종료: `startDrivingDetection()` 콜백 → `pollVehicleGPS()` → `registerGeofence()` → `didEnterGeofence()` 재호출
+3. 하지만 GPS API 호출 + 서버 응답까지 수십 초 지연 → 그 사이 지오펜스를 이미 벗어나면 BLE 재개 기회 소실
+
+**수정**: 주행 종료 핸들러에 `isInsideGeofence=true` 케이스 추가 → 즉시 BLE 재개
+```swift
+} else if self.isInsideGeofence {
+    self.isStationary = false
+    LogManager.shared.log("Motion", "주행 종료 + 지오펜스 내부 → BLE 재개")
+    if let p = self.connectedPeripheral, p.state == .connected {
+        self.beginRssiPollingBGTask()
+        self.startRssiTimer(for: p)
+    } else {
+        self.beginScanning()
+    }
+    self.startStationaryTimer()
+}
+```
+
+**안전성 검증**:
+- `beginRssiPollingBGTask()`: 이미 실행 중이면 guard로 스킵
+- `startRssiTimer()`: cancel 후 재시작 (중복 호출 안전)
+- `beginScanning()`: 이미 연결 중이면 `p.state == .connected` 체크로 스킵
+
+**원칙**: `isDriving`으로 동작을 차단할 때는 주행 종료 시 복구 경로를 반드시 같이 구현할 것.
+
+---
+
 ## 차종별 VehicleProfile 파라미터 조정 기준
 
 **구조**: `makeProfile(for:)` switch 분기로 차종별 파라미터 적용 (AutoLockService.swift:63)

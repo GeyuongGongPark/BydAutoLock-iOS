@@ -117,7 +117,7 @@ final class NotificationManager {
             id: "low_battery",
             title: "차량 배터리 부족",
             body: "차량 배터리가 \(percent)% 남았습니다.",
-            sound: UNNotificationSound(named: UNNotificationSoundName("default"))
+            sound: .default
         )
     }
 
