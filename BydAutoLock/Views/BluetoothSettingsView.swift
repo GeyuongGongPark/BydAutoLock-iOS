@@ -5,6 +5,7 @@ struct BluetoothSettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var scanner = BLEScanner()
+    @State private var showWatchProvisioning = false
     private let storage = StorageManager.shared
 
     var body: some View {
@@ -15,6 +16,26 @@ struct BluetoothSettingsView: View {
                 }
 
                 List {
+                    Section {
+                        Button {
+                            showWatchProvisioning = true
+                        } label: {
+                            HStack {
+                                Image(systemName: storage.hasBleDkey ? "checkmark.seal.fill" : "key.fill")
+                                    .foregroundStyle(storage.hasBleDkey ? .green : .blue)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("BLE 직접 제어 등록")
+                                        .foregroundStyle(.primary)
+                                    Text(storage.hasBleDkey ? "등록됨" : "등록 필요 — REST API로만 제어됩니다")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("차량 BLE 키")
+                    }
+
                     Section {
                         if scanner.isScanning {
                             HStack {
@@ -64,6 +85,9 @@ struct BluetoothSettingsView: View {
             }
             .onAppear  { scanner.start() }
             .onDisappear { scanner.stop() }
+            .sheet(isPresented: $showWatchProvisioning) {
+                WatchProvisioningView()
+            }
         }
     }
 

@@ -31,6 +31,13 @@ final class StorageManager {
         static let encryToken = "byd.encryToken"
         static let vins       = "byd.vins"
         static let selectedVin = "byd.selectedVin"
+
+        // BLE 직접 제어 — Watch 페어링(별도 인증 도메인) 토큰 + 차량 dkey
+        static let watchEncryToken = "byd.watch.encryToken"
+        static let watchSignToken  = "byd.watch.signToken"
+        static let watchControlPwd = "byd.watch.controlPwd"
+        static let bleDkey         = "byd.ble.dkey"
+        static let blePassword     = "byd.ble.password"
     }
 
     // MARK: - UserDefaults Keys
@@ -67,6 +74,17 @@ final class StorageManager {
         static let lastVehicleLng    = "last_vehicle_lng"
         static let lastVehicleTime   = "last_vehicle_time"
         static let lastVehicleSource = "last_vehicle_source"
+
+        // BLE 직접 제어 — Watch 페어링 상태 + 차량 BLE 정보 (dkey/토큰 자체는 KC로 분리)
+        static let watchQrUuid          = "watch_qr_uuid"
+        static let watchIdentifier      = "watch_identifier"
+        static let watchUserType        = "watch_user_type"
+        static let watchVin             = "watch_vin"
+        static let watchVehicleInfoJson = "watch_vehicle_info_json"
+        static let watchImeiSeed        = "watch_imei_seed"
+        static let bleMacAddress        = "ble_mac_address"
+        static let bleKeyNumber         = "ble_key_number"
+        static let bleAuthProtocol      = "ble_auth_protocol"
     }
 
     // MARK: - Auth (Keychain)
@@ -253,11 +271,89 @@ final class StorageManager {
         set { defaults.set(newValue, forKey: UD.lowBatteryThreshold) }
     }
 
+    // MARK: - BLE 직접 제어 — Watch 페어링 토큰 (Keychain)
+
+    var watchEncryToken: String? {
+        get { KeychainHelper.load(forKey: KC.watchEncryToken) }
+        set { if let v = newValue { KeychainHelper.save(v, forKey: KC.watchEncryToken) } else { KeychainHelper.delete(forKey: KC.watchEncryToken) } }
+    }
+    var watchSignToken: String? {
+        get { KeychainHelper.load(forKey: KC.watchSignToken) }
+        set { if let v = newValue { KeychainHelper.save(v, forKey: KC.watchSignToken) } else { KeychainHelper.delete(forKey: KC.watchSignToken) } }
+    }
+    var watchControlPwd: String? {
+        get { KeychainHelper.load(forKey: KC.watchControlPwd) }
+        set { if let v = newValue { KeychainHelper.save(v, forKey: KC.watchControlPwd) } else { KeychainHelper.delete(forKey: KC.watchControlPwd) } }
+    }
+    /// 차량 BLE 디지털 키 (dkey) — 이 값이 있으면 BLE 직접 제어 가능
+    var bleDkey: String? {
+        get { KeychainHelper.load(forKey: KC.bleDkey) }
+        set { if let v = newValue { KeychainHelper.save(v, forKey: KC.bleDkey) } else { KeychainHelper.delete(forKey: KC.bleDkey) } }
+    }
+    var blePassword: String? {
+        get { KeychainHelper.load(forKey: KC.blePassword) }
+        set { if let v = newValue { KeychainHelper.save(v, forKey: KC.blePassword) } else { KeychainHelper.delete(forKey: KC.blePassword) } }
+    }
+
+    // MARK: - BLE 직접 제어 — Watch 페어링 상태 / 차량 BLE 정보 (UserDefaults)
+
+    var watchQrUuid: String? {
+        get { defaults.string(forKey: UD.watchQrUuid) }
+        set { defaults.set(newValue, forKey: UD.watchQrUuid) }
+    }
+    var watchIdentifier: String? {
+        get { defaults.string(forKey: UD.watchIdentifier) }
+        set { defaults.set(newValue, forKey: UD.watchIdentifier) }
+    }
+    var watchUserType: String? {
+        get { defaults.string(forKey: UD.watchUserType) }
+        set { defaults.set(newValue, forKey: UD.watchUserType) }
+    }
+    var watchVin: String? {
+        get { defaults.string(forKey: UD.watchVin) }
+        set { defaults.set(newValue, forKey: UD.watchVin) }
+    }
+    var watchVehicleInfoJson: String? {
+        get { defaults.string(forKey: UD.watchVehicleInfoJson) }
+        set { defaults.set(newValue, forKey: UD.watchVehicleInfoJson) }
+    }
+    /// Watch API용 기기 식별자 시드 (실제 IMEI 아님 — 로컬 랜덤 UUID, Android ANDROID_ID 폴백과 동등)
+    var watchImeiSeed: String {
+        if let existing = defaults.string(forKey: UD.watchImeiSeed) { return existing }
+        let seed = UUID().uuidString
+        defaults.set(seed, forKey: UD.watchImeiSeed)
+        return seed
+    }
+    var bleMacAddress: String? {
+        get { defaults.string(forKey: UD.bleMacAddress) }
+        set { defaults.set(newValue, forKey: UD.bleMacAddress) }
+    }
+    var bleKeyNumber: Int64 {
+        get { Int64(defaults.string(forKey: UD.bleKeyNumber) ?? "0") ?? 0 }
+        set { defaults.set(String(newValue), forKey: UD.bleKeyNumber) }
+    }
+    var bleAuthProtocol: Int {
+        get { defaults.object(forKey: UD.bleAuthProtocol) as? Int ?? 0 }
+        set { defaults.set(newValue, forKey: UD.bleAuthProtocol) }
+    }
+
+    /// BLE 직접 제어에 필요한 dkey를 확보했는지 여부
+    var hasBleDkey: Bool { !(bleDkey ?? "").isEmpty }
+
     // MARK: - Clear Auth
 
     func clearAuth() {
         [KC.username, KC.password, KC.pin, KC.userId, KC.signToken, KC.encryToken, KC.vins, KC.selectedVin]
             .forEach { KeychainHelper.delete(forKey: $0) }
         hasCredentials = false
+    }
+
+    /// Watch 페어링 자격증명 + dkey 전체 삭제 (BLE 직접 제어 등록 초기화)
+    func clearWatchCredentials() {
+        [KC.watchEncryToken, KC.watchSignToken, KC.watchControlPwd, KC.bleDkey, KC.blePassword]
+            .forEach { KeychainHelper.delete(forKey: $0) }
+        [UD.watchQrUuid, UD.watchIdentifier, UD.watchUserType, UD.watchVin, UD.watchVehicleInfoJson,
+         UD.bleMacAddress, UD.bleKeyNumber, UD.bleAuthProtocol]
+            .forEach { defaults.removeObject(forKey: $0) }
     }
 }
