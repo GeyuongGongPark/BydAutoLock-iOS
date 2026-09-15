@@ -342,7 +342,44 @@ actor BydVehicleService {
         let result = try await postTokenSecure(endpoint: "/app/account/getAllListByUserId",
                                                innerMap: buildInnerBase(), vin: nil)
         let list = result["list"] as? [[String: Any]] ?? []
+        // [DEV] bluetoothInfo 필드 내용 탐색
+        if let first = list.first {
+            if let bt = first["bluetoothInfo"] as? [String: Any] {
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 키: \(bt.keys.sorted().joined(separator: ", "))")
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 값: \(bt.filter { !["dkey","dk","key","password","pwd"].contains($0.key.lowercased()) })")
+            } else {
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 타입: \(type(of: first["bluetoothInfo"] ?? "nil"))")
+            }
+            if let learn = first["vehicleFunLearnInfo"] as? [String: Any] {
+                let bleKeys = learn.filter { $0.key.lowercased().contains("blue") || $0.key.lowercased().contains("ble") || $0.key.lowercased().contains("nfc") }
+                if !bleKeys.isEmpty { LogManager.shared.log("API", "[DEV] vehicleFunLearnInfo BLE관련: \(bleKeys)") }
+            }
+        }
         return list.compactMap { $0["vin"] as? String }
+    }
+
+    // MARK: - Watch QR 자가 승인 (SelfWatchAuthFlow 포팅)
+
+    /// QR 스캔 역할 — 계정 세션으로 Watch uuid를 "스캔됨" 상태로 전환.
+    func scanWatchLoginAction(uuid: String, watchImei: String) async throws {
+        var inner = buildInnerBase()
+        inner.append(("uuid", uuid))
+        if !watchImei.isEmpty { inner.append(("watchImei", watchImei)) }
+        LogManager.shared.log("SelfApprove", "SCANWATCH_ACTION_REQ|uuid=\(uuid)")
+        _ = try await postTokenSecure(endpoint: "/app/scanWatch/login/action", innerMap: inner, vin: nil)
+        LogManager.shared.log("SelfApprove", "SCANWATCH_ACTION_OK")
+    }
+
+    /// 승인 확정 — vin/carType으로 어떤 차량에 등록할지 확정하고 codeStatus=2로 전환.
+    func scanWatchLoginDetermine(uuid: String, watchImei: String, vin: String, carType: String?, controlPwd: String?) async throws {
+        var inner = buildInnerBase(vin: vin)
+        inner.append(("uuid", uuid))
+        if !watchImei.isEmpty { inner.append(("watchImei", watchImei)) }
+        if let ct = carType, !ct.isEmpty { inner.append(("carType", ct)) }
+        if let pwd = controlPwd, !pwd.isEmpty { inner.append(("controlPwd", pwd)) }
+        LogManager.shared.log("SelfApprove", "SCANWATCH_DETERMINE_REQ|vin=***\(vin.suffix(4))|carType=\(carType ?? "nil")|controlPwd=\(controlPwd != nil ? "있음" : "없음")")
+        _ = try await postTokenSecure(endpoint: "/app/scanWatch/login/determine", innerMap: inner, vin: vin)
+        LogManager.shared.log("SelfApprove", "SCANWATCH_DETERMINE_OK")
     }
 
     // MARK: - Vehicle Status

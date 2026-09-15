@@ -2,6 +2,96 @@
 
 ---
 
+## BLE dkey keyMaterial — binary decode가 맞다 (UTF-8 아님)
+
+**올바른 구현**: Java 원본(`BydBleCodec.java`)과 동일하게, dkey hex string을 binary decode (16 bytes)해서 사용.
+```swift
+let dkeyBytes = try Self.decodeHexDkey(trimmed)  // "00AABB..." → [0x00, 0xAA, 0xBB, ...] (16 bytes)
+// 틀린 방식: Array(trimmed.utf8) → "00AABB..." 문자 자체의 ASCII bytes (32 bytes)
+```
+
+**확인 방법**: 경쟁 APK(`BydAutoLock_v3.7_vc220.apk`) 디컴파일 결과 + GitHub 레퍼런스 모두 `decodeHexDkey` 패턴 사용 확인.
+내부 `PURE_JAVA_BLE_CODEC.md`의 표현 `"SHA-256(hex(dkey) || ...)"` 은 오해를 불러올 수 있음 — 실제 Java 코드 보는 것이 우선.
+
+**교훈**: 문서보다 실제 Java 소스(또는 APK 디컴파일)를 더 신뢰할 것. 문서의 표현이 모호하면 코드로 확인.
+
+---
+
+## BLE 인증 result=0x01이 성공 (0x00이 아님)
+
+**버그**: iOS 앱에서 `guard authResult == 0x00`으로 성공 판정 → 실제 차량이 `0x01`(성공)을 반환해도 실패로 오인.
+
+**올바른 프로토콜**: `BleVehicleAuthSession.java` 확인 결과 `authenticationResult != 1` 이면 실패, `== 1`이면 성공.
+즉 차량 인증 성공 응답 `payload[2] = 0x01`.
+
+**수정**: `guard authResult == 0x01 else {`
+
+**교훈**: 외부 프로토콜의 result code는 내부 논리적 추론("0=성공이 일반적")으로 판단하지 말고, 반드시 실제 구현체(경쟁 앱 APK, 레퍼런스 코드)로 확인할 것.
+이 두 버그(keyMaterial 방법 + result code 판정)는 경쟁 APK 디컴파일로 한번에 확인됐다 — 오래 고생하기 전에 APK 분석을 먼저 시도할 것.
+
+---
+
+## BLE 인증 실패 진단은 재등록 전에 저장된 JSON 구조부터
+
+**증상**: Authentication이 매번 고정 result 코드를 반환하면, 프로토콜 조립보다 키 슬롯/키값 불일치일 가능성이 큼.
+
+**로그로 먼저 갈라야 할 것**:
+- `bleKeyNumber` getter 기본값이 0이라 "미저장"과 "0으로 저장됨"이 구분되지 않음 → `hasStoredBleKeyNumber`로 UserDefaults 존재 여부를 따로 남겨야 함
+- dkey 값 자체는 로그에 남기지 말 것 (LogView 공유 시 유출). 길이/charset/valid 여부만
+- Watch 재등록을 기다리지 말고, 이미 저장된 `watchVehicleInfoJson`의 키 이름(값 말고)을 세션 시작 때 덤프하면 keyNumber 필드명이 뭔지 바로 보임
+
+---
+
+## Watch API 포팅 (BLE 직접 제어 Phase 1) 관련 교훈
+
+**Watch API(`watch/login/*`)는 메인 계정 API와 암호화 레이어 자체가 다름:**
+- `BydVehicleService`가 쓰는 `app/account/*`는 `BangcleCodec`으로 전체 요청/응답을 한 번 더 감싸지만(`{"request":"F<base64>"}`), Watch API는 평문 JSON을 그대로 주고받고 `respondData` 필드만 AES-CBC로 암호화되어 있다.
+- 원본 저장소 코드에 "Confirmed via HTTP Toolkit capture"라는 주석이 있어도, 실제 캡처 없이 포팅한 코드이므로 반드시 정적 대조(로그로 outerJson dump) + 실기기 테스트로 재확인해야 함. 원본 주석을 "검증됨"으로 과신하지 말 것.
+
+**원본 모델 클래스의 필드 수와 실제 사용 필드 수는 크게 다를 수 있음:**
+- `TokenInfoBean`/`WatchBlueToothKeyStatInfo`는 각각 22개 Gson 필드를 갖지만, 실제로 `WatchCredentialManager.saveToken`/`saveBluetoothKey`가 읽는 필드는 6개뿐이었다.
+- 포팅 전에 "이 모델이 실제로 어디서 소비되는지"를 먼저 추적해서, 쓰이지 않는 필드는 옮기지 않는 게 맞다 — 원본에 있다고 전부 포팅하면 유지보수 부담만 늘어남.
+
+**actor의 `static func`는 격리(isolation)되지 않는다:**
+- `BydWatchKeyService.extractBleInfo(fromVehicleConfig:)`처럼 인스턴스 상태를 안 쓰는 순수 변환 로직은 `static func`으로 빼면 `await` 없이 동기 호출 가능 — actor의 인스턴스 메서드/프로퍼티만 격리되고, static 멤버는 기본적으로 nonisolated.
+- 액터 경계를 넘는 async 호출을 최소화하려면, 상태에 의존하지 않는 순수 함수는 처음부터 static으로 설계할 것.
+
+**`[String: String]` 변수를 `[String: Any]` 매개변수에 넘길 때는 명시적으로 캐스팅:**
+- 딕셔너리 *리터럴*은 호출 지점의 기대 타입으로 바로 추론되지만, 이미 `[String: String]`으로 타입이 확정된 *변수*를 `[String: Any]` 매개변수에 넘길 때는 `as [String: Any]`로 명시하는 편이 안전 (암시적 변환에 의존하지 않음).
+
+**이 개발 환경(Windows)에는 Xcode/swift 툴체인이 없음 — 빌드 검증 불가:**
+- `xcodegen`, `swift`, `xcodebuild`가 전혀 설치되어 있지 않아 iOS 코드는 이 세션에서 컴파일 확인이 원천적으로 불가능하다.
+- 이런 환경에서 Swift/iOS 코드를 작성할 때는: (1) 기존 코드베이스에서 동일 패턴(actor가 `[String:Any]` 반환, `guard let ... else`, `Self.` static 참조 등)이 이미 쓰이고 있는지 대조해 신뢰도를 높이고, (2) 완료 보고 시 "빌드 미검증"임을 반드시 명시할 것 — 실제로 빌드했다고 착각하게 만드는 표현 금지.
+
+---
+
+## Swift를 실행할 수 없을 때 알고리즘을 검증하는 방법 (Phase 2/3 — BleCrypto/BleCodec)
+
+**Windows에 Python은 있다 — 크립토/프레임 조립 알고리즘은 다른 언어로 독립 재구현해서 검증 가능:**
+- Swift 문법 리뷰만으로는 "컴파일될 것 같다"는 확인이지 "계산 결과가 맞다"는 확인이 아니다. CMAC 서브키 생성, CRC8 다항식, 프레임 바이트 오프셋처럼 자리 하나만 틀려도 조용히 잘못된 값이 나오는 로직은 반드시 실행 기반 검증이 필요.
+- `pip install pycryptodome`로 AES 프리미티브를 확보하고, Swift와 별개로 Python으로 같은 알고리즘을 처음부터 다시 구현 → 원본(Android) 테스트 벡터와 대조. 두 구현이 우연히 같은 실수를 할 가능성은 낮으므로, 일치하면 "알고리즘이 맞다"는 신뢰도가 크게 올라간다.
+- 이건 Swift 컴파일 여부를 증명하진 못한다 — "로직이 맞는가"와 "문법이 맞는가"는 별개 검증이며, 둘 다 필요하면 둘 다 명시할 것.
+
+**원본 저장소에 이름이 비슷한 컴포넌트가 여러 개 있을 때, 검증된 경로에 실제로 속하는지 반드시 확인:**
+- `PoorGrammerA/BydBleAutoLock`에는 `bydblekeycontrol.blecodec`(테스트 벡터 있음, 문서화된 "한국 dkey 검증 경로")와 `bydautolock.service`("Watch-style" 구현, 별도 패키지) 두 그룹이 공존.
+- `WatchStyleBleFrameAssembler`의 헤더 상수를 디코딩해보니 우리가 보내는 프레임 헤더(`0x5AA5`/`0x5BB5`)였고, `BydBleCodec`가 실제로 파싱하는 차량 응답 첫 바이트(`0x2A`/`0x2B`/`0x24`)와 달랐다 — 즉 이 조립기가 우리가 포팅 중인 검증된 코덱 경로에 실제로 쓰이는지 확인되지 않음.
+- **원칙**: "그 클래스가 존재한다"와 "그 클래스가 우리가 포팅하는 경로에서 실제로 쓰인다"는 다른 질문이다. 이름이 유사하다고 바로 포팅하지 말고, 상수/바이트 레이아웃을 실제로 대조해서 같은 경로인지 확인할 것. 불확실하면 포팅을 보류하고 이유를 남길 것 — 틀린 걸 자신있게 포팅하는 것보다 "확인 안 됨"이라고 남기는 게 낫다.
+
+---
+
+## 화이트박스 테스트를 직접 작성할 때도 기대값을 손으로 계산하지 말 것 (BleFrameAssembler)
+
+**증상**: `testResetDropsBufferedPartialFrame`을 처음 작성할 때 "reset 후 나머지 절반만 넣으면 빈 배열이 나와야 한다"고 손으로 판단해서 `XCTAssertEqual(result, [])`로 적었는데, 실제로는 그 "나머지 절반" 자체가 우연히 `F5 FA`로 끝나서 (조립기 관점에서는 정당하게) 10바이트짜리 프레임을 반환한다 — 내가 쓴 기대값이 틀렸던 것.
+
+**발견 경로**: Python으로 같은 조립 알고리즘을 독립적으로 재구현해서 내가 쓴 모든 테스트 케이스를 다시 실행해봤다가 이 케이스에서 불일치를 발견 → 원인을 추적해보니 테스트 데이터 선택이 잘못됐던 것(코드가 아니라 테스트가 잘못됨).
+
+**원칙**:
+- 테스트를 "새로 작성"할 때도 기대값은 반드시 실행해서 얻어야 한다 — 원본에 있는 벡터를 그대로 옮기는 것과, 내가 직접 만든 새 테스트 데이터에 대해 "이럴 것이다"라고 손으로 추론한 기대값을 적는 것은 신뢰도가 다르다.
+- 이 프로젝트에는 Xcode가 없어 Swift로 실행해볼 수 없더라도, 같은 로직을 다른 언어(Python 등)로 빠르게 재구현해서 내가 쓴 테스트의 기대값이 실제로 그 알고리즘이 내놓는 값인지 먼저 확인하는 습관이 필요하다. "코드가 맞다"만 확인하고 "내가 쓴 테스트가 맞다"는 확인 안 하면, 나중에 틀린 테스트가 진짜 버그를 가려버릴 수 있다.
+- 특히 바이트 단위로 조작하는 코드(프레임 조립/파싱)는 인간의 직관("이 조각은 당연히 미완성일 것")이 실제 바이트 값과 어긋나기 쉽다 — 항상 실제 바이트를 눈으로/코드로 확인할 것.
+
+---
+
 ## 워크플로우 필수 순서
 
 **모든 작업의 순서:**
@@ -395,6 +485,43 @@ if remaining > 0 {
 **원칙:**
 - 기능 추가 요청 시 앞선 작업 맥락만 보지 말고, 앱 기능인지 웹 기능인지 의도를 먼저 판단할 것
 - 모호하면 짧게 확인 후 진행
+
+---
+
+## BLE 직접 제어 — peripheral.delegate 교체 패턴
+
+**RSSI 전용 peripheral에 GATT 직접 제어 추가 시 delegate를 일시 교체하는 패턴:**
+- `AutoLockService`는 `connectedPeripheral.delegate = self`로 RSSI만 읽음 (discoverServices 없음)
+- BLE 직접 제어 시 `peripheral.delegate = bleDirectController`로 교체 → service/char discover + notify 수신
+- `defer { peripheral.delegate = previousDelegate }` — throw 포함 항상 복원 보장
+- 교체 중 `rssiTimer`의 `readRSSI()` 콜백은 bleDirectController로 가지만 무시됨 (didReadRSSI 미구현) → rssiTimer 별도 조작 불필요
+
+**continuation 기반 async BLE 시퀀스 패턴:**
+```swift
+private var discoveryContinuation: CheckedContinuation<Void, Error>?
+
+private func discoverServicesAndCharacteristics(peripheral: CBPeripheral) async throws {
+    try await withCheckedThrowingContinuation { [weak self] continuation in
+        self?.discoveryContinuation = continuation
+        peripheral.discoverServices([...])
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            await MainActor.run { [weak self] in
+                guard let self, let c = self.discoveryContinuation else { return }
+                self.discoveryContinuation = nil
+                c.resume(throwing: BleDirectError.timeout)
+            }
+        }
+    }
+}
+// nonisolated CBPeripheralDelegate에서:
+// self.discoveryContinuation?.resume()
+// self.discoveryContinuation = nil
+```
+
+**`@MainActor` 함수로 추출하면 `await MainActor.run { }` 불필요:**
+- 기존 Task 블록에서 `await MainActor.run { self.xxx = yyy }` 를 쓰는 이유는 Task가 nonisolated 컨텍스트에서 실행되기 때문
+- Task 블록 내용을 `@MainActor` 클래스의 `private func performApiAction() async` 로 추출하면 직접 `self.xxx = yyy` 접근 가능 — await 불필요, 코드 간결해짐
 
 ---
 

@@ -82,9 +82,8 @@ final class LogManager {
             var stmt: OpaquePointer?
 
             if let t = tag, !t.isEmpty {
-                sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs WHERE tag LIKE ? ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
-                let pattern = "%\(t)%"
-                sqlite3_bind_text(stmt, 1, pattern, -1, SQLITE_TRANSIENT)
+                sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs WHERE tag = ? ORDER BY id DESC LIMIT ?", -1, &stmt, nil)
+                sqlite3_bind_text(stmt, 1, t, -1, SQLITE_TRANSIENT)
                 sqlite3_bind_int64(stmt, 2, Int64(limit))
             } else {
                 sqlite3_prepare_v2(db, "SELECT id, timestamp, tag, message FROM logs ORDER BY id DESC LIMIT ?", -1, &stmt, nil)

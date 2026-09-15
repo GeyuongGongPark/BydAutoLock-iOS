@@ -5,6 +5,8 @@ struct BluetoothSettingsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @StateObject private var scanner = BLEScanner()
+    @State private var showWatchProvisioning = false
+    @State private var macInput: String = ""
     private let storage = StorageManager.shared
 
     var body: some View {
@@ -15,6 +17,45 @@ struct BluetoothSettingsView: View {
                 }
 
                 List {
+                    Section {
+                        Button {
+                            showWatchProvisioning = true
+                        } label: {
+                            HStack {
+                                Image(systemName: storage.hasBleDkey ? "checkmark.seal.fill" : "key.fill")
+                                    .foregroundStyle(storage.hasBleDkey ? .green : .blue)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("BLE 직접 제어 등록")
+                                        .foregroundStyle(.primary)
+                                    Text(storage.hasBleDkey ? "등록됨" : "등록 필요 — REST API로만 제어됩니다")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        HStack {
+                            Text("차량 Mac 주소")
+                            Spacer()
+                            TextField("XX:XX:XX:XX:XX:XX", text: $macInput)
+                                .multilineTextAlignment(.trailing)
+                                .font(.caption)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.characters)
+                                .submitLabel(.done)
+                                .onSubmit { saveMac() }
+                                .onChange(of: macInput) { newVal in saveMac() }
+                        }
+                        if let mac = storage.bleMacAddress, !mac.isEmpty {
+                            HStack {
+                                Text("저장됨").font(.caption2).foregroundStyle(.secondary)
+                                Spacer()
+                                Text(mac).font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }
+                    } header: {
+                        Text("차량 BLE 키")
+                    }
+
                     Section {
                         if scanner.isScanning {
                             HStack {
@@ -62,9 +103,20 @@ struct BluetoothSettingsView: View {
                     Button("닫기") { dismiss() }
                 }
             }
-            .onAppear  { scanner.start() }
+            .onAppear {
+                scanner.start()
+                macInput = storage.bleMacAddress ?? ""
+            }
             .onDisappear { scanner.stop() }
+            .sheet(isPresented: $showWatchProvisioning) {
+                WatchProvisioningView()
+            }
         }
+    }
+
+    private func saveMac() {
+        let trimmed = macInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        storage.bleMacAddress = trimmed.isEmpty ? nil : trimmed
     }
 
     private func currentDeviceSection(_ name: String) -> some View {
