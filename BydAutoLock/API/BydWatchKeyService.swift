@@ -92,14 +92,18 @@ actor BydWatchKeyService {
             throw BydWatchError.invalidResponse
         }
         let controlPwd = Self.stringValue(dict["controlPwd"]) ?? ""
-        let userType = (tokenInfo["userType"] as? String) ?? ""
+        let userType = Self.stringValue(tokenInfo["userType"]) ?? ""
         // dkey/토큰 값 자체는 로그로 내보내지 않음(LogView 공유 기능이 있어 유출 위험) — 존재 여부만 남긴다.
         LogManager.shared.log("Watch", "토큰 교환 완료 (vin=***\(vin.suffix(4)), userType=\(userType), controlPwd 존재=\(!controlPwd.isEmpty))")
+        let identifier = (tokenInfo["identifier"] as? String) ?? ""
+        let userId = (tokenInfo["userId"] as? String) ?? ""
+        LogManager.shared.log("Watch", "토큰 identifier=\(identifier.isEmpty ? "(empty)" : "***"), userId=\(userId.isEmpty ? "(empty)" : "***")")
         return WatchToken(
             encryToken: encryToken,
             signToken: signToken,
             controlPwd: controlPwd,
-            identifier: (tokenInfo["identifier"] as? String) ?? "",
+            identifier: identifier,
+            userId: userId,
             userType: userType,
             vin: vin
         )
@@ -117,9 +121,7 @@ actor BydWatchKeyService {
         ), let dict = Self.parseJSONObject(decrypted) else {
             throw BydWatchError.invalidResponse
         }
-        // 값이 아니라 최상위 키 이름만 로그로 남긴다 — 응답 구조가 예상과 맞는지(예: watchBluetoothDto 존재)
-        // 확인하는 용도. 값 자체(dkey 등)는 남기지 않는다.
-        LogManager.shared.log("Watch", "차량정보 조회 완료 (최상위 키: \(dict.keys.sorted().joined(separator: ", ")))")
+        LogManager.shared.log("Watch", "차량정보 조회 완료 (구조: \(Self.describeDictShape(dict)))")
         return dict
     }
 
@@ -134,27 +136,35 @@ actor BydWatchKeyService {
             throw BydWatchError.invalidResponse
         }
         // Gson의 @SerializedName alternate처럼, 지역별로 필드명이 다르게 오는 경우를 모두 대응
-        func firstString(_ keys: [String]) -> String? {
-            for key in keys { if let v = dict[key] as? String, !v.isEmpty { return v } }
+        func firstString(_ keys: [String]) -> (value: String, matched: String)? {
+            for key in keys { if let v = dict[key] as? String, !v.isEmpty { return (v, key) } }
             return nil
         }
-        func firstInt64(_ keys: [String]) -> Int64? {
+        func firstInt64(_ keys: [String]) -> (value: Int64, matched: String)? {
             for key in keys {
-                if let n = dict[key] as? NSNumber { return n.int64Value }
-                if let s = dict[key] as? String, let n = Int64(s) { return n }
+                if let n = dict[key] as? NSNumber { return (n.int64Value, key) }
+                if let n = dict[key] as? Int { return (Int64(n), key) }
+                if let n = dict[key] as? Int64 { return (n, key) }
+                if let s = dict[key] as? String, let n = Int64(s) { return (n, key) }
             }
             return nil
         }
+        let dk = firstString(["dk", "DK", "dK", "dkey", "DKEY"])
+        let mac = firstString(["bluetoothMacAddress", "bluetoothMACAddress", "bluetooth_mac_address", "macAddress", "mac"])
+        let keyNumber = firstInt64(["empowerBluetoothKeyNo", "keyNumber", "keyNo", "bluetoothKeyNo", "bluetoothKeyNumber"])
+        let proto = firstInt64(["authBluetoothProtocol"])
+        let password = firstString(["blueToothPassword", "bluetoothPassword", "BluetoothPassword", "blue_tooth_password"])
+        let vin = firstString(["vin"])
         let result = WatchBleKeyInfo(
-            dk: firstString(["dk", "DK", "dK", "dkey", "DKEY"]),
-            bluetoothMacAddress: firstString(["bluetoothMacAddress", "bluetoothMACAddress", "bluetooth_mac_address", "macAddress", "mac"]),
-            keyNumber: firstInt64(["empowerBluetoothKeyNo", "keyNumber", "keyNo"]),
-            authBluetoothProtocol: firstInt64(["authBluetoothProtocol"]).map(Int.init),
-            bluetoothPassword: firstString(["blueToothPassword", "bluetoothPassword", "BluetoothPassword", "blue_tooth_password"]),
-            vin: firstString(["vin"]) ?? token.vin
+            dk: dk?.value,
+            bluetoothMacAddress: mac?.value,
+            keyNumber: keyNumber?.value,
+            authBluetoothProtocol: proto.map { Int($0.value) },
+            bluetoothPassword: password?.value,
+            vin: vin?.value ?? token.vin
         )
-        // dk/password 값 자체는 남기지 않고 존재 여부만 — dkey는 물리적으로 차를 여는 키라 로그 유출 위험이 큼.
-        LogManager.shared.log("Watch", "블루투스키 조회 완료 (dk 존재=\(result.dk != nil), mac 존재=\(result.bluetoothMacAddress != nil), keyNumber=\(result.keyNumber.map(String.init) ?? "없음"))")
+        LogManager.shared.log("Watch", "블루투스키 조회 완료 (구조: \(Self.describeDictShape(dict)))")
+        LogManager.shared.log("Watch", "블루투스키 매칭: dk=\(dk.map { "\($0.matched)/str(\($0.value.count))" } ?? "없음"), mac=\(mac.map { "\($0.matched)=\($0.value)" } ?? "없음"), keyNumber=\(keyNumber.map { "\($0.matched)=\($0.value)" } ?? "없음"), protocol=\(proto.map { "\($0.matched)=\($0.value)" } ?? "없음"), password=\(password != nil ? "있음" : "없음")")
         return result
     }
 
@@ -170,18 +180,94 @@ actor BydWatchKeyService {
 
     static func extractBleInfo(fromVehicleConfig vehicle: [String: Any]) -> (dkey: String?, mac: String?, keyNumber: Int64?) {
         func object(_ dict: [String: Any], _ key: String) -> [String: Any]? { dict[key] as? [String: Any] }
-        let dto = object(vehicle, "watchBluetoothDto") ?? object(vehicle, "cfVechicle").flatMap { object($0, "watchBluetoothDto") }
-        guard let dto else { return (nil, nil, nil) }
-        let mac = dto["macAddress"] as? String
+        let dtoSource: String
+        let dto: [String: Any]?
+        if let direct = object(vehicle, "watchBluetoothDto") {
+            dto = direct
+            dtoSource = "watchBluetoothDto"
+        } else if let nested = object(vehicle, "cfVechicle").flatMap({ object($0, "watchBluetoothDto") }) {
+            dto = nested
+            dtoSource = "cfVechicle.watchBluetoothDto"
+        } else {
+            dto = nil
+            dtoSource = "없음"
+        }
+        guard let dto else {
+            LogManager.shared.log("Watch", "BLE정보 추출 실패 - watchBluetoothDto 없음, 최상위키=\(vehicle.keys.sorted().joined(separator: ","))")
+            return (nil, nil, nil)
+        }
+        let mac = (dto["macAddress"] as? String) ?? (dto["mac"] as? String)
         let info = object(dto, "watchBluetoothInfo")
-        let dkey = info?["dkey"] as? String
+        let dkey = (info?["dkey"] as? String) ?? (info?["dk"] as? String)
         let keyNumber: Int64? = {
-            guard let raw = info?["keyNumber"] else { return nil }
-            if let n = raw as? NSNumber { return n.int64Value }
-            if let s = raw as? String { return Int64(s) }
+            for key in ["keyNumber", "empowerBluetoothKeyNo", "keyNo", "bluetoothKeyNo"] {
+                if let n = info?[key] as? NSNumber { return n.int64Value }
+                if let n = info?[key] as? Int { return Int64(n) }
+                if let n = info?[key] as? Int64 { return n }
+                if let s = info?[key] as? String, let n = Int64(s) { return n }
+                if let n = dto[key] as? NSNumber { return n.int64Value }
+                if let n = dto[key] as? Int { return Int64(n) }
+                if let n = dto[key] as? Int64 { return n }
+                if let s = dto[key] as? String, let n = Int64(s) { return n }
+            }
             return nil
         }()
+        let keyValidToMs: Int64? = {
+            for key in ["keyValidTo", "keyValidTime", "validTo", "expiryTime"] {
+                if let n = info?[key] as? NSNumber { return n.int64Value }
+                if let n = info?[key] as? Int { return Int64(n) }
+                if let n = info?[key] as? Int64 { return n }
+                if let s = info?[key] as? String, let n = Int64(s) { return n }
+            }
+            return nil
+        }()
+        let keyValidToDesc: String = {
+            guard let ms = keyValidToMs else { return "없음" }
+            let date = Date(timeIntervalSince1970: Double(ms) / 1000.0)
+            let fmt = ISO8601DateFormatter()
+            fmt.timeZone = TimeZone.current
+            let expired = date < Date()
+            return "\(fmt.string(from: date)) (\(expired ? "만료됨" : "유효"))"
+        }()
+        LogManager.shared.log("Watch", "BLE정보 추출 경로=\(dtoSource), dto키=\(dto.keys.sorted().joined(separator: ",")), info키=\(info?.keys.sorted().joined(separator: ",") ?? "없음"), dkey존재=\(dkey != nil), dkeyLen=\(dkey?.count ?? 0), keyNumber=\(keyNumber.map(String.init) ?? "없음"), mac=\(mac ?? "없음"), keyValidTo=\(keyValidToDesc)")
         return (dkey, mac, keyNumber)
+    }
+
+    /// 값(비밀)은 숨기고 응답 형태만 남긴다. 숫자/`mac`/`vin`만 예외적으로 기록.
+    static func describeDictShape(_ dict: [String: Any], depth: Int = 2) -> String {
+        guard !dict.isEmpty else { return "(empty)" }
+        return dict.keys.sorted().map { key in
+            describeShapeValue(key, dict[key], depth: depth)
+        }.joined(separator: ", ")
+    }
+
+    private static func describeShapeValue(_ key: String, _ value: Any?, depth: Int) -> String {
+        guard let value else { return "\(key)=nil" }
+        if let nested = value as? [String: Any] {
+            if depth > 0 { return "\(key){\(describeDictShape(nested, depth: depth - 1))}" }
+            return "\(key){...}"
+        }
+        if let arr = value as? [Any] { return "\(key)[n=\(arr.count)]" }
+        if let n = value as? NSNumber { return "\(key)=\(n)" }
+        if let s = value as? String {
+            let lower = key.lowercased()
+            if isSecretField(lower) { return "\(key)=str(\(s.count))" }
+            if lower.contains("mac") { return "\(key)=\(s)" }
+            if lower.contains("vin") { return "\(key)=***\(s.suffix(4))" }
+            if s.count <= 32 { return "\(key)=\(s)" }
+            return "\(key)=str(\(s.count))"
+        }
+        if let b = value as? Bool { return "\(key)=\(b)" }
+        return "\(key)=\(String(describing: type(of: value)))"
+    }
+
+    private static func isSecretField(_ lower: String) -> Bool {
+        if lower.contains("keynumber") || lower.contains("keyno") { return false }
+        if lower == "dk" || lower == "dkey" || lower.hasSuffix("dkey") { return true }
+        if lower.contains("password") || lower.contains("pwd") { return true }
+        if lower.contains("token") { return true }
+        if lower.contains("secret") { return true }
+        return false
     }
 
     // MARK: - Request building
@@ -255,7 +341,7 @@ actor BydWatchKeyService {
         rawParams.forEach { inner[$0.key] = $0.value }
 
         let encryData = try encryptInner(inner, keyHex: CryptoUtils.md5Hex(token.encryToken))
-        let identifier = token.identifier.isEmpty ? countryCode : token.identifier
+        let identifier = token.identifier.isEmpty ? (token.userId.isEmpty ? countryCode : token.userId) : token.identifier
 
         let outerAdd: [String: String] = [
             "identifier": identifier,
@@ -390,6 +476,7 @@ struct WatchToken: Sendable {
     let signToken: String
     let controlPwd: String
     let identifier: String
+    let userId: String
     let userType: String
     let vin: String
 }

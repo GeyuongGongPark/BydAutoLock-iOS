@@ -80,8 +80,15 @@ final class BleCodec {
 
     /// dkey + 현재 `sessionIv`로 세션 키(aesKey/cmacKey)를 파생하고, 인증 프레임을 만든다.
     /// `parseRandomExchange`가 먼저 성공해서 `sessionIv`가 설정돼 있어야 한다.
+    ///
+    /// keyMaterial = SHA-256(binary dkey bytes || vehicleRandom || appRandom)
+    /// Android BydBleCodec.java 원본과 동일: dkey hex string을 binary decode한 16바이트를 사용.
     func createAuthenticationFrame(dkey: String) throws -> [UInt8] {
-        let dkeyBytes = try Self.decodeHexDkey(dkey.trimmingCharacters(in: .whitespaces))
+        let trimmed = dkey.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed.count % 2 == 0, trimmed.allSatisfy(\.isHexDigit) else {
+            throw BleCodecError.invalidDkey
+        }
+        let dkeyBytes = try Self.decodeHexDkey(trimmed)
         var keyMaterial = dkeyBytes
         keyMaterial.append(contentsOf: sessionIv)
         let digest = BleCrypto.sha256(keyMaterial)
@@ -97,9 +104,9 @@ final class BleCodec {
     }
 
     static func isValidDkey(_ dkey: String?) -> Bool {
-        guard let dkey, !dkey.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        guard let bytes = try? decodeHexDkey(dkey.trimmingCharacters(in: .whitespaces)) else { return false }
-        return !bytes.isEmpty
+        guard let dkey else { return false }
+        let trimmed = dkey.trimmingCharacters(in: .whitespaces)
+        return !trimmed.isEmpty && trimmed.count % 2 == 0 && trimmed.allSatisfy(\.isHexDigit)
     }
 
     /// 인증 완료(`createAuthenticationFrame` 성공) 후에만 호출 — `cmacKey`/`aesKey`가 세팅돼 있어야 한다.
@@ -164,6 +171,18 @@ final class BleCodec {
 
     // MARK: - Private
 
+    private static func decodeHexDkey(_ value: String) throws -> [UInt8] {
+        guard value.count % 2 == 0, !value.isEmpty else { throw BleCodecError.invalidDkey }
+        var output = [UInt8](); output.reserveCapacity(value.count / 2)
+        var index = value.startIndex
+        while index < value.endIndex {
+            let next = value.index(index, offsetBy: 2)
+            guard let byte = UInt8(value[index..<next], radix: 16) else { throw BleCodecError.invalidDkey }
+            output.append(byte); index = next
+        }
+        return output
+    }
+
     private func wrapEncrypted(_ plain: [UInt8]) throws -> [UInt8] {
         let encrypted = try BleCrypto.aesCbcEncryptNoPadding(plain, key: aesKey, iv: sessionIv)
         var frame = [UInt8](repeating: 0, count: 20)
@@ -181,23 +200,6 @@ final class BleCodec {
         frame[19] = 0xFA
     }
 
-    private static func decodeHexDkey(_ value: String) throws -> [UInt8] {
-        guard value.count % 2 == 0, value.count <= 64 else {
-            throw BleCodecError.invalidDkey
-        }
-        var output = [UInt8]()
-        output.reserveCapacity(value.count / 2)
-        var index = value.startIndex
-        while index < value.endIndex {
-            let next = value.index(index, offsetBy: 2)
-            guard let byte = UInt8(value[index..<next], radix: 16) else {
-                throw BleCodecError.invalidDkey
-            }
-            output.append(byte)
-            index = next
-        }
-        return output
-    }
 }
 
 /// 차량/앱 난수 교환 결과.

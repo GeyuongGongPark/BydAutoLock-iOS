@@ -342,6 +342,19 @@ actor BydVehicleService {
         let result = try await postTokenSecure(endpoint: "/app/account/getAllListByUserId",
                                                innerMap: buildInnerBase(), vin: nil)
         let list = result["list"] as? [[String: Any]] ?? []
+        // [DEV] bluetoothInfo 필드 내용 탐색
+        if let first = list.first {
+            if let bt = first["bluetoothInfo"] as? [String: Any] {
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 키: \(bt.keys.sorted().joined(separator: ", "))")
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 값: \(bt.filter { !["dkey","dk","key","password","pwd"].contains($0.key.lowercased()) })")
+            } else {
+                LogManager.shared.log("API", "[DEV] bluetoothInfo 타입: \(type(of: first["bluetoothInfo"] ?? "nil"))")
+            }
+            if let learn = first["vehicleFunLearnInfo"] as? [String: Any] {
+                let bleKeys = learn.filter { $0.key.lowercased().contains("blue") || $0.key.lowercased().contains("ble") || $0.key.lowercased().contains("nfc") }
+                if !bleKeys.isEmpty { LogManager.shared.log("API", "[DEV] vehicleFunLearnInfo BLE관련: \(bleKeys)") }
+            }
+        }
         return list.compactMap { $0["vin"] as? String }
     }
 

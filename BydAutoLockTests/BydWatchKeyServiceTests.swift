@@ -73,4 +73,32 @@ final class BydWatchKeyServiceTests: XCTestCase {
         XCTAssertNil(result.mac)
         XCTAssertNil(result.keyNumber)
     }
+
+    func testExtractBleInfoReadsAlternateKeyNumberFieldNames() {
+        let vehicle: [String: Any] = [
+            "watchBluetoothDto": [
+                "macAddress": "AA:BB:CC:DD:EE:FF",
+                "watchBluetoothInfo": [
+                    "dk": "00112233445566778899AABBCCDDEEFF",
+                    "empowerBluetoothKeyNo": 4
+                ]
+            ]
+        ]
+        let result = BydWatchKeyService.extractBleInfo(fromVehicleConfig: vehicle)
+        XCTAssertEqual(result.dkey, "00112233445566778899AABBCCDDEEFF")
+        XCTAssertEqual(result.keyNumber, 4)
+    }
+
+    func testDescribeDictShapeHidesDkeyButKeepsKeyNumber() {
+        let dict: [String: Any] = [
+            "dkey": "00112233445566778899AABBCCDDEEFF",
+            "keyNumber": 3,
+            "macAddress": "AA:BB:CC:DD:EE:FF"
+        ]
+        let shape = BydWatchKeyService.describeDictShape(dict)
+        XCTAssertFalse(shape.contains("00112233445566778899AABBCCDDEEFF"))
+        XCTAssertTrue(shape.contains("dkey=str(32)"))
+        XCTAssertTrue(shape.contains("keyNumber=3"))
+        XCTAssertTrue(shape.contains("AA:BB:CC:DD:EE:FF"))
+    }
 }

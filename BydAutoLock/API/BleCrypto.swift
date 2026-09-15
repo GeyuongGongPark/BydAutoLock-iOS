@@ -88,7 +88,8 @@ enum BleCrypto {
     }
 
     private static func aesCrypt(_ input: [UInt8], key: [UInt8], iv: [UInt8]?, options: CCOptions) throws -> [UInt8] {
-        var output = [UInt8](repeating: 0, count: input.count + kCCBlockSizeAES128)
+        let outputCapacity = input.count + kCCBlockSizeAES128
+        var output = [UInt8](repeating: 0, count: outputCapacity)
         var outputCount = 0
 
         let status: CCCryptorStatus = output.withUnsafeMutableBytes { outPtr in
@@ -99,13 +100,13 @@ enum BleCrypto {
                             CCCrypt(CCOperation(kCCEncrypt), CCAlgorithm(kCCAlgorithmAES128), options,
                                     keyPtr.baseAddress, key.count, ivPtr.baseAddress,
                                     inPtr.baseAddress, input.count,
-                                    outPtr.baseAddress, output.count, &outputCount)
+                                    outPtr.baseAddress, outputCapacity, &outputCount)
                         }
                     } else {
                         return CCCrypt(CCOperation(kCCEncrypt), CCAlgorithm(kCCAlgorithmAES128), options,
                                        keyPtr.baseAddress, key.count, nil,
                                        inPtr.baseAddress, input.count,
-                                       outPtr.baseAddress, output.count, &outputCount)
+                                       outPtr.baseAddress, outputCapacity, &outputCount)
                     }
                 }
             }

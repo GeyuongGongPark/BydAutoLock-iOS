@@ -1,5 +1,32 @@
 # 코드/로그 검수 후 수정 계획
 
+## BLE 인증 실패 진단 로그 (2026-08-28)
+
+실기기 로그에서 BLE 직접 제어 13회 전부 Authentication `result=0x1` 고정 거절.
+폴백은 정상. 원인 확정용 로그를 심고, dkey/password/토큰 값은 남기지 않는다.
+
+- [x] `StorageManager` — `bleKeyNumber`/`bleAuthProtocol`이 기본값 0인지, 실제로 저장됐는지 구분
+- [x] `BleDirectController` — 세션 시작 시 저장 자격증명 스냅샷, RandomExchange `keyState`/`crcCheckResult`, 송수신 프레임, GATT properties, notify 드롭
+- [x] `BydWatchKeyService` / `WatchProvisioningView` — 응답 키 이름·타입, 어떤 필드로 keyNumber를 읽었는지, 저장 결과
+- [x] `AutoLockService` — dkey는 있는데 peripheral 미연결이라 BLE를 건너뛰는 경우
+
+**확인 방법**: 재등록 없이 한 번만 잠금/해제하면 `저장 자격증명` + `저장 vehicle JSON 구조`가 찍힘. Watch 재등록 시에는 `블루투스키 매칭` 로그에서 필드명을 확인.
+
+---
+
+## BLE 직접 제어 AutoLockService 연결 (2026-08-21)
+
+- [x] `BleDirectController.swift` 신규 생성 — WakeUp→RandomExchange→Auth→Control async 시퀀스, peripheral.delegate 교체/복원, continuation 기반 timeout
+- [x] `AutoLockService.swift` 수정 — `bleDirectController` 프로퍼티 추가, 기존 Task 블록을 `performApiAction`으로 추출, `triggerCarAction`에 BLE 직접 경로 분기 추가
+- [x] xcodegen generate + 빌드 확인 (BUILD SUCCEEDED)
+- [x] 화이트박스 체크
+
+**동작**: dkey 등록 + BLE 연결 중이면 BLE 직접 제어 → 실패 시 REST API fallback
+**BLE 성공 시**: 35초 검증 없이 즉시 알림 (로컬 BLE 응답 = 차량 실행 확인)
+**BLE 실패 시**: API 경로로 자동 fallback
+
+---
+
 ## BLE 직접 차량 제어 포팅 (계획 단계, 2026-08-22)
 
 **상세 계획**: [tasks/ble_direct_control_plan.md](./ble_direct_control_plan.md)

@@ -9,6 +9,8 @@ import XCTest
 final class BleCodecTests: XCTestCase {
 
     /// wake→random exchange→dkey 인증까지 이어지는 한 세션의 전체 와이어 벡터.
+    /// keyMaterial = SHA-256(binary dkey bytes || vehicleRandom || appRandom)
+    /// dkey "00112233445566778899AABBCCDDEEFF" → hex decode → 16 binary bytes
     func testAuthenticationFrameMatchesKnownWireVector() throws {
         let codec = BleCodec()
         let appRandom = CryptoUtils.hexToBytes("1020304050607080")

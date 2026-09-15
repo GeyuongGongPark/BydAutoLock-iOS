@@ -332,10 +332,13 @@ final class StorageManager {
         get { Int64(defaults.string(forKey: UD.bleKeyNumber) ?? "0") ?? 0 }
         set { defaults.set(String(newValue), forKey: UD.bleKeyNumber) }
     }
+    /// getter 기본값이 0이라, 미저장과 "0으로 저장됨"을 구분하기 위한 플래그
+    var hasStoredBleKeyNumber: Bool { defaults.object(forKey: UD.bleKeyNumber) != nil }
     var bleAuthProtocol: Int {
         get { defaults.object(forKey: UD.bleAuthProtocol) as? Int ?? 0 }
         set { defaults.set(newValue, forKey: UD.bleAuthProtocol) }
     }
+    var hasStoredBleAuthProtocol: Bool { defaults.object(forKey: UD.bleAuthProtocol) != nil }
 
     /// BLE 직접 제어에 필요한 dkey를 확보했는지 여부
     var hasBleDkey: Bool { !(bleDkey ?? "").isEmpty }

@@ -151,16 +151,26 @@ final class WatchProvisioningViewModel: ObservableObject {
             storage.watchVin        = token.vin
 
             stage = .fetchingVehicle
-            let vehicle = try await service.getVehicleConfig(token)
-            if let data = try? JSONSerialization.data(withJSONObject: vehicle),
-               let text = String(data: data, encoding: .utf8) {
-                storage.watchVehicleInfoJson = text
+            do {
+                let vehicle = try await service.getVehicleConfig(token)
+                if let data = try? JSONSerialization.data(withJSONObject: vehicle),
+                   let text = String(data: data, encoding: .utf8) {
+                    storage.watchVehicleInfoJson = text
+                }
+                // 일부 지역은 gain/vehicle에서만 dkey가 오므로, gain/bluetooth가 비어 있어도 덮어쓰지 않는다.
+                let extracted = BydWatchKeyService.extractBleInfo(fromVehicleConfig: vehicle)
+                if let d = extracted.dkey, !d.isEmpty { storage.bleDkey = d }
+                if let m = extracted.mac, !m.isEmpty { storage.bleMacAddress = m }
+                if let k = extracted.keyNumber { storage.bleKeyNumber = k }
+                let vDkeyHint = extracted.dkey.map { d -> String in
+                    let t = d.trimmingCharacters(in: .whitespaces)
+                    return t.count >= 8 ? "\(t.prefix(4))…\(t.suffix(4))" : "len\(t.count)"
+                } ?? "없음"
+                LogManager.shared.log("Watch", "gain/vehicle 저장: dkey=\(extracted.dkey != nil ? "있음(\(extracted.dkey?.count ?? 0)자) hint=\(vDkeyHint)" : "없음"), keyNumber=\(extracted.keyNumber.map(String.init) ?? "미추출→유지 \(storage.bleKeyNumber)"), mac=\(extracted.mac ?? "없음")")
+            } catch {
+                // 9013(계정 유효기간 만료) 등 서버 측 사유로 실패해도 gain/bluetooth에 dkey가 있을 수 있으므로 계속 진행
+                LogManager.shared.log("Watch", "gain/vehicle 실패 (\(error.localizedDescription)) — gain/bluetooth 폴백 시도")
             }
-            // 일부 지역은 gain/vehicle에서만 dkey가 오므로, gain/bluetooth가 비어 있어도 덮어쓰지 않는다.
-            let extracted = BydWatchKeyService.extractBleInfo(fromVehicleConfig: vehicle)
-            if let d = extracted.dkey, !d.isEmpty { storage.bleDkey = d }
-            if let m = extracted.mac, !m.isEmpty { storage.bleMacAddress = m }
-            if let k = extracted.keyNumber { storage.bleKeyNumber = k }
 
             stage = .fetchingBluetoothKey
             let bleKey = try await service.getWatchBlueInfo(token)
@@ -170,12 +180,18 @@ final class WatchProvisioningViewModel: ObservableObject {
             if let p = bleKey.authBluetoothProtocol { storage.bleAuthProtocol = p }
             if let pw = bleKey.bluetoothPassword, !pw.isEmpty { storage.blePassword = pw }
 
+            let bDkeyHint = bleKey.dk.map { d -> String in
+                let t = d.trimmingCharacters(in: .whitespaces)
+                return t.count >= 8 ? "\(t.prefix(4))…\(t.suffix(4))" : "len\(t.count)"
+            } ?? "없음"
+            LogManager.shared.log("Watch", "gain/bluetooth 저장: dk=\(bleKey.dk != nil ? "있음(\(bleKey.dk?.count ?? 0)자) hint=\(bDkeyHint)" : "없음"), keyNumber=\(bleKey.keyNumber.map(String.init) ?? "미추출"), protocol=\(bleKey.authBluetoothProtocol.map(String.init) ?? "없음"), password=\(bleKey.bluetoothPassword != nil ? "있음" : "없음"), mac=\(bleKey.bluetoothMacAddress ?? "없음")")
+
             guard storage.hasBleDkey else {
                 LogManager.shared.log("Watch", "등록 실패 - 차량정보/블루투스키 응답에 dkey 없음")
                 stage = .failed("차량정보/블루투스키 응답에 dkey가 없습니다")
                 return
             }
-            LogManager.shared.log("Watch", "BLE 직접 제어 등록 완료 (dkey 확보됨)")
+            LogManager.shared.log("Watch", "BLE 직접 제어 등록 완료 (dkey 확보됨, keyNumber저장=\(storage.hasStoredBleKeyNumber) keyNumber=\(storage.bleKeyNumber), protocol저장=\(storage.hasStoredBleAuthProtocol) protocol=\(storage.bleAuthProtocol), password=\(storage.blePassword != nil ? "있음" : "없음"), mac=\(storage.bleMacAddress ?? "없음"))")
             stage = .done
         } catch is CancellationError {
             LogManager.shared.log("Watch", "등록 취소됨 (화면 닫힘)")
@@ -191,6 +207,9 @@ final class WatchProvisioningViewModel: ObservableObject {
             try await Task.sleep(nanoseconds: 2_000_000_000)
             let status = try await service.getQrCodeStatus(uuid: uuid)
             if status == "2" { return }
+            if status == "3" || status == "4" {
+                throw BydWatchError.serverError("QR이 만료되었거나 거부되었습니다 (codeStatus=\(status))", status)
+            }
             if attempt % 10 == 0 {
                 LogManager.shared.log("Watch", "QR 승인 대기 중... (\(attempt * 2)초 경과, codeStatus=\(status))")
             }

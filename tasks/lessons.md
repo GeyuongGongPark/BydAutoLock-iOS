@@ -2,6 +2,46 @@
 
 ---
 
+## BLE dkey keyMaterial — binary decode가 맞다 (UTF-8 아님)
+
+**올바른 구현**: Java 원본(`BydBleCodec.java`)과 동일하게, dkey hex string을 binary decode (16 bytes)해서 사용.
+```swift
+let dkeyBytes = try Self.decodeHexDkey(trimmed)  // "00AABB..." → [0x00, 0xAA, 0xBB, ...] (16 bytes)
+// 틀린 방식: Array(trimmed.utf8) → "00AABB..." 문자 자체의 ASCII bytes (32 bytes)
+```
+
+**확인 방법**: 경쟁 APK(`BydAutoLock_v3.7_vc220.apk`) 디컴파일 결과 + GitHub 레퍼런스 모두 `decodeHexDkey` 패턴 사용 확인.
+내부 `PURE_JAVA_BLE_CODEC.md`의 표현 `"SHA-256(hex(dkey) || ...)"` 은 오해를 불러올 수 있음 — 실제 Java 코드 보는 것이 우선.
+
+**교훈**: 문서보다 실제 Java 소스(또는 APK 디컴파일)를 더 신뢰할 것. 문서의 표현이 모호하면 코드로 확인.
+
+---
+
+## BLE 인증 result=0x01이 성공 (0x00이 아님)
+
+**버그**: iOS 앱에서 `guard authResult == 0x00`으로 성공 판정 → 실제 차량이 `0x01`(성공)을 반환해도 실패로 오인.
+
+**올바른 프로토콜**: `BleVehicleAuthSession.java` 확인 결과 `authenticationResult != 1` 이면 실패, `== 1`이면 성공.
+즉 차량 인증 성공 응답 `payload[2] = 0x01`.
+
+**수정**: `guard authResult == 0x01 else {`
+
+**교훈**: 외부 프로토콜의 result code는 내부 논리적 추론("0=성공이 일반적")으로 판단하지 말고, 반드시 실제 구현체(경쟁 앱 APK, 레퍼런스 코드)로 확인할 것.
+이 두 버그(keyMaterial 방법 + result code 판정)는 경쟁 APK 디컴파일로 한번에 확인됐다 — 오래 고생하기 전에 APK 분석을 먼저 시도할 것.
+
+---
+
+## BLE 인증 실패 진단은 재등록 전에 저장된 JSON 구조부터
+
+**증상**: Authentication이 매번 고정 result 코드를 반환하면, 프로토콜 조립보다 키 슬롯/키값 불일치일 가능성이 큼.
+
+**로그로 먼저 갈라야 할 것**:
+- `bleKeyNumber` getter 기본값이 0이라 "미저장"과 "0으로 저장됨"이 구분되지 않음 → `hasStoredBleKeyNumber`로 UserDefaults 존재 여부를 따로 남겨야 함
+- dkey 값 자체는 로그에 남기지 말 것 (LogView 공유 시 유출). 길이/charset/valid 여부만
+- Watch 재등록을 기다리지 말고, 이미 저장된 `watchVehicleInfoJson`의 키 이름(값 말고)을 세션 시작 때 덤프하면 keyNumber 필드명이 뭔지 바로 보임
+
+---
+
 ## Watch API 포팅 (BLE 직접 제어 Phase 1) 관련 교훈
 
 **Watch API(`watch/login/*`)는 메인 계정 API와 암호화 레이어 자체가 다름:**
@@ -445,6 +485,43 @@ if remaining > 0 {
 **원칙:**
 - 기능 추가 요청 시 앞선 작업 맥락만 보지 말고, 앱 기능인지 웹 기능인지 의도를 먼저 판단할 것
 - 모호하면 짧게 확인 후 진행
+
+---
+
+## BLE 직접 제어 — peripheral.delegate 교체 패턴
+
+**RSSI 전용 peripheral에 GATT 직접 제어 추가 시 delegate를 일시 교체하는 패턴:**
+- `AutoLockService`는 `connectedPeripheral.delegate = self`로 RSSI만 읽음 (discoverServices 없음)
+- BLE 직접 제어 시 `peripheral.delegate = bleDirectController`로 교체 → service/char discover + notify 수신
+- `defer { peripheral.delegate = previousDelegate }` — throw 포함 항상 복원 보장
+- 교체 중 `rssiTimer`의 `readRSSI()` 콜백은 bleDirectController로 가지만 무시됨 (didReadRSSI 미구현) → rssiTimer 별도 조작 불필요
+
+**continuation 기반 async BLE 시퀀스 패턴:**
+```swift
+private var discoveryContinuation: CheckedContinuation<Void, Error>?
+
+private func discoverServicesAndCharacteristics(peripheral: CBPeripheral) async throws {
+    try await withCheckedThrowingContinuation { [weak self] continuation in
+        self?.discoveryContinuation = continuation
+        peripheral.discoverServices([...])
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            await MainActor.run { [weak self] in
+                guard let self, let c = self.discoveryContinuation else { return }
+                self.discoveryContinuation = nil
+                c.resume(throwing: BleDirectError.timeout)
+            }
+        }
+    }
+}
+// nonisolated CBPeripheralDelegate에서:
+// self.discoveryContinuation?.resume()
+// self.discoveryContinuation = nil
+```
+
+**`@MainActor` 함수로 추출하면 `await MainActor.run { }` 불필요:**
+- 기존 Task 블록에서 `await MainActor.run { self.xxx = yyy }` 를 쓰는 이유는 Task가 nonisolated 컨텍스트에서 실행되기 때문
+- Task 블록 내용을 `@MainActor` 클래스의 `private func performApiAction() async` 로 추출하면 직접 `self.xxx = yyy` 접근 가능 — await 불필요, 코드 간결해짐
 
 ---
 
