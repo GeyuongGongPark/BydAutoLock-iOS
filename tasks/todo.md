@@ -1,5 +1,37 @@
 # 코드/로그 검수 후 수정 계획
 
+## 자가 승인(QR 스캔 없는 Watch 등록) 구현 (feature/self-watch-auth)
+
+경쟁 APK(BydAutoLock_v3.7_vc220.apk) 분석으로 확인된 흐름 포팅.
+ID/PW 저장 시 QR 스캔 없이 자동으로 dkey를 획득한다.
+
+**API 흐름:**
+1. `watch/login/create/qrcode` → uuid (Watch API, 이미 있음)
+2. `/app/scanWatch/login/action` → "QR 스캔" 역할 (계정 API, 신규)
+3. `fetchVehicleList()` → vin + carType 조회 (이미 있음)
+4. `/app/scanWatch/login/determine` → 승인 확정 (계정 API, 신규)
+5. gain/token → gain/vehicle → gain/bluetooth (이미 있음)
+
+**구현 항목:**
+- [x] `BydVehicleService.swift` — `scanWatchLoginAction(uuid:watchImei:)` 추가
+- [x] `BydVehicleService.swift` — `scanWatchLoginDetermine(uuid:watchImei:vin:carType:)` 추가
+- [x] `WatchProvisioningView.swift` — Stage에 `selfApproving` 추가, 자가 승인 경로 추가
+- [x] 빌드 확인 (BUILD SUCCEEDED)
+- [x] 화이트박스 검토 — Task 취소/중복 실행/nil 처리 모두 OK
+
+**검토 결과**:
+- `makeVehicleService()` async throws 수정 필요 — actor isolation 컴파일 에러 수정 완료
+- 자가 승인 실패 시 QR fallback 정상 작동
+- CancellationError는 QR fallback 없이 종료 (정상)
+- pin nil 허용 (controlPwd 파라미터 생략)
+- lessons.md 교훈: actor-isolation 기록 이미 있음 (line 759)
+
+**조건:**
+- ID/PW 저장됨 → 자가 승인 경로 시도 → 실패 시 QR fallback
+- ID/PW 없음 → 기존 QR 경로 그대로
+
+---
+
 ## BLE 인증 실패 진단 로그 (2026-08-28)
 
 실기기 로그에서 BLE 직접 제어 13회 전부 Authentication `result=0x1` 고정 거절.
