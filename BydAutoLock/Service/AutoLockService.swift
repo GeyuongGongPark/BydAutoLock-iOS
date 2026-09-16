@@ -722,7 +722,7 @@ final class AutoLockService: NSObject, ObservableObject {
                         WidgetCenter.shared.reloadAllTimelines()
                         if shouldUnlock { self.endRssiPollingBGTask() }
                         LogManager.shared.log("BLE", "BLE 직접 제어 \(shouldUnlock ? "잠금 해제" : "잠금") 완료")
-                        NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual)
+                        NotificationManager.shared.sendLockUnlock(isUnlock: shouldUnlock, isManual: isManual, isBle: true)
                         if !isManual && !shouldUnlock { NotificationManager.shared.resetSignalLostCooldown() }
 
                     } catch {

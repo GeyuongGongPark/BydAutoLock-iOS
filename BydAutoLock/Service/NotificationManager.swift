@@ -31,15 +31,16 @@ final class NotificationManager {
 
     // MARK: - Send
 
-    func sendLockUnlock(isUnlock: Bool, isManual: Bool) {
+    func sendLockUnlock(isUnlock: Bool, isManual: Bool, isBle: Bool = false) {
         guard storage.notifyLockUnlock else { return }
         let auto = isManual ? "수동" : "자동"
+        let method = isBle ? "\(auto) · BLE" : auto
         send(
             id: "lock_unlock",
             title: isUnlock ? "잠금 해제됨" : "차량 잠금됨",
             body: isUnlock
-                ? "차량 잠금이 해제됐습니다 (\(auto))"
-                : "차량이 잠겼습니다 (\(auto))",
+                ? "차량 잠금이 해제됐습니다 (\(method))"
+                : "차량이 잠겼습니다 (\(method))",
             sound: .default
         )
     }
