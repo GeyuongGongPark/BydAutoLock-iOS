@@ -35,7 +35,9 @@ struct WatchProvisioningView: View {
                     }
                 }
             }
-            .onAppear { viewModel.start() }
+            .onAppear {
+                if case .idle = viewModel.stage { viewModel.start() }
+            }
         }
     }
 
@@ -160,12 +162,9 @@ final class WatchProvisioningViewModel: ObservableObject {
             let (uuid, watchImei) = try await watchService.createQrCode()
             storage.watchQrUuid = uuid
 
-            // 2. 계정 API로 재로그인 + 자가 승인
-            stage = .selfApproving("계정 인증 중…")
-            let vehicleService = try await makeVehicleService()
-            _ = try await vehicleService.login(username: storage.username ?? "", password: storage.password ?? "")
-
+            // 2. 자가 승인 (기존 세션 복원 사용, 만료 시 silentReLogin이 자동 재로그인)
             stage = .selfApproving("차량 승인 중…")
+            let vehicleService = try await makeVehicleService()
             try await vehicleService.scanWatchLoginAction(uuid: uuid, watchImei: watchImei)
 
             // 3. VIN 조회 → determine
