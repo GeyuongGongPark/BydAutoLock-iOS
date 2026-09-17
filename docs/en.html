@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BYD AutoLock – BYD 차량 자동 잠금 앱</title>
-  <meta name="description" content="스마트폰을 차에 가져가면 자동으로 열리고, 멀어지면 잠깁니다. BYD 차량 전용 iOS 앱." />
+  <title>BYD AutoLock – Automatic Lock/Unlock App for BYD Vehicles</title>
+  <meta name="description" content="Walk up to your BYD and it unlocks. Walk away and it locks. BYD vehicle iOS app." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -138,7 +138,7 @@
     .action-btn.ac-on { background: rgba(100,210,255,.15); color: var(--cyan); border: 1px solid rgba(100,210,255,.2); }
     .action-btn.ac-off { background: rgba(150,150,150,.1); color: var(--text2); border: 1px solid var(--border); }
 
-    /* RSSI SLIDER (외부) */
+    /* RSSI SLIDER */
     .rssi-control { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-top: 16px; }
     .rssi-control label { font-size: 12px; color: var(--text2); display: flex; justify-content: space-between; margin-bottom: 10px; }
     .rssi-control label span { color: var(--text); font-weight: 600; }
@@ -222,16 +222,16 @@
 <nav>
   <div class="nav-logo">BYD <span>AutoLock</span></div>
   <div class="nav-links">
-    <a href="#features">기능</a>
-    <a href="#how">작동 방식</a>
-    <a href="#install">설치</a>
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#install">Install</a>
     <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS" target="_blank">GitHub</a>
-    <a href="./en.html" style="font-weight:500;color:var(--text2)">EN</a>
+    <a href="./index.html" style="font-weight:500;color:var(--text2)">한국어</a>
   </div>
   <div class="theme-toggle">
-    <button class="theme-btn" id="theme-light" onclick="setTheme('light')" title="라이트">☀️</button>
-    <button class="theme-btn" id="theme-system" onclick="setTheme('system')" title="시스템">💻</button>
-    <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="다크">🌙</button>
+    <button class="theme-btn" id="theme-light" onclick="setTheme('light')" title="Light">☀️</button>
+    <button class="theme-btn" id="theme-system" onclick="setTheme('system')" title="System">💻</button>
+    <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="Dark">🌙</button>
   </div>
 </nav>
 
@@ -270,8 +270,8 @@
             <div class="app-card">
               <div class="toggle-row">
                 <div class="toggle-label">
-                  <span class="tl-title">🛡 자동 잠금 서비스</span>
-                  <span class="tl-sub" id="service-sub">중지됨</span>
+                  <span class="tl-title">🛡 Auto Lock Service</span>
+                  <span class="tl-sub" id="service-sub">Stopped</span>
                 </div>
                 <button class="ios-toggle" id="service-toggle" onclick="toggleService()"></button>
               </div>
@@ -279,22 +279,22 @@
 
             <!-- Status -->
             <div class="app-card">
-              <div class="app-card-title"><span class="icon">📡</span> 서비스 상태</div>
+              <div class="app-card-title"><span class="icon">📡</span> Service Status</div>
               <div class="status-rows">
                 <div class="status-row">
-                  <span class="sr-key">스캔 모드</span>
-                  <span class="sr-val" id="scan-mode" style="color:var(--text2)">중지됨</span>
+                  <span class="sr-key">Scan Mode</span>
+                  <span class="sr-val" id="scan-mode" style="color:var(--text2)">Stopped</span>
                 </div>
                 <div class="status-row">
-                  <span class="sr-key">근접 상태</span>
-                  <span class="sr-val" id="proximity-state" style="color:var(--orange)">이탈 (FAR)</span>
+                  <span class="sr-key">Proximity</span>
+                  <span class="sr-val" id="proximity-state" style="color:var(--orange)">Far</span>
                 </div>
               </div>
             </div>
 
             <!-- RSSI -->
             <div class="app-card">
-              <div class="app-card-title"><span class="icon">🌊</span> BLE 신호</div>
+              <div class="app-card-title"><span class="icon">🌊</span> BLE Signal</div>
               <div class="rssi-values">
                 <div class="rssi-gauge">
                   <div class="rg-label">RAW</div>
@@ -311,33 +311,33 @@
                 <div class="rssi-bar-fill" id="rssi-bar" style="width:33%;background:var(--orange)"></div>
               </div>
               <div class="rssi-thresholds">
-                <span style="color:var(--green)">해제: –70 dBm</span>
-                <span style="color:var(--orange)">잠금: –85 dBm</span>
+                <span style="color:var(--green)">Unlock: –70 dBm</span>
+                <span style="color:var(--orange)">Lock: –85 dBm</span>
               </div>
             </div>
 
             <!-- Vehicle Status -->
             <div class="app-card">
-              <div class="app-card-title"><span class="icon">🚗</span> 차량 상태</div>
+              <div class="app-card-title"><span class="icon">🚗</span> Vehicle Status</div>
               <div class="vehicle-stats">
                 <div class="vstat">
                   <span class="vs-icon" id="lock-icon">🔒</span>
-                  <span class="vs-label">잠금</span>
-                  <span class="vs-val" id="lock-state" style="color:var(--orange)">잠김</span>
+                  <span class="vs-label">Lock</span>
+                  <span class="vs-val" id="lock-state" style="color:var(--orange)">Locked</span>
                 </div>
                 <div class="vstat">
                   <span class="vs-icon">🔋</span>
-                  <span class="vs-label">배터리</span>
+                  <span class="vs-label">Battery</span>
                   <span class="vs-val" style="color:var(--blue)">78%</span>
                 </div>
                 <div class="vstat">
                   <span class="vs-icon">🛣</span>
-                  <span class="vs-label">주행가능</span>
+                  <span class="vs-label">Range</span>
                   <span class="vs-val" style="color:var(--text)">312km</span>
                 </div>
                 <div class="vstat" id="ac-stat" style="display:none">
                   <span class="vs-icon">❄️</span>
-                  <span class="vs-label">에어컨</span>
+                  <span class="vs-label">A/C</span>
                   <span class="vs-val" style="color:var(--cyan)">ON</span>
                 </div>
               </div>
@@ -345,21 +345,21 @@
 
             <!-- Quick Actions -->
             <div class="app-card">
-              <div class="app-card-title"><span class="icon">👆</span> 수동 제어</div>
+              <div class="app-card-title"><span class="icon">👆</span> Manual Control</div>
               <div class="action-btns">
                 <button class="action-btn unlock" onclick="manualUnlock()">
-                  <span class="ab-icon">🔓</span>잠금 해제
+                  <span class="ab-icon">🔓</span>Unlock
                 </button>
                 <button class="action-btn lock" onclick="manualLock()">
-                  <span class="ab-icon">🔒</span>잠금
+                  <span class="ab-icon">🔒</span>Lock
                 </button>
               </div>
               <div class="action-btns" style="margin-top:6px">
-                <button class="action-btn" style="background:rgba(88,86,214,.15);color:#5e5ce6;border:1px solid rgba(88,86,214,.2)" onclick="showFeedback('트렁크 열기 전송됨','#5e5ce6')">
-                  <span class="ab-icon">🚗</span>트렁크 열기
+                <button class="action-btn" style="background:rgba(88,86,214,.15);color:#5e5ce6;border:1px solid rgba(88,86,214,.2)" onclick="showFeedback('Opening Trunk...','#5e5ce6')">
+                  <span class="ab-icon">🚗</span>Open Trunk
                 </button>
-                <button class="action-btn" style="background:rgba(150,150,150,.1);color:var(--text2);border:1px solid var(--border)" onclick="showFeedback('트렁크 닫기 전송됨','var(--text2)')">
-                  <span class="ab-icon">🔙</span>트렁크 닫기
+                <button class="action-btn" style="background:rgba(150,150,150,.1);color:var(--text2);border:1px solid var(--border)" onclick="showFeedback('Closing Trunk...','var(--text2)')">
+                  <span class="ab-icon">🔙</span>Close Trunk
                 </button>
               </div>
               <div class="action-feedback" id="action-feedback"></div>
@@ -367,17 +367,17 @@
 
             <!-- AC -->
             <div class="app-card">
-              <div class="app-card-title"><span class="icon">❄️</span> 에어컨 / 공조</div>
+              <div class="app-card-title"><span class="icon">❄️</span> Air Conditioning</div>
               <div class="action-btns">
                 <button class="action-btn ac-on" onclick="acOn()">
-                  <span class="ab-icon">❄️</span>에어컨 켜기
+                  <span class="ab-icon">❄️</span>A/C On
                 </button>
                 <button class="action-btn ac-off" onclick="acOff()">
-                  <span class="ab-icon">🚫</span>에어컨 끄기
+                  <span class="ab-icon">🚫</span>A/C Off
                 </button>
               </div>
               <div style="display:flex;align-items:center;gap:4px;margin-top:8px">
-                <span style="font-size:9px;color:var(--text2)">ℹ 목표 온도: 22.0°C</span>
+                <span style="font-size:9px;color:var(--text2)">ℹ Target: 22.0°C</span>
               </div>
             </div>
 
@@ -387,10 +387,10 @@
 
       <!-- RSSI Slider -->
       <div class="rssi-control" style="width:300px">
-        <label>BLE 신호 강도 <span id="slider-val">–75 dBm</span></label>
+        <label>BLE Signal Strength <span id="slider-val">–75 dBm</span></label>
         <input type="range" id="rssi-slider" min="-100" max="-40" value="-75" oninput="updateRssi(this.value)" />
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text2)">
-          <span>–100 (멀다)</span><span>–40 (가깝다)</span>
+          <span>–100 (far)</span><span>–40 (near)</span>
         </div>
       </div>
     </div>
@@ -398,40 +398,40 @@
 
   <!-- RIGHT INFO -->
   <div class="hero-info">
-    <div class="hero-badge">🔵 BYD 차량 전용 iOS 앱 &nbsp;·&nbsp; v1.6.1</div>
-    <h1>가까이 가면 열리고<br><em>멀어지면 잠깁니다</em></h1>
-    <p>스마트폰을 주머니에 넣고 차에 다가가기만 하면 됩니다. BLE 신호로 거리를 측정해 자동으로 잠금을 제어합니다.</p>
+    <div class="hero-badge">🔵 iOS App for BYD Vehicles &nbsp;·&nbsp; v1.6.1</div>
+    <h1>Walk up, it unlocks.<br><em>Walk away, it locks.</em></h1>
+    <p>Just keep your phone in your pocket. BYD AutoLock measures BLE signal distance and controls your vehicle's lock automatically.</p>
     <div class="hero-ctas">
-      <a href="#install" class="btn btn-primary">설치하기</a>
+      <a href="#install" class="btn btn-primary">Install</a>
       <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS" target="_blank" class="btn btn-outline">GitHub →</a>
     </div>
 
     <!-- Live Status Panel -->
     <div class="hero-status-panel">
-      <div class="hsp-title">실시간 시뮬레이션</div>
+      <div class="hsp-title">Live Simulation</div>
       <div class="hsp-item">
-        <span class="hi-key">서비스 상태</span>
-        <span class="hi-val" id="panel-service"><span class="dot" style="background:var(--text2)"></span>중지됨</span>
+        <span class="hi-key">Service</span>
+        <span class="hi-val" id="panel-service"><span class="dot" style="background:var(--text2)"></span>Stopped</span>
       </div>
       <div class="hsp-item">
-        <span class="hi-key">BLE 신호</span>
+        <span class="hi-key">BLE Signal</span>
         <span class="hi-val" id="panel-rssi" style="color:var(--orange)">–75 dBm</span>
       </div>
       <div class="hsp-item">
-        <span class="hi-key">근접 상태</span>
-        <span class="hi-val" id="panel-prox" style="color:var(--orange)">이탈 (FAR)</span>
+        <span class="hi-key">Proximity</span>
+        <span class="hi-val" id="panel-prox" style="color:var(--orange)">Far</span>
       </div>
       <div class="hsp-item">
-        <span class="hi-key">차량 잠금</span>
-        <span class="hi-val" id="panel-lock" style="color:var(--orange)">🔒 잠김</span>
+        <span class="hi-key">Vehicle Lock</span>
+        <span class="hi-val" id="panel-lock" style="color:var(--orange)">🔒 Locked</span>
       </div>
       <div class="hsp-item">
-        <span class="hi-key">에어컨</span>
+        <span class="hi-key">A/C</span>
         <span class="hi-val" id="panel-ac" style="color:var(--text2)">OFF</span>
       </div>
     </div>
 
-    <div class="hero-models-label" style="margin-top:24px">한국 공식 출시 모델</div>
+    <div class="hero-models-label" style="margin-top:24px">Officially Available in Korea</div>
     <div class="hero-badges">
       <span>Atto 3</span><span>Seal</span><span>Dolphin</span><span>Sealion 7</span>
     </div>
@@ -442,24 +442,24 @@
 
 <!-- FEATURES -->
 <section id="features">
-  <div class="section-label">기능</div>
-  <h2 class="section-title">필요한 건 다 있습니다</h2>
-  <p class="section-desc">BYD 공식 앱 API를 활용해 실제 차량 제어까지 연결합니다.</p>
+  <div class="section-label">Features</div>
+  <h2 class="section-title">Everything you need.</h2>
+  <p class="section-desc">Real vehicle control via BYD's official API.</p>
   <div class="features-grid">
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔓</div><h3>자동 잠금 해제</h3><p>BLE RSSI가 임계값 이상이 되면 자동으로 차량 잠금을 해제합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🔒</div><h3>자동 잠금</h3><p>스마트폰이 멀어지면 자동으로 잠급니다. 해제 직후라도 쿨다운 만료 후 예약 잠금이 실행됩니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📡</div><h3>EMA 신호 필터링</h3><p>지수 이동 평균과 선형 회귀 이상값 감지로 흔들림 없는 안정적인 거리 측정.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">❄️</div><h3>에어컨 자동 제어</h3><p>잠금 해제 시 에어컨을 자동으로 켜고, 잠금 시 끌 수 있습니다. 온도·풍량 설정 가능.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">📍</div><h3>주차 위치 기록</h3><p>차량 GPS를 주기적으로 조회해 마지막 주차 위치를 지도로 확인합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch 지원</h3><p>워치에서 잠금 상태 확인, 수동 잠금/해제, 서비스 토글이 가능합니다. 컴플리케이션도 지원.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div><h3>홈 화면 위젯</h3><p>Small/Medium 홈 화면 위젯과 잠금 화면 위젯으로 잠금 상태·배터리를 한눈에 확인.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div><h3>지오펜스</h3><p>주차 위치 150m 이탈 시 BLE 스캔을 자동 중단해 배터리를 절약합니다.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">📶</div><h3>신호 소실 보호</h3><p>BLE 신호가 끊겨도 2분 그레이스 타이머로 오작동을 방지합니다. 주행 중 오감지도 차단.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">🧘</div><h3>정지 감지</h3><p>5분간 정지 중이면 BLE 스캔을 일시 중단합니다. 움직임이 감지되면 자동으로 재개.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(88,86,214,.12)">🚗</div><h3>트렁크 원격 제어</h3><p>앱에서 버튼 한 번으로 트렁크를 열고 닫습니다. Siri 음성 명령으로도 제어 가능.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,214,10,.12)">🎙️</div><h3>Siri 음성 제어</h3><p>"BYD AutoLock 트렁크 열어" 한 마디로 손 하나 안 쓰고 차량을 제어합니다. 잠금·해제·에어컨도 지원.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">✅</div><h3>잠금 결과 검증</h3><p>자동 잠금/해제 후 35초 뒤 차량 상태를 직접 확인합니다. 실패 시 재시도 후 결과 알림.</p></div>
-    <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📶</div><h3>BLE 직접 제어</h3><p>인터넷 없이 차량 BLE 신호로 직접 잠금/해제합니다. 자가 승인으로 QR 스캔 없이 간편 등록.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔓</div><h3>Auto Unlock</h3><p>Automatically unlocks your vehicle when BLE RSSI exceeds the threshold as you approach.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🔒</div><h3>Auto Lock</h3><p>Automatically locks when you walk away. Even after an unlock, a scheduled lock fires after the cooldown expires.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📡</div><h3>EMA Signal Filter</h3><p>Exponential moving average combined with linear regression outlier detection for stable, noise-free distance measurement.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">❄️</div><h3>Auto A/C Control</h3><p>Automatically turns A/C on when unlocking and off when locking. Configurable temperature and fan speed.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">📍</div><h3>Parking Location</h3><p>Periodically queries vehicle GPS to record the last parking spot, viewable on Apple Maps.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,77,64,.12)">⌚</div><h3>Apple Watch</h3><p>Check lock status, manually lock/unlock, and toggle service from your wrist. Complications supported.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">🔲</div><h3>Home Screen Widgets</h3><p>Small/Medium home screen widgets and Lock Screen widgets showing lock status and battery at a glance.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,159,10,.12)">🗺️</div><h3>Geofencing</h3><p>Automatically stops BLE scanning when you leave a 150m radius of your parking spot, saving battery.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(100,210,255,.12)">📶</div><h3>Signal Loss Protection</h3><p>A grace timer prevents false actions when BLE drops. Driving detection also blocks false triggers.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(191,90,242,.12)">🧘</div><h3>Stationary Detection</h3><p>Pauses BLE scanning after 5 minutes of no movement. Automatically resumes when motion is detected.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(88,86,214,.12)">🚗</div><h3>Trunk Remote Control</h3><p>Open and close the trunk with one tap. Also controllable via Siri voice commands.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(255,214,10,.12)">🎙️</div><h3>Siri Voice Control</h3><p>"Open BYD AutoLock trunk" — hands-free vehicle control. Also supports lock, unlock, and A/C.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(50,215,88,.12)">✅</div><h3>Lock Result Verification</h3><p>Checks actual vehicle state 35 seconds after auto lock/unlock. Retries and notifies on failure.</p></div>
+    <div class="feature-card"><div class="feature-icon" style="background:rgba(47,107,255,.12)">📶</div><h3>BLE Direct Control</h3><p>Lock/unlock directly via BLE without internet. Self-approval registration — no QR scan required.</p></div>
   </div>
 </section>
 
@@ -467,14 +467,14 @@
 
 <!-- HOW IT WORKS -->
 <section id="how">
-  <div class="section-label">작동 방식</div>
-  <h2 class="section-title">어떻게 동작하나요?</h2>
-  <p class="section-desc">차량의 BLE 신호 세기(RSSI)를 측정해 거리를 추정합니다.</p>
+  <div class="section-label">How It Works</div>
+  <h2 class="section-title">How does it work?</h2>
+  <p class="section-desc">It measures your vehicle's BLE signal strength (RSSI) to estimate distance.</p>
   <div class="steps">
-    <div class="step"><div class="step-num">1</div><div><h3>BLE 신호 감지</h3><p>앱이 백그라운드에서 차량 BLE 기기에 연결(connect)해 3초마다 RSSI를 측정합니다. 백그라운드에서도 안정적으로 작동합니다.</p></div></div>
-    <div class="step"><div class="step-num">2</div><div><h3>거리 판단</h3><p>측정된 RSSI에 EMA 필터를 적용해 노이즈를 제거합니다. 설정한 임계값과 비교해 접근/이탈을 판단합니다.</p></div></div>
-    <div class="step"><div class="step-num">3</div><div><h3>차량 제어 명령</h3><p>BYD 공식 API를 통해 잠금/해제 명령을 전송합니다. 명령 결과는 알림으로 확인할 수 있습니다.</p></div></div>
-    <div class="step"><div class="step-num">4</div><div><h3>자동 에어컨 (선택)</h3><p>잠금 해제 시 설정한 온도로 에어컨을 자동으로 켭니다. 타기 전에 이미 쾌적한 온도가 됩니다.</p></div></div>
+    <div class="step"><div class="step-num">1</div><div><h3>BLE Signal Detection</h3><p>The app connects to your vehicle's BLE device in the background and measures RSSI every 3 seconds — reliably, even when the app is not in the foreground.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div><h3>Distance Estimation</h3><p>An EMA filter is applied to the raw RSSI to remove noise. The smoothed value is compared against your configured thresholds to determine approach or departure.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div><h3>Vehicle Control Command</h3><p>Lock/unlock commands are sent via BYD's official API. Results are confirmed and delivered as notifications.</p></div></div>
+    <div class="step"><div class="step-num">4</div><div><h3>Auto A/C (Optional)</h3><p>When unlocking, the app automatically turns on A/C to your configured temperature — so the cabin is comfortable before you even get in.</p></div></div>
   </div>
 </section>
 
@@ -482,16 +482,16 @@
 
 <!-- REQUIREMENTS -->
 <section>
-  <div class="section-label">요구 사항</div>
-  <h2 class="section-title">설치 전 확인하세요</h2>
-  <p class="section-desc" style="margin-bottom:32px">아래 조건을 모두 충족해야 정상 동작합니다.</p>
+  <div class="section-label">Requirements</div>
+  <h2 class="section-title">Check before installing</h2>
+  <p class="section-desc" style="margin-bottom:32px">All of the following conditions must be met for the app to function correctly.</p>
   <div class="req-grid">
-    <div class="req-item"><div class="req-label">iOS 버전</div><div class="req-value">iOS 16.0 이상</div></div>
-    <div class="req-item"><div class="req-label">차량</div><div class="req-value">BYD 커넥티드 차량</div></div>
-    <div class="req-item"><div class="req-label">계정</div><div class="req-value">BYD 공식 앱 계정</div></div>
-    <div class="req-item"><div class="req-label">블루투스</div><div class="req-value">BLE 4.0 지원 기기</div></div>
-    <div class="req-item"><div class="req-label">권한</div><div class="req-value">위치 · 블루투스 · 알림</div></div>
-    <div class="req-item"><div class="req-label">차량 제어 PIN</div><div class="req-value">BYD 앱 등록 PIN 필요</div></div>
+    <div class="req-item"><div class="req-label">iOS Version</div><div class="req-value">iOS 16.0 or later</div></div>
+    <div class="req-item"><div class="req-label">Vehicle</div><div class="req-value">BYD Connected Vehicle</div></div>
+    <div class="req-item"><div class="req-label">Account</div><div class="req-value">BYD Official App Account</div></div>
+    <div class="req-item"><div class="req-label">Bluetooth</div><div class="req-value">BLE 4.0 compatible device</div></div>
+    <div class="req-item"><div class="req-label">Permissions</div><div class="req-value">Location · Bluetooth · Notifications</div></div>
+    <div class="req-item"><div class="req-label">Vehicle Control PIN</div><div class="req-value">PIN registered in BYD app</div></div>
   </div>
 </section>
 
@@ -499,55 +499,55 @@
 
 <!-- INSTALL -->
 <section id="install">
-  <div class="section-label">설치</div>
-  <h2 class="section-title">설치 방법 선택</h2>
-  <p class="section-desc">세 가지 방법 중 편한 방법으로 설치하세요.</p>
+  <div class="section-label">Install</div>
+  <h2 class="section-title">Choose your install method</h2>
+  <p class="section-desc">Pick the method that works best for you.</p>
   <div class="install-tabs">
     <button class="tab-btn active" onclick="switchTab('altstore', this)">AltStore / Sideloadly</button>
-    <button class="tab-btn" onclick="switchTab('testflight', this)">TestFlight <span class="badge-wip">준비중</span></button>
-    <button class="tab-btn" onclick="switchTab('xcode', this)">Xcode 직접 빌드</button>
+    <button class="tab-btn" onclick="switchTab('testflight', this)">TestFlight <span class="badge-wip">Coming Soon</span></button>
+    <button class="tab-btn" onclick="switchTab('xcode', this)">Build with Xcode</button>
   </div>
 
   <div class="install-panel active" id="tab-altstore">
     <div class="install-card">
-      <h3>AltStore 또는 Sideloadly로 IPA 설치</h3>
-      <p class="subtitle">Apple 개발자 계정 없이 무료 Apple ID만으로 설치할 수 있습니다. 7일마다 재서명이 필요합니다.</p>
+      <h3>Install IPA with AltStore or Sideloadly</h3>
+      <p class="subtitle">Install for free using just your Apple ID — no paid developer account needed. Requires re-signing every 7 days.</p>
       <div class="install-steps">
-        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>AltStore 설치</h4><p>Mac 또는 Windows PC에 <a href="https://altstore.io" target="_blank">AltStore</a>를 설치합니다. 또는 <a href="https://sideloadly.io" target="_blank">Sideloadly</a>를 사용해도 됩니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>IPA 파일 다운로드</h4><p>GitHub Releases 페이지에서 최신 <code>BydAutoLock.ipa</code>를 다운로드합니다.</p><p style="margin-top:8px"><a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/releases" target="_blank">→ GitHub Releases에서 다운로드</a></p></div></div>
-        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>iPhone에 설치</h4><p>iPhone을 Mac/PC에 연결한 후 AltStore에서 IPA 파일을 선택해 설치합니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">4</div><div class="install-step-body"><h4>신뢰 설정</h4><p>설정 → 일반 → VPN 및 기기 관리에서 개발자 앱을 신뢰합니다.</p></div></div>
+        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>Install AltStore</h4><p>Install <a href="https://altstore.io" target="_blank">AltStore</a> on your Mac or Windows PC. Alternatively, use <a href="https://sideloadly.io" target="_blank">Sideloadly</a>.</p></div></div>
+        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>Download the IPA</h4><p>Download the latest <code>BydAutoLock.ipa</code> from the GitHub Releases page.</p><p style="margin-top:8px"><a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/releases" target="_blank">→ Download from GitHub Releases</a></p></div></div>
+        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>Install on iPhone</h4><p>Connect your iPhone to your Mac/PC and use AltStore to select and install the IPA file.</p></div></div>
+        <div class="install-step"><div class="install-step-num">4</div><div class="install-step-body"><h4>Trust the Developer</h4><p>Go to Settings → General → VPN & Device Management and trust the developer certificate.</p></div></div>
       </div>
-      <div class="note"><span class="note-icon">⚠️</span><p>무료 Apple ID는 7일마다 재서명이 필요합니다. AltStore의 자동 갱신 기능을 활용하거나, 유료 Apple Developer 계정($99/년)을 사용하면 365일 유효합니다.</p></div>
+      <div class="note"><span class="note-icon">⚠️</span><p>A free Apple ID requires re-signing every 7 days. Use AltStore's auto-renewal feature, or a paid Apple Developer account ($99/year) for a 365-day certificate.</p></div>
     </div>
   </div>
 
   <div class="install-panel" id="tab-testflight">
     <div class="install-card">
-      <h3>TestFlight 베타 설치</h3>
-      <p class="subtitle">Apple의 공식 베타 배포 플랫폼입니다. 설치와 업데이트가 가장 간편합니다.</p>
+      <h3>TestFlight Beta</h3>
+      <p class="subtitle">Apple's official beta distribution platform. The easiest way to install and stay updated.</p>
       <div class="install-steps">
-        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>TestFlight 앱 설치</h4><p>App Store에서 <a href="https://apps.apple.com/kr/app/testflight/id899247664" target="_blank">TestFlight</a>를 설치합니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>초대 링크로 참여</h4><p>아래 초대 링크를 iPhone에서 열면 TestFlight가 자동으로 실행됩니다.</p><p style="margin-top:10px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text2)">🔗 Apple Developer 계정 심사 완료 후 링크가 등록됩니다</p></div></div>
-        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>설치 및 업데이트</h4><p>TestFlight에서 "설치" 버튼을 탭합니다. 새 버전이 나오면 TestFlight에서 알림으로 안내합니다.</p></div></div>
+        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>Install TestFlight</h4><p>Download <a href="https://apps.apple.com/app/testflight/id899247664" target="_blank">TestFlight</a> from the App Store.</p></div></div>
+        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>Join via Invite Link</h4><p>Open the invite link on your iPhone — TestFlight will launch automatically.</p><p style="margin-top:10px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text2)">🔗 Link will be added after Apple Developer account review is complete</p></div></div>
+        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>Install and Update</h4><p>Tap "Install" in TestFlight. You'll receive notifications when new versions are available.</p></div></div>
       </div>
-      <div class="note"><span class="note-icon">ℹ️</span><p>TestFlight 베타는 최대 90일간 유효합니다. 앞으로 모든 업데이트는 TestFlight로 배포됩니다. GitHub Issues에서 참여를 요청해주세요.</p></div>
+      <div class="note"><span class="note-icon">ℹ️</span><p>TestFlight betas are valid for up to 90 days. All future updates will be distributed via TestFlight. Request access via GitHub Issues.</p></div>
     </div>
   </div>
 
   <div class="install-panel" id="tab-xcode">
     <div class="install-card">
-      <h3>Xcode로 직접 빌드</h3>
-      <p class="subtitle">소스 코드를 수정하거나 직접 빌드하고 싶은 개발자를 위한 방법입니다.</p>
+      <h3>Build with Xcode</h3>
+      <p class="subtitle">For developers who want to modify the source code or build it themselves.</p>
       <div class="install-steps">
-        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>저장소 클론</h4><div class="code-block">git clone https://github.com/GeyuongGongPark/BydAutoLock-iOS.git
+        <div class="install-step"><div class="install-step-num">1</div><div class="install-step-body"><h4>Clone the Repository</h4><div class="code-block">git clone https://github.com/GeyuongGongPark/BydAutoLock-iOS.git
 cd BydAutoLock</div></div></div>
-        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>Xcode에서 프로젝트 열기</h4><div class="code-block">open BydAutoLock.xcodeproj</div></div></div>
-        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>개발 팀 서명 설정</h4><p>Xcode에서 <code>BydAutoLock</code> 타겟 선택 → Signing & Capabilities → Team을 본인의 Apple ID로 변경합니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">4</div><div class="install-step-body"><h4>iPhone 연결 후 빌드</h4><p>iPhone을 연결하고 대상 기기를 선택한 후 <code>⌘R</code>로 빌드 및 설치합니다.</p></div></div>
-        <div class="install-step"><div class="install-step-num">5</div><div class="install-step-body"><h4>신뢰 설정</h4><p>설정 → 일반 → VPN 및 기기 관리에서 개발자 앱을 신뢰합니다.</p></div></div>
+        <div class="install-step"><div class="install-step-num">2</div><div class="install-step-body"><h4>Open in Xcode</h4><div class="code-block">open BydAutoLock.xcodeproj</div></div></div>
+        <div class="install-step"><div class="install-step-num">3</div><div class="install-step-body"><h4>Set Signing Team</h4><p>Select the <code>BydAutoLock</code> target in Xcode → Signing & Capabilities → set Team to your Apple ID.</p></div></div>
+        <div class="install-step"><div class="install-step-num">4</div><div class="install-step-body"><h4>Build and Run</h4><p>Connect your iPhone, select it as the target device, and press <code>⌘R</code> to build and install.</p></div></div>
+        <div class="install-step"><div class="install-step-num">5</div><div class="install-step-body"><h4>Trust the Developer</h4><p>Go to Settings → General → VPN & Device Management and trust the developer certificate.</p></div></div>
       </div>
-      <div class="note"><span class="note-icon">⚠️</span><p>Xcode 15 이상, macOS 13 이상이 필요합니다. 무료 Apple ID로 빌드 시 7일마다 재빌드가 필요합니다.</p></div>
+      <div class="note"><span class="note-icon">⚠️</span><p>Requires Xcode 15 or later and macOS 13 or later. Builds signed with a free Apple ID expire after 7 days and must be rebuilt.</p></div>
     </div>
   </div>
 </section>
@@ -557,10 +557,10 @@ cd BydAutoLock</div></div></div>
 <footer>
   <div class="footer-links">
     <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS" target="_blank">GitHub</a>
-    <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/issues" target="_blank">버그 신고</a>
-    <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/releases" target="_blank">릴리즈</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/issues" target="_blank">Bug Report</a>
+    <a href="https://github.com/GeyuongGongPark/BydAutoLock-iOS/releases" target="_blank">Releases</a>
   </div>
-  <p>BYD AutoLock은 오픈 소스 프로젝트입니다. BYD와 공식적인 관련이 없습니다. &nbsp;·&nbsp; <a href="./privacy.html">개인정보 처리방침</a></p>
+  <p>BYD AutoLock is an open-source project. Not affiliated with BYD. &nbsp;·&nbsp; <a href="./privacy.html">Privacy Policy</a></p>
 </footer>
 
 <script>
@@ -611,9 +611,9 @@ cd BydAutoLock</div></div></div>
     const near = S.proximity === 'near';
     const el = document.getElementById('proximity-state');
     const panel = document.getElementById('panel-prox');
-    el.textContent = near ? '근접 (NEAR)' : '이탈 (FAR)';
+    el.textContent = near ? 'Near' : 'Far';
     el.style.color = near ? 'var(--green)' : 'var(--orange)';
-    panel.textContent = near ? '근접 (NEAR)' : '이탈 (FAR)';
+    panel.textContent = near ? 'Near' : 'Far';
     panel.style.color = near ? 'var(--green)' : 'var(--orange)';
   }
 
@@ -627,33 +627,33 @@ cd BydAutoLock</div></div></div>
     const panelSvc = document.getElementById('panel-service');
 
     btn.classList.toggle('on', S.running);
-    sub.textContent = S.running ? '실행 중' : '중지됨';
+    sub.textContent = S.running ? 'Running' : 'Stopped';
     sub.className = 'tl-sub' + (S.running ? ' running' : '');
-    scanMode.textContent = S.running ? '연결됨' : '중지됨';
+    scanMode.textContent = S.running ? 'Connected' : 'Stopped';
     scanMode.style.color = S.running ? 'var(--blue)' : 'var(--text2)';
     panelSvc.innerHTML = S.running
-      ? '<span class="dot" style="background:var(--green)"></span>실행 중'
-      : '<span class="dot" style="background:var(--text2)"></span>중지됨';
+      ? '<span class="dot" style="background:var(--green)"></span>Running'
+      : '<span class="dot" style="background:var(--text2)"></span>Stopped';
 
     if (S.running) { S.proximity = 'far'; updateProximityUI(); updateRssi(S.rssi); }
-    else { document.getElementById('proximity-state').textContent = '이탈 (FAR)'; document.getElementById('proximity-state').style.color = 'var(--orange)'; }
+    else { document.getElementById('proximity-state').textContent = 'Far'; document.getElementById('proximity-state').style.color = 'var(--orange)'; }
   }
 
   // ── Lock Actions
   function setLocked(locked, msg) {
     S.locked = locked;
     document.getElementById('lock-icon').textContent = locked ? '🔒' : '🔓';
-    document.getElementById('lock-state').textContent = locked ? '잠김' : '열림';
+    document.getElementById('lock-state').textContent = locked ? 'Locked' : 'Unlocked';
     document.getElementById('lock-state').style.color = locked ? 'var(--orange)' : 'var(--green)';
-    document.getElementById('panel-lock').textContent = locked ? '🔒 잠김' : '🔓 열림';
+    document.getElementById('panel-lock').textContent = locked ? '🔒 Locked' : '🔓 Unlocked';
     document.getElementById('panel-lock').style.color = locked ? 'var(--orange)' : 'var(--green)';
     showFeedback(msg, locked ? 'var(--orange)' : 'var(--green)');
   }
 
-  function manualUnlock() { setLocked(false, '✅ 잠금 해제 완료'); }
-  function manualLock() { setLocked(true, '🔒 잠금 완료'); }
-  function autoUnlock() { setLocked(false, '✅ 자동 잠금 해제'); }
-  function autoLock() { setLocked(true, '🔒 자동 잠금'); }
+  function manualUnlock() { setLocked(false, '✅ Unlocked'); }
+  function manualLock() { setLocked(true, '🔒 Locked'); }
+  function autoUnlock() { setLocked(false, '✅ Auto Unlocked'); }
+  function autoLock() { setLocked(true, '🔒 Auto Locked'); }
 
   // ── AC
   function acOn() {
@@ -661,14 +661,14 @@ cd BydAutoLock</div></div></div>
     document.getElementById('ac-stat').style.display = '';
     document.getElementById('panel-ac').textContent = '❄️ ON';
     document.getElementById('panel-ac').style.color = 'var(--cyan)';
-    showFeedback('❄️ 에어컨 켜짐', 'var(--cyan)');
+    showFeedback('❄️ A/C On', 'var(--cyan)');
   }
   function acOff() {
     S.ac = false;
     document.getElementById('ac-stat').style.display = 'none';
     document.getElementById('panel-ac').textContent = 'OFF';
     document.getElementById('panel-ac').style.color = 'var(--text2)';
-    showFeedback('에어컨 꺼짐', 'var(--text2)');
+    showFeedback('A/C Off', 'var(--text2)');
   }
 
   // ── Feedback
