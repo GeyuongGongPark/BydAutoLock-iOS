@@ -1,5 +1,27 @@
 # 코드/로그 검수 후 수정 계획
 
+## 로그 제보 기능 구현 (2026-09-28)
+
+로그 뷰에서 "제보하기" 버튼으로 byd-portal 제보 페이지에 직접 제출.
+차종·앱 이름 자동 채움, 로그 자동 첨부, 사용자는 제목+본문만 입력.
+API: `POST https://geyuonggongpark-production.up.railway.app/api/reports`
+
+- [x] `BugReportView.swift` 신규 생성
+  - 제목 (필수 입력)
+  - 앱: "BYD AutoLock" (자동)
+  - 차종: StorageManager.vehicleModel → BYD 포맷 매핑 (ATTO 3 → BYD Atto 3 등)
+  - 본문: 사용자 입력 (선택, 증상 설명)
+  - 로그 첨부 토글 (기본 ON — 최근 5000줄, base64 data URL)
+  - 제출 → POST /api/reports → 성공 시 dismiss
+- [x] `LogView.swift` — 툴바에 제보하기 버튼 추가, .sheet로 연결
+- [x] project.yml — 디렉토리 전체 포함 구조라 수정 불필요
+- [x] xcodegen generate + 빌드 확인 (BUILD SUCCEEDED)
+- [x] 화이트박스 테스트 — NavigationStack iOS 16+ 버그 발견 및 수정, 이중 전송 방지/MainActor 정상
+
+**차종 매핑**: ATTO 3→BYD Atto 3 / SEAL→BYD Seal / DOLPHIN→BYD Dolphin / SEALION 7→BYD Sealion 7 / 기타→기타
+
+---
+
 ## 카페 회원 인증 게이트 구현 (2026-09-28)
 
 BYD 써드파티연구소 카페 회원 등급 API를 이용해 정회원 미만이면 앱 사용 불가로 처리.

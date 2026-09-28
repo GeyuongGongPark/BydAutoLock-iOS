@@ -28,6 +28,7 @@
 		5B5D8D25FE0295D788B35D49 /* SettingsDrawerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */; };
 		677396A8923F350884022BCA /* BleDirectController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0672EE356B4C6B1AA5302241 /* BleDirectController.swift */; };
 		6D3D4AE844CD90F2766479E6 /* BydAutoLockWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6D997D0866032897B1EAF496 /* BugReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A2AE842539E4AB3D98A2E3 /* BugReportView.swift */; };
 		6EC4DEB8B561B0B9E3329EBF /* ModelLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 603AAD130CA59AEAF3CA80A8 /* ModelLogicTests.swift */; };
 		729D51D93A8D53D89604869A /* CryptoUtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878AC140EC46BF84DE339CED /* CryptoUtilsTests.swift */; };
 		72E5314B3AC8500B18E23B59 /* BleFrameAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50399843DD87133372D725B /* BleFrameAssembler.swift */; };
@@ -140,6 +141,7 @@
 		2CF18F900BB57ECE310A3B2D /* GpsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpsInfo.swift; sourceTree = "<group>"; };
 		2D355C8903478C20F6CBE273 /* BleFrameAssemblerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleFrameAssemblerTests.swift; sourceTree = "<group>"; };
 		3061EB2C21A49BE7F7A3740D /* BydAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BydAppIntents.swift; sourceTree = "<group>"; };
+		33A2AE842539E4AB3D98A2E3 /* BugReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportView.swift; sourceTree = "<group>"; };
 		35C32202F150EF7914B7817D /* BydAutoLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLock.entitlements; sourceTree = "<group>"; };
 		35CA6D97AAC2BB7D4D478200 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		37EBBBE101BF9C4C7DC7EE98 /* ThresholdSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThresholdSettingsView.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 				5312A9DC888A5694D582ED27 /* AcSettingsView.swift */,
 				19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */,
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
+				33A2AE842539E4AB3D98A2E3 /* BugReportView.swift */,
 				C238EED8C87FABA0E8340EB9 /* CafeAuthView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
 				AB5BD749506934B29CD1C2AC /* MainView.swift */,
@@ -553,6 +556,7 @@
 				677396A8923F350884022BCA /* BleDirectController.swift in Sources */,
 				72E5314B3AC8500B18E23B59 /* BleFrameAssembler.swift in Sources */,
 				0455C0E76197CECC68AC01AF /* BluetoothSettingsView.swift in Sources */,
+				6D997D0866032897B1EAF496 /* BugReportView.swift in Sources */,
 				B25444BC6C1B9656A487D6DE /* BydAppIntents.swift in Sources */,
 				7847F7F79C99DAD227EDC431 /* BydAutoLockApp.swift in Sources */,
 				5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */,
