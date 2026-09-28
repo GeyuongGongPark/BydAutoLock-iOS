@@ -1,5 +1,23 @@
 # 코드/로그 검수 후 수정 계획
 
+## 카페 회원 인증 게이트 구현 (2026-09-28)
+
+BYD 써드파티연구소 카페 회원 등급 API를 이용해 정회원 미만이면 앱 사용 불가로 처리.
+
+- [x] `BydAutoLock/API/CafeMemberService.swift` 신규 생성
+- [x] `BydAutoLock/Views/CafeAuthView.swift` 신규 생성
+- [x] `BydAutoLock/Storage/StorageManager.swift` — UD 키 4개 + 프로퍼티 5개 추가
+- [x] `BydAutoLock/Views/MainView.swift` — onAppear 인증 체크 + fullScreenCover 추가
+- [x] `BydAutoLock/Views/SettingsDrawerView.swift` — 카페 인증 상태 표시 섹션 추가
+- [x] 화이트박스 테스트 — onAppear 이중 조건 버그(isCafeAuthorized 24h 포함), .sheet 위치 수정
+- [x] xcodegen generate + 빌드 확인 (BUILD SUCCEEDED)
+
+**API 키 설정 완료**
+
+---
+
+
+
 ## 자가 승인(QR 스캔 없는 Watch 등록) 구현 (feature/self-watch-auth)
 
 경쟁 APK(BydAutoLock_v3.7_vc220.apk) 분석으로 확인된 흐름 포팅.
@@ -217,6 +235,29 @@ ID/PW 저장 시 QR 스캔 없이 자동으로 dkey를 획득한다.
 - [x] **Step 5: lessons.md 교훈 기록**
 
 ---
+
+---
+
+## ATTO 3 로그 분석 기반 버그 수정 (2026-09-23)
+
+로그: byd_log_20260923_085539_ATTO_3_BYD_BLE3.txt
+
+### 이슈 1: 주행 종료 후 잠금 미발동 (구조적 한계)
+- **원인 A**: 앱 suspend 중 CMMotionActivityManager 주행 종료 콜백 미수신 → 66분 공백 후 앱 재시작 시 잠금 불가
+- **원인 B**: 주행 종료 콜백 배치 지연 (최대 21분) → 사용자 수동 잠금 후 도착
+- 수정 방향: Watchdog에서 isDriving=true + isInsideGeofence=false 장시간 지속 시 잠금 (복잡, 별도 작업)
+- [ ] isDriving + 지오펜스 외부 장시간 유지 시 Watchdog 잠금 로직 검토
+
+### 이슈 2: 자동 잠금 알림 미발송 (버그 — 수정 완료)
+- **원인**: `scheduleVerifyAndNotify` 내 조기 종료 조건에 로그 없음 → 원인 파악 불가
+  - BLE 재연결로 `proximityState = .near` 전환 → "잠금했는데 다시 접근" 조건에 걸려 조기 종료 → 알림 없음
+- [x] `AutoLockService.scheduleVerifyAndNotify`: 조기 종료 시 로그 추가 ("잠금 검증 스킵 — proximityState=X")
+- [x] `NotificationManager.sendLockUnlock`: 발송 시 로그 추가 + notifyLockUnlock 설정 꺼짐 시 로그
+
+### 기타 관찰 이상 동작 (수정 불필요)
+- API + BLE 이중 잠금: 차량이 무시하므로 실용적 문제 없음
+- 지오펜스 이탈 이벤트 중복: 경미한 영향
+- GPS 1009 오류 반복: BYD 서버 측 문제
 
 ## 검토 (완료 후 작성)
 

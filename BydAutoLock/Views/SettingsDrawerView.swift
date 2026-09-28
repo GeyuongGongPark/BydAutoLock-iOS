@@ -3,10 +3,47 @@ import SwiftUI
 struct SettingsDrawerView: View {
     @Binding var isOpen: Bool
     @AppStorage("app_color_scheme") private var colorSchemeRaw: String = "system"
+    @State private var showCafeAuth = false
+
+    private let storage = StorageManager.shared
 
     var body: some View {
         NavigationView {
             List {
+                // 카페 인증 상태
+                Section("카페 인증") {
+                    HStack {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(storage.cafeNick ?? "미인증")
+                                    .font(.subheadline)
+                                if !storage.cafeGrade.isEmpty {
+                                    Text(storage.cafeGrade)
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 2)
+                                        .background(Color.blue.opacity(0.15))
+                                        .foregroundStyle(.blue)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: storage.isCafeAuthorized ? "checkmark.shield.fill" : "shield.slash.fill")
+                                .foregroundStyle(.white)
+                                .frame(width: 28, height: 28)
+                                .background(storage.isCafeAuthorized ? Color.green : Color.red)
+                                .clipShape(RoundedRectangle(cornerRadius: 7))
+                        }
+                        Spacer()
+                        Button("재인증") {
+                            showCafeAuth = true
+                        }
+                        .font(.caption)
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+                    }
+                }
+
                 Section("설정") {
                     drawerLink("BYD 계정 설정",    icon: "person.badge.key.fill", color: .blue)    { AuthSettingsView() }
                     drawerLink("블루투스 기기 설정", icon: "bluetooth",             color: .cyan)    { BluetoothSettingsView() }
@@ -63,6 +100,9 @@ struct SettingsDrawerView: View {
                             .font(.subheadline.bold())
                     }
                 }
+            }
+            .sheet(isPresented: $showCafeAuth) {
+                CafeAuthView(onSuccess: { showCafeAuth = false })
             }
         }
     }

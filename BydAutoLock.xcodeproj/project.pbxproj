@@ -18,6 +18,7 @@
 		3DCF82775F182D136EF3E614 /* HvacStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4DBF781AAAA85839E58508B /* HvacStatus.swift */; };
 		419F4A6AD1CEBA388CC79556 /* BydWatchKeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEF3A414F05135338D75440 /* BydWatchKeyService.swift */; };
 		4256E5D147FBC077E721D90C /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */; };
+		44305E66790A0CF415BF0FC9 /* CafeAuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C238EED8C87FABA0E8340EB9 /* CafeAuthView.swift */; };
 		4A75A883BDFA31264744021C /* BydWatchKeyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF05667E29BE95D2CEF4E53 /* BydWatchKeyServiceTests.swift */; };
 		51847D9A7B1E220A9A0731AC /* LogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B04F548A007CC17D0532E811 /* LogManager.swift */; };
 		58C1A57F000F788AC93D4946 /* LogEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D63F84DA4E0F33156A6CF1B /* LogEntry.swift */; };
@@ -54,6 +55,7 @@
 		E55CF6CB0E72D06518EC23A4 /* BleCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DDB85A1D35123DC4A1F7DC5 /* BleCryptoTests.swift */; };
 		E6FA6A18C5E67F5CC1D23D20 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */; };
 		E8D2FF389ABB9C098712157A /* BydAutoLockWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4544CCD4521AE16D0BAA48A1 /* BydAutoLockWidget.swift */; };
+		EA22F7B6A4E32FB2583D3FC7 /* CafeMemberService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2197FD48B4EED364731B976 /* CafeMemberService.swift */; };
 		EC34F020A5A9BF549C07046D /* BydAutoLockWatchComplication.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D49BAEF9A49640DE56E1D736 /* BydAutoLockWatchComplication.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EE095A57A5F2EF6DE4498E88 /* BleCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6901EEDBCF520FDE68966F /* BleCodec.swift */; };
 		F6E53D9BB1D50EEF0D3A1D89 /* BleFrameAssemblerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D355C8903478C20F6CBE273 /* BleFrameAssemblerTests.swift */; };
@@ -166,10 +168,12 @@
 		AB5BD749506934B29CD1C2AC /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		B04F548A007CC17D0532E811 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogManager.swift; sourceTree = "<group>"; };
 		B085B3C357AC8028292DC9FA /* AutoLockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoLockService.swift; sourceTree = "<group>"; };
+		B2197FD48B4EED364731B976 /* CafeMemberService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CafeMemberService.swift; sourceTree = "<group>"; };
 		B4DBF781AAAA85839E58508B /* HvacStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HvacStatus.swift; sourceTree = "<group>"; };
 		B4F2E554EBE17F1978FDAEA3 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		BAA605BD800A58CE33269467 /* BydAutoLockWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BydAutoLockWatch.entitlements; sourceTree = "<group>"; };
 		BE48F653594CC1913AF0ECD6 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		C238EED8C87FABA0E8340EB9 /* CafeAuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CafeAuthView.swift; sourceTree = "<group>"; };
 		CA6901EEDBCF520FDE68966F /* BleCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleCodec.swift; sourceTree = "<group>"; };
 		CD6D70C13350D0E2B4F5D338 /* BydAutoLock.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BydAutoLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFEA9D344683DD43428D825A /* BleCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleCrypto.swift; sourceTree = "<group>"; };
@@ -216,6 +220,7 @@
 				5312A9DC888A5694D582ED27 /* AcSettingsView.swift */,
 				19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */,
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
+				C238EED8C87FABA0E8340EB9 /* CafeAuthView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
 				AB5BD749506934B29CD1C2AC /* MainView.swift */,
 				D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */,
@@ -275,6 +280,7 @@
 				695FC9FEF8A7271441F1AAA4 /* BydConfig.swift */,
 				A20C756E7B1EE19774EE1A44 /* BydVehicleService.swift */,
 				FEEF3A414F05135338D75440 /* BydWatchKeyService.swift */,
+				B2197FD48B4EED364731B976 /* CafeMemberService.swift */,
 				EDD514673509F5771630DD49 /* CryptoUtils.swift */,
 			);
 			path = API;
@@ -552,6 +558,8 @@
 				5A91B82C501297F71B37EAAF /* BydConfig.swift in Sources */,
 				9076F43EDC6255C64BFBA510 /* BydVehicleService.swift in Sources */,
 				419F4A6AD1CEBA388CC79556 /* BydWatchKeyService.swift in Sources */,
+				44305E66790A0CF415BF0FC9 /* CafeAuthView.swift in Sources */,
+				EA22F7B6A4E32FB2583D3FC7 /* CafeMemberService.swift in Sources */,
 				A0057442BC7483FB058A9E08 /* ChargingStatus.swift in Sources */,
 				8A5BE94093A053994140874C /* CryptoUtils.swift in Sources */,
 				3553478C2056D74FD17C5428 /* EnergyConsumption.swift in Sources */,

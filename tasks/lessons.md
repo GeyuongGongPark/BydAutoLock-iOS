@@ -1,5 +1,47 @@
 # Lessons Learned
 
+## 캐시 유효 조건 체크 vs. 백그라운드 재검증 분기 혼용 금지
+
+**버그 패턴**:
+```swift
+var isCafeAuthorized: Bool {
+    guard cafeIsRegular, let t = cafeCheckedAt else { return false }
+    return Date().timeIntervalSince1970 - t < 86400  // 24시간 포함
+}
+
+// 이렇게 쓰면 else if 분기가 절대 실행 안 됨:
+if !storage.isCafeAuthorized {
+    showCafeAuth = true
+} else if let t = storage.cafeCheckedAt, Date() - t >= 86400 {
+    // isCafeAuthorized가 이미 24시간 체크 포함 → 여기 도달 불가!
+    Task { await revalidateCafe() }
+}
+```
+
+**올바른 패턴**: 인증 유무와 캐시 만료를 분리해서 체크
+```swift
+if !storage.cafeIsRegular || storage.cafeCheckedAt == nil {
+    showCafeAuth = true  // 미인증
+} else if let t = storage.cafeCheckedAt, Date().timeIntervalSince1970 - t >= 86400 {
+    Task { await revalidateCafe() }  // 만료 → 백그라운드 재검증
+}
+// else: 유효 캐시 → 통과
+```
+
+**원칙**: 복합 조건 Bool 프로퍼티를 if-else if에 혼용할 때, 해당 프로퍼티가 하위 분기 조건도 포함하고 있는지 반드시 확인.
+
+---
+
+## SwiftUI .sheet 위치 — List Section 안에 붙이면 불안정
+
+**문제**: `.sheet(isPresented:)` 를 `Section { ... }` 에 직접 붙이면 일부 iOS 버전에서 sheet가 표시 안 되거나 중복 표시될 수 있음.
+
+**해결**: `.sheet`는 `List` 또는 `NavigationView` (`.navigationTitle` 이후) 레벨에 붙일 것.
+
+---
+
+
+
 ---
 
 ## BLE dkey keyMaterial — binary decode가 맞다 (UTF-8 아님)
@@ -904,6 +946,91 @@ case .poweredOn:
 - `beginScanning()`: 이미 연결 중이면 `p.state == .connected` 체크로 스킵
 
 **원칙**: `isDriving`으로 동작을 차단할 때는 주행 종료 시 복구 경로를 반드시 같이 구현할 것.
+
+---
+
+## 보안 검토 시 앱 요구사항 선이해 필수
+
+**실수**: `kSecAttrAccessibleAfterFirstUnlock`을 Medium 위험으로 분류하고 `WhenUnlockedThisDeviceOnly` 변경을 권장
+
+**왜 틀렸는가**: 이 앱은 기기 잠금 상태 + 백그라운드에서 BLE 스캔, dkey 조회, API 호출이 필수로 일어난다. `WhenUnlockedThisDeviceOnly`는 기기 잠금 중 Keychain 접근을 차단하므로 앱이 동작 불가 → `AfterFirstUnlock`이 올바른 설정이다.
+
+**원칙**: 보안 권장사항을 적용하기 전에 앱의 동작 요구사항을 먼저 파악할 것.
+- "더 엄격한 설정 = 더 좋음"이 아님. 앱 기능을 깨는 보안 강화는 의미 없음.
+- 외부 가이드라인이나 서브에이전트 결과를 맥락 없이 그대로 전달하지 말 것.
+- 보안 검토 결과는 앱 설계 의도를 이해한 뒤 필터링해서 전달할 것.
+
+**CLAUDE.md 위반**: 사소하지 않은 보안 검토를 계획 모드 없이 진행하고, 결과를 앱 요구사항 대비 검증 없이 전달했다.
+
+---
+
+## scheduleVerifyAndNotify 조기 종료로 알림 누락 패턴
+
+**증상**: 자동 잠금 성공 후 알림이 오지 않음. "잠금 검증 완료 (확인됨)" 로그도 없음.
+
+**원인**: `scheduleVerifyAndNotify` 35초 대기 중 BLE가 재연결되어 `proximityState = .near`로 전환
+→ 조기 종료 조건 `if expectedLocked && currentState != .far { return }` 충족
+→ 알림 없이 종료. 이 경로에 로그가 없어서 원인 파악 불가.
+
+**로그에서 이 패턴이 보이는 신호**: API 잠금 성공 직후 BLE 재연결 + 신호소실/복구 폭탄 → 검증/알림 로그 없음.
+
+**수정**: 조기 종료 분기에 로그 추가:
+```swift
+if expectedLocked && currentState != .far {
+    LogManager.shared.log("API", "잠금 검증 스킵 — 다시 접근 감지 (proximityState=X) → 알림 없음")
+    return
+}
+```
+
+**추가 수정**: `NotificationManager.sendLockUnlock`에 발송 로그 추가 + 설정 꺼짐 시 로그 추가
+→ 알림이 실제로 발송됐는지 로그로 확인 가능해짐
+
+**근본 원인**: 자동 잠금 후 BLE가 재연결되면 `lastKnownLocked`가 nil 초기화(2분 이상 끊김 시) → isFirstRssiAfterConnect → proximityState = .near 가능. 검증 로직이 "재접근 = 검증 불필요"로 해석해 알림을 생략함. 이 동작 자체는 의도적이지만, 로그가 없어 사용자가 버그로 오인함.
+
+---
+
+## 앱 suspend 중 CMMotionActivity 콜백 미수신 패턴
+
+**증상**: 지오펜스 이탈 후 주행 종료 자동 잠금이 발동 안 됨. 로그에 66분 공백 후 앱 재시작.
+
+**원인**: 지오펜스 이탈(isDriving=true) → 앱 suspend → CMMotionActivityManager 주행 종료 콜백이 앱에 도달 안 함. "주행 종료 + 지오펜스 외부 → 자동 잠금" 로직이 있어도 콜백 없으면 실행 불가.
+
+**또 다른 패턴**: 주행 종료 콜백이 최대 21분 지연 도착 → 그 사이 사용자 수동 잠금 → `lastKnownLocked=true` → 자동 잠금 조건 불충족. 이 케이스는 의도된 동작(중복 방지).
+
+**현황**: 구조적 한계. CMMotionActivityManager는 배치 처리로 콜백 지연/누락이 발생할 수 있음. 완전한 해결은 어렵고, Watchdog 기반 보완 로직이 필요 (미수정).
+
+**원칙**: 잠금 미발동 버그 리포트 시 먼저 주행 종료 콜백 시각과 지오펜스 이탈 시각을 비교해 지연/누락 여부 확인.
+
+---
+
+## gain/bluetooth 실패 처리 패턴
+
+**증상**: QR 스캔 후 BYD 앱 승인 완료됐지만 앱에서 "잘못된 응답 형식" 에러
+
+**원인**: `executeRequest`에서 code=0이지만 respondData가 없음 → nil 반환 → `getWatchBlueInfo`의 `guard let decrypted`가 nil → `invalidResponse` throw → `exchangeTokenAndSave`에서 catch 없이 throw → 등록 실패
+
+**수정 패턴**:
+1. `executeRequest`에서 nil 반환 시 로그 추가 ("respondData 없음")
+2. `getWatchBlueInfo`에서 decrypted nil vs JSON 파싱 실패를 각각 다른 에러로 구분:
+   - nil → `BydWatchError.noBleKey` ("BLE 키 미발급 상태")
+   - JSON 파싱 실패 → `BydWatchError.invalidResponse` (prefix 80자 로그 포함)
+3. `exchangeTokenAndSave`에서 gain/bluetooth를 do-catch로 처리 → 실패 시 로그만 남기고 계속 진행 (gain/vehicle dkey 사용)
+4. 최종 `hasBleDkey` 체크에서 명확한 에러 메시지
+
+**원칙**: 여러 소스에서 동일한 값을 얻으려는 경우 (gain/vehicle + gain/bluetooth 모두 dkey 소스), 한 소스 실패가 전체 등록을 실패시키면 안 됨. 각 소스를 독립 do-catch로 처리하고 최종 값 존재 여부만 체크할 것.
+
+---
+
+## silentReLogin 실패 원인 파악 패턴
+
+**증상**: "세션이 만료되었습니다" 에러지만 어떤 이유로 silentReLogin이 실패했는지 알 수 없음
+
+**수정**: `silentReLogin` 진입부와 세션 만료 에러 코드 트리거 시 로그 추가:
+- "재로그인 중 재진입 차단 → sessionExpired [endpoint]"
+- "저장된 계정 없음 → sessionExpired [endpoint]"
+- "세션 만료 감지 (code=X) → 재로그인 시도 [endpoint]"
+
+**원칙**: 에러 처리 경로에 로그가 없으면 다음에 같은 문제가 발생해도 원인을 알 수 없음. 에러 throw 직전에 항상 이유를 로그에 남길 것.
 
 ---
 

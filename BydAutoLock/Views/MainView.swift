@@ -6,6 +6,7 @@ struct MainView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var service = AutoLockService.shared
     @State private var showDrawer = false
+    @State private var showCafeAuth = false
     @State private var vehicleStatus: VehicleStatus?
     @State private var vehicleStatusError: String?
     @State private var isRefreshing = false
@@ -41,6 +42,19 @@ struct MainView: View {
             }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active { WidgetCenter.shared.reloadAllTimelines() }
+        }
+        .onAppear {
+            if !storage.cafeIsRegular || storage.cafeCheckedAt == nil {
+                // 미인증 또는 인증 정보 없음 → 인증 화면
+                showCafeAuth = true
+            } else if let t = storage.cafeCheckedAt,
+                      Date().timeIntervalSince1970 - t >= 86400 {
+                // 24시간 초과 — 백그라운드 재검증 (실패해도 기존 캐시 유지)
+                Task { await revalidateCafe() }
+            }
+        }
+        .fullScreenCover(isPresented: $showCafeAuth) {
+            CafeAuthView(onSuccess: { showCafeAuth = false })
         }
 
             // ── 드로어 오버레이
@@ -354,6 +368,25 @@ struct MainView: View {
         let lng = service.lastParkingLng
         guard let url = URL(string: "maps://?ll=\(lat),\(lng)&q=내+차량") else { return }
         UIApplication.shared.open(url)
+    }
+
+    @MainActor
+    private func revalidateCafe() async {
+        guard let nick = storage.cafeNick else { return }
+        do {
+            let result = try await CafeMemberService.shared.check(nick: nick)
+            if result.found && result.isRegularOrAbove {
+                storage.cafeGrade = result.grade
+                storage.cafeCheckedAt = Date().timeIntervalSince1970
+            } else if result.found && !result.isRegularOrAbove {
+                // 등급 강등 — 재인증 화면 표시
+                storage.cafeIsRegular = false
+                showCafeAuth = true
+            }
+            // found=false이면 기존 캐시 유지 (닉네임 변경 등 서버 불일치 가능성)
+        } catch {
+            // 네트워크 오류 — 기존 캐시 유지 (grace)
+        }
     }
 
     private func refreshVehicleStatus() {

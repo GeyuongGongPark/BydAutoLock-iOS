@@ -75,6 +75,12 @@ final class StorageManager {
         static let lastVehicleTime   = "last_vehicle_time"
         static let lastVehicleSource = "last_vehicle_source"
 
+        // 카페 회원 인증
+        static let cafeNick      = "cafe_nick"
+        static let cafeGrade     = "cafe_grade"
+        static let cafeIsRegular = "cafe_is_regular"
+        static let cafeCheckedAt = "cafe_checked_at"
+
         // BLE 직접 제어 — Watch 페어링 상태 + 차량 BLE 정보 (dkey/토큰 자체는 KC로 분리)
         static let watchQrUuid          = "watch_qr_uuid"
         static let watchIdentifier      = "watch_identifier"
@@ -342,6 +348,38 @@ final class StorageManager {
 
     /// BLE 직접 제어에 필요한 dkey를 확보했는지 여부
     var hasBleDkey: Bool { !(bleDkey ?? "").isEmpty }
+
+    // MARK: - 카페 회원 인증 (UserDefaults)
+
+    var cafeNick: String? {
+        get { defaults.string(forKey: UD.cafeNick) }
+        set { defaults.set(newValue, forKey: UD.cafeNick) }
+    }
+    var cafeGrade: String {
+        get { defaults.string(forKey: UD.cafeGrade) ?? "" }
+        set { defaults.set(newValue, forKey: UD.cafeGrade) }
+    }
+    var cafeIsRegular: Bool {
+        get { defaults.bool(forKey: UD.cafeIsRegular) }
+        set { defaults.set(newValue, forKey: UD.cafeIsRegular) }
+    }
+    /// nil = 미인증, non-nil = 마지막 인증 시각 (unix seconds)
+    var cafeCheckedAt: Double? {
+        get {
+            let v = defaults.double(forKey: UD.cafeCheckedAt)
+            return v == 0 ? nil : v
+        }
+        set {
+            if let v = newValue { defaults.set(v, forKey: UD.cafeCheckedAt) }
+            else { defaults.removeObject(forKey: UD.cafeCheckedAt) }
+        }
+    }
+
+    /// 캐시가 유효한 정회원 인증 상태 (24시간)
+    var isCafeAuthorized: Bool {
+        guard cafeIsRegular, let t = cafeCheckedAt else { return false }
+        return Date().timeIntervalSince1970 - t < 86400
+    }
 
     // MARK: - Clear Auth
 
