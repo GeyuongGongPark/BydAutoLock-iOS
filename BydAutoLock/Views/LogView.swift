@@ -7,6 +7,7 @@ struct LogView: View {
     @State private var entries: [LogEntry]
     @State private var selectedTag: String? = nil
     @State private var showClearAlert = false
+    @State private var showBugReport = false
 
     private let tags = ["", "BLE", "API", "Geofence", "AutoLockService", "GPS", "Session", "Watchdog", "Motion", "BG", "Watch"]
     private let logManager = LogManager.shared
@@ -48,8 +49,14 @@ struct LogView: View {
         }
         .navigationTitle("로그")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showBugReport) {
+            BugReportView()
+        }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Button { showBugReport = true } label: {
+                    Image(systemName: "exclamationmark.bubble")
+                }
                 Button { shareLog() } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
