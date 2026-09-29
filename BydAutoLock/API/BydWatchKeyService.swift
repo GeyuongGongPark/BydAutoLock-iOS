@@ -128,11 +128,17 @@ actor BydWatchKeyService {
     func getWatchBlueInfo(_ token: WatchToken) async throws -> WatchBleKeyInfo {
         let inner = ["appVersion": "2", "vin": token.vin]
         let outer = try buildLoginParamsJson(inner, token: token)
-        guard let decrypted = try await executeRequest(
+        let decrypted = try await executeRequest(
             endpoint: "watch/login/gain/bluetooth",
             outerJson: outer,
             decryptKeyHex: CryptoUtils.md5Hex(token.encryToken)
-        ), let dict = Self.parseJSONObject(decrypted) else {
+        )
+        guard let decrypted else {
+            LogManager.shared.log("Watch", "gain/bluetooth respondData 없음 — BLE 키 미발급 상태")
+            throw BydWatchError.noBleKey
+        }
+        guard let dict = Self.parseJSONObject(decrypted) else {
+            LogManager.shared.log("Watch", "gain/bluetooth JSON 파싱 실패 (len=\(decrypted.count), prefix=\(decrypted.prefix(80)))")
             throw BydWatchError.invalidResponse
         }
         // Gson의 @SerializedName alternate처럼, 지역별로 필드명이 다르게 오는 경우를 모두 대응
@@ -230,6 +236,16 @@ actor BydWatchKeyService {
             return "\(fmt.string(from: date)) (\(expired ? "만료됨" : "유효"))"
         }()
         LogManager.shared.log("Watch", "BLE정보 추출 경로=\(dtoSource), dto키=\(dto.keys.sorted().joined(separator: ",")), info키=\(info?.keys.sorted().joined(separator: ",") ?? "없음"), dkey존재=\(dkey != nil), dkeyLen=\(dkey?.count ?? 0), keyNumber=\(keyNumber.map(String.init) ?? "없음"), mac=\(mac ?? "없음"), keyValidTo=\(keyValidToDesc)")
+
+        // cfFixedList 전체 내용 로깅 (BLE 키가 다른 경로로 내려오는지 확인용)
+        if let cfVechicle = vehicle["cfVechicle"] as? [String: Any],
+           let cfFixedList = cfVechicle["cfFixedList"] as? [[String: Any]] {
+            let summary = cfFixedList.enumerated().map { i, item in
+                "[\(i)]\(describeDictShape(item, depth: 1))"
+            }.joined(separator: " | ")
+            LogManager.shared.log("Watch", "cfFixedList[\(cfFixedList.count)]: \(summary)")
+        }
+
         return (dkey, mac, keyNumber)
     }
 
@@ -422,6 +438,7 @@ actor BydWatchKeyService {
         LogManager.shared.log("Watch", "[\(endpoint)] 응답 성공 (code=0)")
         guard let business = (envelope["respondData"] as? String) ?? (envelope["response"] as? String),
               !business.isEmpty else {
+            LogManager.shared.log("Watch", "[\(endpoint)] respondData 없음 — 서버가 데이터 없이 성공 반환")
             return nil
         }
         return try CryptoUtils.aesDecryptUTF8(business, keyHex: decryptKeyHex)
@@ -494,16 +511,18 @@ struct WatchBleKeyInfo: Sendable {
 
 enum BydWatchError: LocalizedError {
     case invalidResponse
+    case noBleKey
     case serverError(String, String)
     case qrNotApproved
     case timeout
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse:        return "잘못된 응답 형식"
+        case .invalidResponse:           return "잘못된 응답 형식"
+        case .noBleKey:                  return "BLE 키가 서버에 없습니다 — BYD 앱에서 승인 후 재시도하세요"
         case .serverError(let m, let c): return "서버 오류: \(m) (\(c))"
-        case .qrNotApproved:          return "QR이 아직 승인되지 않았습니다"
-        case .timeout:                return "승인 대기 시간 초과"
+        case .qrNotApproved:             return "QR이 아직 승인되지 않았습니다"
+        case .timeout:                   return "승인 대기 시간 초과"
         }
     }
 }
