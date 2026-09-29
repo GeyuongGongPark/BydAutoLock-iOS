@@ -7,8 +7,9 @@ import Foundation
 /// 앱이 재시작된 상황에서도 Keychain credentials를 읽어 세션을 복원하거나 재로그인함.
 private func makeServiceContext() async throws -> (service: BydVehicleService, vin: String, pin: String) {
     let s = StorageManager.shared
-    guard let vin = s.selectedVin, !vin.isEmpty else { throw BydIntentError.notConfigured }
-    guard let pin = s.pin,         !pin.isEmpty else { throw BydIntentError.notConfigured }
+    guard !s.isDemoMode                            else { throw BydIntentError.demoMode }
+    guard let vin = s.selectedVin, !vin.isEmpty   else { throw BydIntentError.notConfigured }
+    guard let pin = s.pin,         !pin.isEmpty   else { throw BydIntentError.notConfigured }
 
     let config  = BydConfig.fromRegion(s.region)
     let service = try BydVehicleService(config: config)
@@ -21,8 +22,12 @@ private func makeServiceContext() async throws -> (service: BydVehicleService, v
 
 private enum BydIntentError: LocalizedError {
     case notConfigured
+    case demoMode
     var errorDescription: String? {
-        "BYD AutoLock 앱에서 계정과 차량 설정을 먼저 완료해주세요."
+        switch self {
+        case .notConfigured: return "BYD AutoLock 앱에서 계정과 차량 설정을 먼저 완료해주세요."
+        case .demoMode:      return "데모 모드에서는 Siri 명령을 사용할 수 없습니다."
+        }
     }
 }
 

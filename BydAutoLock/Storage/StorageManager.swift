@@ -63,6 +63,9 @@ final class StorageManager {
         static let autoUnlockOnApproach  = "auto_unlock_on_approach"
         static let autoLockOnDeparture   = "auto_lock_on_departure"
 
+        // 데모 모드
+        static let isDemoMode        = "is_demo_mode"
+
         // 알림
         static let notifyLockUnlock  = "notify_lock_unlock"
         static let notifySignalLost  = "notify_signal_lost"
@@ -169,6 +172,10 @@ final class StorageManager {
     var isServiceEnabled: Bool {
         get { defaults.object(forKey: UD.serviceEnabled) as? Bool ?? true }
         set { defaults.set(newValue, forKey: UD.serviceEnabled) }
+    }
+    var isDemoMode: Bool {
+        get { defaults.bool(forKey: UD.isDemoMode) }
+        set { defaults.set(newValue, forKey: UD.isDemoMode) }
     }
     var isAutoAcOnUnlock: Bool {
         get { defaults.bool(forKey: UD.autoAcOnUnlock) }

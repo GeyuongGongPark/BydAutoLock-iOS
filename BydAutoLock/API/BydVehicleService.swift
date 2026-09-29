@@ -170,6 +170,7 @@ actor BydVehicleService {
         if resCode != "0" {
             if ["1002", "1005", "1010"].contains(resCode) {
                 // 세션 만료 → 자동 재로그인
+                LogManager.shared.log("API", "세션 만료 감지 (code=\(resCode)) → 재로그인 시도 [\(endpoint)]")
                 return try await silentReLogin(endpoint: endpoint, innerMap: innerMap, vin: vin)
             }
             throw BydError.serverError(outerResp["message"] as? String ?? "Unknown", resCode)
@@ -201,8 +202,12 @@ actor BydVehicleService {
 
     private func silentReLogin(endpoint: String, innerMap: [(key: String, value: Any?)], vin: String?) async throws -> [String: Any] {
         // 재로그인 중 재진입 방지 (무한 재귀 차단)
-        guard !isRelogging else { throw BydError.sessionExpired }
+        guard !isRelogging else {
+            LogManager.shared.log("API", "재로그인 중 재진입 차단 → sessionExpired [\(endpoint)]")
+            throw BydError.sessionExpired
+        }
         guard let user = storedUsername, let pwd = storedPassword, !user.isEmpty else {
+            LogManager.shared.log("API", "저장된 계정 없음 → sessionExpired [\(endpoint)]")
             onSessionExpired?()
             throw BydError.sessionExpired
         }

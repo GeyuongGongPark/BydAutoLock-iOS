@@ -11,6 +11,7 @@ struct AuthSettingsView: View {
     @State private var isLoading = false
     @State private var alertMsg  = ""
     @State private var showAlert = false
+    @State private var showDemoConfirm = false
 
     private let storage = StorageManager.shared
 
@@ -65,9 +66,40 @@ struct AuthSettingsView: View {
                     Section {
                         Button(role: .destructive) {
                             storage.clearAuth()
+                            storage.isDemoMode = false
                             AutoLockService.shared.stop()
                         } label: {
                             Label("로그아웃", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    }
+                }
+
+                if !storage.hasCredentials || storage.isDemoMode {
+                    Section {
+                        if storage.isDemoMode {
+                            Button(role: .destructive) {
+                                storage.isDemoMode = false
+                                AutoLockService.shared.stop()
+                            } label: {
+                                Label("데모 모드 종료", systemImage: "xmark.circle")
+                            }
+                        } else {
+                            Button {
+                                showDemoConfirm = true
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Label("데모 모드로 체험", systemImage: "play.rectangle")
+                                        .font(.headline)
+                                    Spacer()
+                                }
+                            }
+                            .listRowBackground(Color.orange.opacity(0.85))
+                            .foregroundStyle(.white)
+                        }
+                    } footer: {
+                        if !storage.isDemoMode {
+                            Text("BYD 계정 없이 앱의 주요 기능을 체험할 수 있습니다. 실제 차량에 연결되지 않습니다.")
                         }
                     }
                 }
@@ -83,6 +115,16 @@ struct AuthSettingsView: View {
                 Button("확인", role: .cancel) {}
             } message: {
                 Text(alertMsg)
+            }
+            .alert("데모 모드로 체험", isPresented: $showDemoConfirm) {
+                Button("취소", role: .cancel) {}
+                Button("체험 시작") {
+                    AutoLockService.shared.stop()
+                    storage.isDemoMode = true
+                    dismiss()
+                }
+            } message: {
+                Text("실제 차량에 연결되지 않는 체험 모드입니다. 자동 잠금/해제가 동작하지 않습니다.")
             }
             .onAppear(perform: loadSaved)
         }

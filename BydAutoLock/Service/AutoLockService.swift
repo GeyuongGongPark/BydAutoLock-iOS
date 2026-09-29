@@ -45,6 +45,8 @@ final class AutoLockService: NSObject, ObservableObject {
     private let geofenceManager = GeofenceManager.shared
     private let bleDirectController = BleDirectController()
 
+    private var demoRssiTimer: DispatchSourceTimer?
+
     private var isScanning = false
     private var isFirstRssiAfterConnect = false
     private var targetMac: String?
@@ -155,6 +157,10 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Public API
 
     func start() {
+        if storage.isDemoMode {
+            startDemo()
+            return
+        }
         guard storage.isServiceEnabled,
               let mac = storage.deviceMac, !mac.isEmpty else { return }
         targetMac  = mac
@@ -212,6 +218,8 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func stop() {
+        demoRssiTimer?.cancel()
+        demoRssiTimer = nil
         geofenceManager.stopBackgroundKeepAlive()
         stopBLEScan()
         connectedPeripheral = nil
@@ -250,7 +258,39 @@ final class AutoLockService: NSObject, ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    // MARK: - Demo Mode
+
+    private func startDemo() {
+        isRunning = true
+        scanModeDescription = "데모 모드"
+        proximityState = .near
+        lastKnownLocked = true
+        lastParkingLat = 37.5665
+        lastParkingLng = 126.9780
+        lastParkingTime = Date()
+        storage.saveWidgetData(isRunning: true, isLocked: true, battery: 78, drivingRange: 312)
+        WidgetCenter.shared.reloadAllTimelines()
+        LogManager.shared.log("App", "[데모 모드] 시작 — 실제 차량에 연결되지 않습니다")
+
+        let queue = DispatchQueue.global(qos: .background)
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + 0.5, repeating: 2.5)
+        timer.setEventHandler { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, self.isRunning else { return }
+                let base: Double = -67
+                let jitter = Double.random(in: -5...5)
+                self.rawRssi = Int(base + jitter)
+                self.smoothedRssi = base + jitter * 0.4
+                self.isInsideGeofence = true
+            }
+        }
+        timer.resume()
+        demoRssiTimer = timer
+    }
+
     func refreshParkingLocation() {
+        if storage.isDemoMode { return }
         Task { await pollVehicleGPS() }
     }
 
@@ -260,6 +300,15 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func fetchVehicleStatus(vin: String) async throws -> VehicleStatus {
+        if storage.isDemoMode {
+            var demo = VehicleStatus()
+            demo.batteryPercentage = 78
+            demo.drivingRange = 312
+            demo.isLocked = lastKnownLocked ?? true
+            demo.isClimateOn = false
+            demo.interiorTemperature = 24.5
+            return demo
+        }
         guard let service = vehicleService else {
             LogManager.shared.log("API", "차량 상태 조회 실패: 서비스 미연결")
             throw BydError.serviceNotRunning
@@ -285,6 +334,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func manualStartClimate() {
+        if storage.isDemoMode { return }
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -305,6 +355,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func manualStopClimate() {
+        if storage.isDemoMode { return }
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -319,6 +370,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func manualOpenTrunk() {
+        if storage.isDemoMode { return }
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -333,6 +385,7 @@ final class AutoLockService: NSObject, ObservableObject {
     }
 
     func manualCloseTrunk() {
+        if storage.isDemoMode { return }
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -656,6 +709,14 @@ final class AutoLockService: NSObject, ObservableObject {
     // MARK: - Car Action
 
     private func triggerCarAction(shouldUnlock: Bool, isManual: Bool, updateCooldown: Bool = true, wasPredictive: Bool = false) {
+        if storage.isDemoMode {
+            lastKnownLocked = !shouldUnlock
+            if isManual {
+                lastApiResult = shouldUnlock ? "잠금 해제 (데모)" : "잠금 (데모)"
+                lastApiTime = Date()
+            }
+            return
+        }
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
             // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지, 방어적 처리)
@@ -897,8 +958,14 @@ final class AutoLockService: NSObject, ObservableObject {
                 // proximityState가 바뀌었으면 검증 의미 없음 (다시 접근/이탈)
                 let currentState = await MainActor.run { self.proximityState }
                 let expectedLocked = !shouldUnlock
-                if expectedLocked && currentState != .far  { return } // 잠금했는데 다시 접근
-                if !expectedLocked && currentState != .near { return } // 해제했는데 다시 이탈
+                if expectedLocked && currentState != .far {
+                    LogManager.shared.log("API", "잠금 검증 스킵 — 다시 접근 감지 (proximityState=\(currentState)) → 알림 없음")
+                    return
+                }
+                if !expectedLocked && currentState != .near {
+                    LogManager.shared.log("API", "해제 검증 스킵 — 다시 이탈 감지 (proximityState=\(currentState)) → 알림 없음")
+                    return
+                }
 
                 let status = try await service.fetchVehicleStatus(vin: vin)
                 if status.isLocked == expectedLocked {

@@ -28,7 +28,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         NotificationManager.shared.requestAuthorization()
         let storage = StorageManager.shared
         // 앱 시작 시 서비스 자동 시작
-        if storage.isServiceEnabled && storage.hasCredentials && storage.deviceMac != nil {
+        if storage.isServiceEnabled && storage.hasCredentials && storage.deviceMac != nil && !storage.isDemoMode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 AutoLockService.shared.start()
             }

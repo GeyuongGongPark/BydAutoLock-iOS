@@ -250,18 +250,22 @@ final class WatchProvisioningViewModel: ObservableObject {
         }
 
         stage = .fetchingBluetoothKey
-        let bleKey = try await watchService.getWatchBlueInfo(token)
-        if let d = bleKey.dk, !d.isEmpty { storage.bleDkey = d }
-        if let m = bleKey.bluetoothMacAddress, !m.isEmpty { storage.bleMacAddress = m }
-        if let k = bleKey.keyNumber { storage.bleKeyNumber = k }
-        if let p = bleKey.authBluetoothProtocol { storage.bleAuthProtocol = p }
-        if let pw = bleKey.bluetoothPassword, !pw.isEmpty { storage.blePassword = pw }
+        do {
+            let bleKey = try await watchService.getWatchBlueInfo(token)
+            if let d = bleKey.dk, !d.isEmpty { storage.bleDkey = d }
+            if let m = bleKey.bluetoothMacAddress, !m.isEmpty { storage.bleMacAddress = m }
+            if let k = bleKey.keyNumber { storage.bleKeyNumber = k }
+            if let p = bleKey.authBluetoothProtocol { storage.bleAuthProtocol = p }
+            if let pw = bleKey.bluetoothPassword, !pw.isEmpty { storage.blePassword = pw }
 
-        let bDkeyHint = bleKey.dk.map { d -> String in
-            let t = d.trimmingCharacters(in: .whitespaces)
-            return t.count >= 8 ? "\(t.prefix(4))…\(t.suffix(4))" : "len\(t.count)"
-        } ?? "없음"
-        LogManager.shared.log("Watch", "gain/bluetooth 저장: dk=\(bleKey.dk != nil ? "있음(\(bleKey.dk?.count ?? 0)자) hint=\(bDkeyHint)" : "없음"), keyNumber=\(bleKey.keyNumber.map(String.init) ?? "미추출"), protocol=\(bleKey.authBluetoothProtocol.map(String.init) ?? "없음"), password=\(bleKey.bluetoothPassword != nil ? "있음" : "없음"), mac=\(bleKey.bluetoothMacAddress ?? "없음")")
+            let bDkeyHint = bleKey.dk.map { d -> String in
+                let t = d.trimmingCharacters(in: .whitespaces)
+                return t.count >= 8 ? "\(t.prefix(4))…\(t.suffix(4))" : "len\(t.count)"
+            } ?? "없음"
+            LogManager.shared.log("Watch", "gain/bluetooth 저장: dk=\(bleKey.dk != nil ? "있음(\(bleKey.dk?.count ?? 0)자) hint=\(bDkeyHint)" : "없음"), keyNumber=\(bleKey.keyNumber.map(String.init) ?? "미추출"), protocol=\(bleKey.authBluetoothProtocol.map(String.init) ?? "없음"), password=\(bleKey.bluetoothPassword != nil ? "있음" : "없음"), mac=\(bleKey.bluetoothMacAddress ?? "없음")")
+        } catch {
+            LogManager.shared.log("Watch", "gain/bluetooth 실패 (\(error.localizedDescription)) — gain/vehicle dkey 사용")
+        }
 
         guard storage.hasBleDkey else {
             LogManager.shared.log("Watch", "등록 실패 - 차량정보/블루투스키 응답에 dkey 없음")

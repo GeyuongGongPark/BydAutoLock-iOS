@@ -32,9 +32,13 @@ final class NotificationManager {
     // MARK: - Send
 
     func sendLockUnlock(isUnlock: Bool, isManual: Bool, isBle: Bool = false) {
-        guard storage.notifyLockUnlock else { return }
+        guard storage.notifyLockUnlock else {
+            LogManager.shared.log("Notify", "\(isUnlock ? "해제" : "잠금") 알림 스킵 (알림 설정 꺼짐)")
+            return
+        }
         let auto = isManual ? "수동" : "자동"
         let method = isBle ? "\(auto) · BLE" : auto
+        LogManager.shared.log("Notify", "\(isUnlock ? "해제" : "잠금") 알림 발송 (\(method))")
         send(
             id: "lock_unlock",
             title: isUnlock ? "잠금 해제됨" : "차량 잠금됨",

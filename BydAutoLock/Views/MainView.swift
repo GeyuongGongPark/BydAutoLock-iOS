@@ -17,6 +17,7 @@ struct MainView: View {
             NavigationView {
                 ScrollView {
                     VStack(spacing: 16) {
+                        if storage.isDemoMode { demoBanner }
                         serviceToggleCard
                         statusCard
                         rssiCard
@@ -58,6 +59,21 @@ struct MainView: View {
                     .transition(.move(edge: .trailing))
             }
         }
+    }
+
+    // MARK: - Demo Banner
+
+    private var demoBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "play.rectangle.fill")
+            Text("데모 모드 체험 중 — 실제 차량에 연결되지 않습니다")
+                .font(.caption.bold())
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.orange)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Service Toggle Card
@@ -357,6 +373,15 @@ struct MainView: View {
     }
 
     private func refreshVehicleStatus() {
+        if storage.isDemoMode {
+            Task {
+                isRefreshing = true
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                vehicleStatus = try? await service.fetchVehicleStatus(vin: "DEMO")
+                isRefreshing = false
+            }
+            return
+        }
         guard !isRefreshing, let vin = storage.selectedVin else { return }
         isRefreshing = true
         service.refreshParkingLocation()
