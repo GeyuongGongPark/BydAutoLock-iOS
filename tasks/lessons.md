@@ -1,5 +1,21 @@
 # Lessons Learned
 
+## 데모/목업 모드 구현 시 체크리스트
+
+새로운 실행 분기(데모 모드 등)를 추가할 때 반드시 확인해야 할 경로:
+
+1. **앱 자동 시작 경로** (`AppDelegate.didFinishLaunching`) — 조건에 `!isDemoMode` 추가
+2. **Siri / App Intents** — `makeServiceContext()` 상단에 모드 체크 추가 (실제 API 호출 경로이므로 반드시)
+3. **수동 제어 메서드** — `manualLock/Unlock/Climate/Trunk` 각각 분기 추가
+4. **진입 시 확인 Alert** — 실수 탭 방지, 진입 전 stop() 호출로 상태 일관성 보장
+5. **UserDefaults 플래그** — 앱 재시작 후 유지되므로, 예상치 못한 상태 진입 경로 전체 검토
+
+**원칙**: 새 실행 모드는 "이 앱에서 실제 외부 효과(API 호출, BLE 제어)를 낼 수 있는 모든 진입점"을 목록화하고 각각에 분기를 추가할 것.
+
+---
+
+
+
 ---
 
 ## BLE dkey keyMaterial — binary decode가 맞다 (UTF-8 아님)

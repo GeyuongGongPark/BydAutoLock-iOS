@@ -1,5 +1,17 @@
 # 코드/로그 검수 후 수정 계획
 
+## 데모 모드 구현 (2026-09-28) — App Review 2.1(a) 대응
+
+- [x] `StorageManager` — `isDemoMode: Bool` UD 키 추가
+- [x] `AutoLockService` — `startDemo()` / `stop()` 데모 타이머 정리 / `triggerCarAction()` 데모 분기 / `fetchVehicleStatus()` 가짜 데이터 / 수동 제어 메서드 데모 분기
+- [x] `AuthSettingsView` — "데모 모드로 체험" 버튼 추가
+- [x] `MainView` — 데모 배너 + `refreshVehicleStatus()` 데모 분기
+- [x] 화이트박스 테스트 (iOS 15 fontWeight 호환 수정)
+- [x] xcodegen + 빌드 확인 (BUILD SUCCEEDED)
+
+---
+
+
 ## 자가 승인(QR 스캔 없는 Watch 등록) 구현 (feature/self-watch-auth)
 
 경쟁 APK(BydAutoLock_v3.7_vc220.apk) 분석으로 확인된 흐름 포팅.
