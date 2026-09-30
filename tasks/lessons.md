@@ -950,6 +950,62 @@ case .poweredOn:
 
 ---
 
+## 서버 필수 항목 빈 문자열 → 400 패턴
+
+**증상**: BugReportView에서 본문 미입력 시 제출 후 "제출에 실패했습니다. 네트워크 연결을 확인해주세요." 표시.
+
+**원인**: 서버가 `body` 필드를 필수로 처리하고 빈 문자열(`""`)을 "필수 항목 누락"으로 거부(400).
+앱 코드에서 선택 항목인 본문을 trim 후 그대로 전달 → 미입력 시 `""` 전송 → 400.
+
+**진단 방법**: `URLError(.badServerResponse)` catch로 인해 에러 코드가 숨겨짐. curl로 직접 API 테스트 후 응답 body 확인 필수 (`e.read().decode()`).
+
+**해결**: 빈 문자열 대신 `"-"` fallback:
+```swift
+"body": trimmedBody.isEmpty ? "-" : trimmedBody,
+```
+
+**원칙**: 선택 입력 항목을 서버에 빈 문자열로 보내면 서버 validation에서 거부될 수 있음. 서버 스펙을 모르면 빈 문자열 대신 placeholder 값으로 안전하게 처리할 것.
+
+---
+
+## 지오펜스 `requestState()` 응답 고착 패턴
+
+**증상**: 서비스 시작 직후 또는 아침에 차 옆에서 "중지됨" 상태가 유지되며 자동 동작 안 됨.
+
+**원인**: `start()` → `CBCentralManager` 초기화(비동기, 빠름) → `beginScanning()` 호출 → `isGeofencingEnabled && !isInsideGeofence`로 차단
+→ `registerGeofence()` → `requestState()` 비동기 응답(`didDetermineState`)이 `.unknown`으로 오거나 오지 않으면 영구 고착
+
+**해결 패턴** (두 가지 조합):
+1. `registerGeofence()`에서 `requestState()` 외에 `locationManager.location`(OS 캐시 위치)으로 즉시 거리 계산 → 반경 내이면 즉시 `fireEnterEvent()` 호출
+   ```swift
+   if let currentLocation = locationManager.location {
+       let distance = currentLocation.distance(from: CLLocation(latitude: lat, longitude: lng))
+       if distance <= Double(StorageManager.shared.geofenceRadius) {
+           fireEnterEvent()
+       }
+   }
+   ```
+2. Watchdog에서 `isGeofencingEnabled && !isInsideGeofence` 고착 감지 시 `reRequestState()` 호출로 주기적 복구
+
+**중복 이벤트**: 즉시 판단 + `requestState()` 응답이 모두 `.inside`로 오면 두 번 호출 → 2초 디바운스(`lastEnterEventTime`)로 흡수.
+**경계 오차**: GPS ±50m 오차로 내부로 잘못 판단해도, `didExitRegion` 이벤트로 복구됨. 실제 BLE 신호 없으면 자동 동작 미발동.
+
+**원칙**: `requestState()` 응답에만 의존하지 말 것. 캐시된 위치(즉시 판단)와 주기적 재확인(Watchdog)을 조합해야 함.
+
+---
+
+## 온보딩 뷰에서 중첩 NavigationView 방지
+
+**패턴**: OnboardingView 내부에서 `NavigationLink`로 다른 뷰를 연결할 때, 대상 뷰 내부에 `NavigationView`가 있으면 중첩 NavigationView 이슈 발생.
+
+**체크**: AuthSettingsView, BluetoothSettingsView는 내부에 `NavigationView`를 갖고 있음.
+- `NavigationLink` → 중첩 발생 (NG)
+- `.sheet(isPresented:)` → 별도 모달로 표시, 중첩 없음 (OK)
+
+**원칙**: 다른 뷰를 연결할 때 해당 뷰가 내부에 `NavigationView`를 포함하는지 먼저 확인할 것. 포함하면 `.sheet`로 표시.
+
+---
+
 ## 서버 에러 코드별 재시도 여부 결정 패턴
 
 **재시도해도 의미 없는 에러는 즉시 종료해야 함:**

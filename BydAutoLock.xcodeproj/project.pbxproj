@@ -48,6 +48,7 @@
 		A9D3AD58586D296537170F04 /* WatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D111798EB9A1B0F20988046 /* WatchComplication.swift */; };
 		B25444BC6C1B9656A487D6DE /* BydAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3061EB2C21A49BE7F7A3740D /* BydAppIntents.swift */; };
 		C71C9B9740B6A4AE93EC7197 /* GeofenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6618C7221FA7985517B64B93 /* GeofenceManager.swift */; };
+		D4FE5D437A486E30A51627C4 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 049F436C9697C635C0464BF9 /* HelpView.swift */; };
 		D90AA717CE76A8547673BFEE /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D773CC403BBD4A21A48A4B /* StorageManager.swift */; };
 		D96CBB0917233ACF9D8A9A38 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AD4FD9EF8EF4A0EFD1FAE9 /* WatchConnectivityManager.swift */; };
 		DDD4AA4E36B420D7AA1E4AEC /* AuthSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */; };
@@ -129,6 +130,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		049F436C9697C635C0464BF9 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		04BCDC74BB13E4601806301D /* BydAutoLockWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BydAutoLockWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0672EE356B4C6B1AA5302241 /* BleDirectController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BleDirectController.swift; sourceTree = "<group>"; };
 		090C7BB19A72FC858E66F1EA /* SettingsDrawerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDrawerView.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 				19DFF4523646F77BBE8446E5 /* AuthSettingsView.swift */,
 				F09A615DC383512DCEE68713 /* BluetoothSettingsView.swift */,
 				33A2AE842539E4AB3D98A2E3 /* BugReportView.swift */,
+				049F436C9697C635C0464BF9 /* HelpView.swift */,
 				35CA6D97AAC2BB7D4D478200 /* LogView.swift */,
 				AB5BD749506934B29CD1C2AC /* MainView.swift */,
 				D504D9CFE498213E21FF1FD2 /* NotificationSettingsView.swift */,
@@ -561,6 +564,7 @@
 				3553478C2056D74FD17C5428 /* EnergyConsumption.swift in Sources */,
 				C71C9B9740B6A4AE93EC7197 /* GeofenceManager.swift in Sources */,
 				A5D9E5C1A3329ADD8ABEE007 /* GpsInfo.swift in Sources */,
+				D4FE5D437A486E30A51627C4 /* HelpView.swift in Sources */,
 				3DCF82775F182D136EF3E614 /* HvacStatus.swift in Sources */,
 				FDE22BC4547F63A8F7230EF0 /* KeychainHelper.swift in Sources */,
 				58C1A57F000F788AC93D4946 /* LogEntry.swift in Sources */,
@@ -708,7 +712,7 @@
 				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
 				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.watchapp;
-				PRODUCT_NAME = "BYD AutoLock";
+				PRODUCT_NAME = BYDAutoLock;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -908,7 +912,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock;
-				PRODUCT_NAME = "BYD AutoLock";
+				PRODUCT_NAME = BYDAutoLock;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -928,7 +932,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock;
-				PRODUCT_NAME = "BYD AutoLock";
+				PRODUCT_NAME = BYDAutoLock;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -941,7 +945,7 @@
 				CODE_SIGN_ENTITLEMENTS = BydAutoLockWatch/BydAutoLockWatch.entitlements;
 				INFOPLIST_FILE = BydAutoLockWatch/Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ggp.bydautolock.watchapp;
-				PRODUCT_NAME = "BYD AutoLock";
+				PRODUCT_NAME = BYDAutoLock;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;

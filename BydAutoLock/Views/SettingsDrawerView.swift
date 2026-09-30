@@ -16,6 +16,7 @@ struct SettingsDrawerView: View {
                 }
 
                 Section("기타") {
+                    drawerLink("사용 가이드", icon: "questionmark.circle.fill", color: .teal) { HelpView() }
                     Picker(selection: $colorSchemeRaw) {
                         Text("라이트").tag("light")
                         Text("다크").tag("dark")

@@ -66,6 +66,7 @@ final class StorageManager {
         // 데모 모드
         static let isDemoMode        = "is_demo_mode"
 
+
         // 알림
         static let notifyLockUnlock  = "notify_lock_unlock"
         static let notifySignalLost  = "notify_signal_lost"

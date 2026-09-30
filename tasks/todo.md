@@ -1,5 +1,95 @@
 # 코드/로그 검수 후 수정 계획
 
+## 초보자 설정 가이드 작성
+
+### 작업 순서: README → 앱 내 온보딩 → 앱 내 도움말 뷰
+
+#### B. README 초보자 가이드 (1단계) — 완료
+- [x] "초기 설정" 섹션을 초보자 친화적 단계별 가이드로 전면 개편
+  - 준비물, 5단계 설정 가이드, RSSI/EMA/지오펜싱 설명, FAQ
+
+#### C. 앱 내 온보딩 — 미구현 (결정: 불필요)
+- 재설치 사용자에게 답답한 경험. HelpView로 대체 충분.
+
+#### A. 앱 내 도움말 뷰 — 완료
+- [x] `HelpView.swift` 신규 생성 — 설정 항목별 아코디언 도움말 + FAQ
+- [x] `SettingsDrawerView.swift` — "사용 가이드" 메뉴 항목 추가
+
+**검증**: xcodegen generate + BUILD SUCCEEDED
+
+---
+
+## App Store 심사 거절 대응 (2026-09-29, v1.6.3 제출 ID: 2b326655)
+
+### Guideline 4.1(a) — 앱 이름에 "BYD" 포함
+
+**결정**: 앱 이름을 `BYDAutoLock`으로 변경 + 동일 계정 BYDStats 근거로 답변
+
+- [x] App Store Connect에서 앱 이름 "BYD AutoLock" → "BYDAutoLock" 변경
+- [x] project.yml `PRODUCT_NAME` "BYD AutoLock" → "BYDAutoLock" 변경 후 xcodegen
+- [x] App Store Connect에서 해당 제출에 답변 전송 (2026-09-30)
+
+**답변 초안 (영문):**
+
+> This app is an independent third-party utility and is not affiliated with, endorsed by, or associated with BYD Auto Co., Ltd. in any way.
+>
+> We would like to bring the following to your attention:
+>
+> 1. **Established naming convention**: Other third-party BYD companion apps on the App Store also include "BYD" in their names and have passed App Store review, demonstrating that this naming convention is an accepted practice for third-party vehicle companion apps.
+>
+> 2. **No association with BYD's official app**: Our app does not copy or imitate BYD Auto Co., Ltd.'s official app in terms of interface, branding, icons, or functionality. The app description clearly states it is an unofficial third-party companion app, and the app does not use BYD's logo or visual identity.
+>
+> 3. **Name update**: We are updating the app name from "BYD AutoLock" to "BYDAutoLock" (no space) to further reduce any potential for confusion with BYD's official branding.
+>
+> We respectfully request reconsideration based on the above.
+
+---
+
+### Guideline 2.5.4 — UIBackgroundModes location 사용 근거
+
+**전략**: 화면 녹화 + 기술 설명 답변 제출
+
+- [x] 화면 녹화 촬영
+- [x] App Store Connect 앱 심사 정보 > 메모란에 녹화 영상 업로드 후 답변 (2026-09-30)
+
+**화면 녹화 시나리오 (1분 이내):**
+1. 앱 실행 → 서비스 실행 중 상태 확인 (5초)
+2. 로그 뷰 열기 → BLE 연결/RSSI 로그 확인 (10초)
+3. 홈 버튼으로 백그라운드 전환 → 다른 앱 실행 → 화면 잠금 (10초)
+4. 잠금화면 상태에서 차에 접근 → 잠금화면에 "차량 문 잠금 해제" 알림 수신 확인 (30초)
+5. 앱 열기 → 로그에서 백그라운드 중 BLE 동작 로그 확인 (10초)
+
+**답변 초안 (영문):**
+
+> This app requires the `location` background mode to maintain continuous BLE RSSI monitoring while the app is in the background.
+>
+> Without this background mode, iOS suspends the app within approximately 30 seconds of backgrounding, which stops all Bluetooth scanning and prevents the core functionality of the app (automatic vehicle door lock/unlock based on proximity).
+>
+> The app uses `startUpdatingLocation` with `kCLLocationAccuracyThreeKilometers` accuracy — this uses cell-tower-based positioning only (no GPS chip activation) and is solely used to prevent app suspension, not for real-time location tracking.
+>
+> Additionally, the app uses CoreLocation's region monitoring (CLRegionMonitoring / geofencing) to detect when the user approaches the parked vehicle location, which activates BLE scanning. This is a direct use of persistent location as described in the guideline.
+>
+> The attached screen recording demonstrates the app detecting vehicle proximity via BLE RSSI while the iPhone screen is locked (background state) and automatically unlocking the vehicle door, confirming that persistent background location is essential for the app's core feature.
+
+---
+
+## "중지됨" 고착 버그 수정 (2026-09-29)
+
+**증상**: 아침에 차 옆에서, 또는 퇴근 후 지오펜스 진입 시 서비스가 "중지됨"에서 "재연결 중"으로 즉시 전환되지 않음.
+
+**원인**:
+1. `start()` → `CBCentralManager` 초기화(비동기) → `beginScanning()` 호출 → `isGeofencingEnabled && !isInsideGeofence`로 차단
+2. `requestState()` 응답이 `.unknown`으로 오거나 너무 늦으면 `didEnterGeofence()` 재호출 안 됨 → 영구 고착
+
+**해결**:
+- [x] `GeofenceManager` — `registerGeofence()`에서 `requestState()` 외에 현재 위치(CLLocationManager 캐시)로 즉시 지오펜스 내부 여부 판단, 내부면 즉시 `fireEnterEvent()` 호출
+- [x] `GeofenceManager` — `reRequestState()` 메서드 추가 (등록된 지오펜스 영역에 `requestState()` 재요청)
+- [x] `AutoLockService` Watchdog — `isGeofencingEnabled && !isInsideGeofence`인 경우 `reRequestState()` 호출로 고착 주기적 복구
+- [x] 화이트박스 테스트 — 중복 진입 이벤트 2초 디바운스로 흡수 ✓, `location` nil 안전 처리 ✓, 외부 고착 후 `didDetermineState(.outside)` 시 진입 이벤트 미발생 ✓
+- [x] `tasks/lessons.md` 업데이트
+
+---
+
 ## 로그 제보 기능 구현 (2026-09-28)
 
 로그 뷰에서 "제보하기" 버튼으로 byd-portal 제보 페이지에 직접 제출.
