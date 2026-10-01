@@ -168,13 +168,13 @@ final class WatchProvisioningViewModel: ObservableObject {
             try await vehicleService.scanWatchLoginAction(uuid: uuid, watchImei: watchImei)
 
             // 3. VIN 조회 → determine
-            let vins = try await vehicleService.fetchVehicleList()
-            guard let vin = vins.first else {
+            let vehicleList = try await vehicleService.fetchVehicleList()
+            guard let vinEntry = vehicleList.first else {
                 throw BydWatchError.serverError("계정에 등록된 차량이 없습니다", "")
             }
             try await vehicleService.scanWatchLoginDetermine(
-                uuid: uuid, watchImei: watchImei, vin: vin,
-                carType: nil, controlPwd: storage.pin
+                uuid: uuid, watchImei: watchImei, vin: vinEntry.vin,
+                carType: vinEntry.carType, controlPwd: storage.pin
             )
             LogManager.shared.log("Watch", "자가 승인 완료 → 토큰 교환 시작")
 

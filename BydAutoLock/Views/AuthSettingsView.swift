@@ -145,9 +145,9 @@ struct AuthSettingsView: View {
             let service = try BydVehicleService(config: config)
             let uid     = try await service.login(username: username, password: password)
 
-            let vins: [String]
+            let vehicleList: [(vin: String, carType: String?)]
             do {
-                vins = try await service.fetchVehicleList()
+                vehicleList = try await service.fetchVehicleList()
             } catch {
                 throw BydError.serverError("로그인은 성공했지만 차량 목록 조회에 실패했습니다: \(error.localizedDescription)", "vehicle-list")
             }
@@ -163,10 +163,10 @@ struct AuthSettingsView: View {
                 storage.userId         = uid
                 storage.signToken      = signToken
                 storage.encryToken     = encryToken
-                storage.vins           = vins.joined(separator: ",")
-                storage.selectedVin    = vins.first
+                storage.vins           = vehicleList.map(\.vin).joined(separator: ",")
+                storage.selectedVin    = vehicleList.first?.vin
                 storage.hasCredentials = true
-                alertMsg = "로그인 성공! VIN: \(vins.first ?? "없음")"
+                alertMsg = "로그인 성공! VIN: \(vehicleList.first?.vin ?? "없음")"
                 showAlert = true
             }
         } catch {

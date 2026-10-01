@@ -960,10 +960,12 @@ final class AutoLockService: NSObject, ObservableObject {
                 let expectedLocked = !shouldUnlock
                 if expectedLocked && currentState != .far {
                     LogManager.shared.log("API", "잠금 검증 스킵 — 다시 접근 감지 (proximityState=\(currentState)) → 알림 없음")
+                    await MainActor.run { self.lastKnownLocked = nil }
                     return
                 }
                 if !expectedLocked && currentState != .near {
                     LogManager.shared.log("API", "해제 검증 스킵 — 다시 이탈 감지 (proximityState=\(currentState)) → 알림 없음")
+                    await MainActor.run { self.lastKnownLocked = nil }
                     return
                 }
 
@@ -1045,6 +1047,11 @@ final class AutoLockService: NSObject, ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 if self.smoothedRssi == nil {
+                    // 지오펜스 활성화 상태인데 외부로 고착된 경우 → 상태 재확인으로 복구
+                    if self.storage.isGeofencingEnabled && !self.isInsideGeofence {
+                        LogManager.shared.log("Watchdog", "지오펜스 외부 고착 → 상태 재확인 요청")
+                        self.geofenceManager.reRequestState()
+                    }
                     LogManager.shared.log("Watchdog", "BLE 스캔 갱신")
                     self.isStationary = false
                     self.beginScanning()

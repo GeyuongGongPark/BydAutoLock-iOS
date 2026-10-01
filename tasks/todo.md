@@ -1,5 +1,20 @@
 # 코드/로그 검수 후 수정 계획
 
+## P0 버그 수정 (로그 분석 2026-10-01)
+
+### P0-1: 잠금 검증 스킵 시 lastKnownLocked 방치 — 완료
+- [x] `AutoLockService.scheduleVerifyAndNotify` — 잠금 검증 스킵 return 전 `lastKnownLocked = nil` 추가
+- [x] 해제 검증 스킵 경로도 동일하게 `lastKnownLocked = nil` 추가
+- [x] 화이트박스 테스트 (모든 early return 경로 검토 완료)
+
+### P0-2: Watch 자가 승인 carType=nil → 1010 — 완료
+- [x] `BydVehicleService.fetchVehicleList()` 반환 타입 `[String]` → `[(vin: String, carType: String?)]`
+- [x] `AuthSettingsView` — 호출부 수정 (`.vin`, `.map(\.vin)`)
+- [x] `WatchProvisioningView.runSelfApprove` — carType 실제 값 전달
+- [x] 화이트박스 테스트 (carType Int/String 양쪽 파싱, 빌드 성공 확인)
+
+---
+
 ## 초보자 설정 가이드 작성
 
 ### 작업 순서: README → 앱 내 온보딩 → 앱 내 도움말 뷰

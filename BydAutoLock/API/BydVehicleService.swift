@@ -343,7 +343,7 @@ actor BydVehicleService {
 
     // MARK: - Vehicle List
 
-    func fetchVehicleList() async throws -> [String] {
+    func fetchVehicleList() async throws -> [(vin: String, carType: String?)] {
         let result = try await postTokenSecure(endpoint: "/app/account/getAllListByUserId",
                                                innerMap: buildInnerBase(), vin: nil)
         let list = result["list"] as? [[String: Any]] ?? []
@@ -360,7 +360,12 @@ actor BydVehicleService {
                 if !bleKeys.isEmpty { LogManager.shared.log("API", "[DEV] vehicleFunLearnInfo BLE관련: \(bleKeys)") }
             }
         }
-        return list.compactMap { $0["vin"] as? String }
+        return list.compactMap { item -> (vin: String, carType: String?)? in
+            guard let vin = item["vin"] as? String else { return nil }
+            let carType = item["carType"].flatMap { $0 as? String }
+                       ?? item["carType"].flatMap { ($0 as? Int).map { String($0) } }
+            return (vin: vin, carType: carType)
+        }
     }
 
     // MARK: - Watch QR 자가 승인 (SelfWatchAuthFlow 포팅)

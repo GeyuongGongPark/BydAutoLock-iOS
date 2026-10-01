@@ -1026,3 +1026,35 @@ case .poweredOn:
 - `"에어컨 자동 시작: 22.0°C, 풍속: 2단"` → 실제 전송값 추적 가능
 
 ---
+
+## scheduleVerifyAndNotify 검증 스킵 시 lastKnownLocked 리셋 필요 (P0-1)
+
+**문제**: `scheduleVerifyAndNotify`에서 proximityState가 바뀌어 검증 스킵 시 `return`만 하면 `lastKnownLocked`가 stale(잠금 성공으로 착각한 상태) 유지.
+
+**시나리오**:
+1. 이탈 → 자동 잠금 실행 → `lastKnownLocked = true`
+2. 35초 대기 중 다시 접근 → proximityState == .near
+3. 검증 스킵 `return` → `lastKnownLocked = true` 방치
+4. 이탈 재발 → `lastKnownLocked != true` 조건 통과 안 됨 → 잠금 안 됨
+
+**해결**: 스킵 `return` 전에 `await MainActor.run { self.lastKnownLocked = nil }` 추가.
+
+**원칙**: `scheduleVerifyAndNotify`의 모든 early return 경로(스킵, 최종 실패)에서 `lastKnownLocked = nil` 리셋 필요. "검증하지 않았다면 상태를 모르는 것"이 옳다.
+
+---
+
+## API 반환 타입에서 필드 누락 — 호출 지점에서 nil 하드코딩으로 이어짐 (P0-2)
+
+**문제**: `fetchVehicleList()`가 `[String]`(vin만) 반환 → carType 필드 버림 → 호출 지점에서 `carType: nil` 하드코딩 → Watch 자가 승인 API 1010 에러.
+
+**패턴**: API 응답에서 "지금 당장 필요 없어 보이는" 필드를 버리면, 나중에 다른 API에서 그 필드가 필요할 때 호출 지점에서 nil을 임시로 쓰게 됨.
+
+**해결**: `fetchVehicleList()` 반환 타입을 `[(vin: String, carType: String?)]`로 변경. 단일 레코드가 아니라 튜플로 관련 데이터를 묶어 전달.
+
+**서버 carType 필드 타입 주의**: Int(`0`) 또는 String으로 올 수 있음 — 두 경우 모두 처리:
+```swift
+let carType = item["carType"].flatMap { $0 as? String }
+           ?? item["carType"].flatMap { ($0 as? Int).map { String($0) } }
+```
+
+---
