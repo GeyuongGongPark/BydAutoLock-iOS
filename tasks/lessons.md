@@ -1027,6 +1027,57 @@ case .poweredOn:
 
 ---
 
+## 로그 분석 결과는 즉시 todo.md에 전부 기록할 것
+
+**문제**: P0 이슈 2건을 todo에 기록하고 나머지 P1 이슈들을 기록하지 않아, 다음 세션에서 "나머지 2개"가 뭔지 기억 못 하는 상황 발생.
+
+**원칙**: 로그 분석 세션에서 발견한 모든 이슈(P0/P1/P2)를 그 자리에서 전부 todo.md에 기록. 우선순위를 표시하더라도 목록 누락 절대 금지.
+
+---
+
+## 수동 제어 연타 방지 패턴
+
+**문제**: 사용자가 응답이 없다고 생각하고 버튼을 연타 → 초당 10회 이상 API 호출 → 서버 6024 에러("마지막 작업 완료되지 않음") 연속 발생.
+
+**해결**: 수동 제어 메서드에 `lastManualActionTime` 기반 3초 쿨다운 추가.
+- `triggerCarAction(isManual: true)` 진입부
+- `manualStartClimate/StopClimate/OpenTrunk/CloseTrunk` 각각 앞에 동일 체크
+
+```swift
+private var lastManualActionTime: Date?
+private static let manualActionCooldown: TimeInterval = 3.0
+
+// 각 수동 메서드 진입부
+let now = Date()
+if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+    LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시")
+    return
+}
+lastManualActionTime = now
+```
+
+**원칙**: UI에 로딩 인디케이터가 없으면 반드시 서비스 레이어에서 연타 방지. 사용자가 "응답 없음"으로 착각하는 것은 UX 문제이지만, API 스팸은 서버 장애 원인이 됨.
+
+---
+
+## 서버 배터리/주행거리 0 응답 필터링
+
+**문제**: `fetchVehicleStatus` 첫 1-2회 조회에서 `batteryPercentage=0, drivingRange=0` 반환 (서버 캐시 준비 중). UI에 0%/0km가 그대로 표시됨.
+
+**패턴**: 실제로 방전된 차량은 원격 API 자체가 불가능하므로, `battery==0 && range==0` 동시 성립은 실용적으로 캐시 미준비 응답.
+
+**해결**: `MainView.refreshVehicleStatus`에서 갱신 스킵:
+```swift
+if status.batteryPercentage == 0 && status.drivingRange == 0 {
+    vehicleStatusError = nil  // 오류로 표시하지 않음
+} else {
+    vehicleStatus = status
+    ...
+}
+```
+
+---
+
 ## scheduleVerifyAndNotify 검증 스킵 시 lastKnownLocked 리셋 필요 (P0-1)
 
 **문제**: `scheduleVerifyAndNotify`에서 proximityState가 바뀌어 검증 스킵 시 `return`만 하면 `lastKnownLocked`가 stale(잠금 성공으로 착각한 상태) 유지.

@@ -98,6 +98,10 @@ final class AutoLockService: NSObject, ObservableObject {
     private var lastDisconnectTime: Date?                          // 재연결 세션 판단용
     private static let postLockUnlockCooldown: TimeInterval = 30   // lock 후 unlock 차단
 
+    // 수동 제어 연타 방지
+    private var lastManualActionTime: Date?
+    private static let manualActionCooldown: TimeInterval = 3.0
+
     // 반복 동작 과다 방지 (슬라이딩 윈도우)
     private var recentAutoActionTimes = [Date]()
     private static let autoActionWindow: TimeInterval = 120        // 2분 윈도우
@@ -335,6 +339,12 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func manualStartClimate() {
         if storage.isDemoMode { return }
+        let now = Date()
+        if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+            LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시 (에어컨 켜기)")
+            return
+        }
+        lastManualActionTime = now
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -356,6 +366,12 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func manualStopClimate() {
         if storage.isDemoMode { return }
+        let now = Date()
+        if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+            LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시 (에어컨 끄기)")
+            return
+        }
+        lastManualActionTime = now
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -371,6 +387,12 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func manualOpenTrunk() {
         if storage.isDemoMode { return }
+        let now = Date()
+        if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+            LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시 (트렁크 열기)")
+            return
+        }
+        lastManualActionTime = now
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -386,6 +408,12 @@ final class AutoLockService: NSObject, ObservableObject {
 
     func manualCloseTrunk() {
         if storage.isDemoMode { return }
+        let now = Date()
+        if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+            LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시 (트렁크 닫기)")
+            return
+        }
+        lastManualActionTime = now
         guard let service = vehicleService,
               let vin = storage.selectedVin,
               let pin = storage.pin else { return }
@@ -717,6 +745,16 @@ final class AutoLockService: NSObject, ObservableObject {
             }
             return
         }
+        // 수동 제어 연타 방지
+        if isManual {
+            let now = Date()
+            if let last = lastManualActionTime, now.timeIntervalSince(last) < Self.manualActionCooldown {
+                LogManager.shared.log("API", "수동 제어 쿨다운 중 — 무시 (\(shouldUnlock ? "해제" : "잠금"))")
+                return
+            }
+            lastManualActionTime = now
+        }
+
         // 자동 동작 진동 방지 (수동 제어는 항상 허용)
         if !isManual {
             // 이미 같은 상태이면 명령 스킵 (중복 잠금/해제 방지, 방어적 처리)

@@ -389,9 +389,14 @@ struct MainView: View {
             defer { isRefreshing = false }
             do {
                 let status = try await service.fetchVehicleStatus(vin: vin)
-                vehicleStatus = status
-                vehicleStatusError = nil
-                service.updateWidgetStatus(battery: status.batteryPercentage, drivingRange: Int(status.drivingRange))
+                // 배터리·주행거리 모두 0이면 서버 캐시 미준비 응답 → 이전 값 유지
+                if status.batteryPercentage == 0 && status.drivingRange == 0 {
+                    vehicleStatusError = nil
+                } else {
+                    vehicleStatus = status
+                    vehicleStatusError = nil
+                    service.updateWidgetStatus(battery: status.batteryPercentage, drivingRange: Int(status.drivingRange))
+                }
             } catch {
                 vehicleStatus = nil
                 vehicleStatusError = error.localizedDescription
