@@ -150,12 +150,13 @@ struct BugReportView: View {
     }
 
     private func buildPayload(title: String) -> [String: Any] {
+        let trimmedBody = body_.trimmingCharacters(in: .whitespaces)
         var payload: [String: Any] = [
             "title": title,
             "app": "BYD AutoLock",
             "platform": "iOS",
             "car": mappedCar,
-            "body": body_.trimmingCharacters(in: .whitespaces),
+            "body": trimmedBody.isEmpty ? "-" : trimmedBody,
         ]
 
         if attachLog {

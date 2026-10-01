@@ -53,7 +53,22 @@ final class GeofenceManager: NSObject {
         locationManager.startMonitoring(for: region)
         // 이미 지오펜스 안에 있는 경우 진입 이벤트가 오지 않으므로 현재 상태 즉시 확인
         locationManager.requestState(for: region)
+        // requestState() 응답이 늦거나 .unknown으로 올 수 있으므로, 캐시된 현재 위치로 즉시 판단
+        if let currentLocation = locationManager.location {
+            let vehicleLocation = CLLocation(latitude: lat, longitude: lng)
+            let distance = currentLocation.distance(from: vehicleLocation)
+            if distance <= Double(StorageManager.shared.geofenceRadius) {
+                LogManager.shared.log("Geofence", "현재 위치 내부 확인 (거리: \(Int(distance))m) — 즉시 진입 처리")
+                fireEnterEvent()
+            }
+        }
         LogManager.shared.log("Geofence", "등록: (\(lat), \(lng)) 반경 \(Int(radius))m")
+    }
+
+    /// 등록된 지오펜스의 현재 상태를 다시 요청 (고착 상태 복구용)
+    func reRequestState() {
+        guard let region = locationManager.monitoredRegions.first(where: { $0.identifier == Self.geofenceID }) else { return }
+        locationManager.requestState(for: region)
     }
 
     func removeGeofence() {
